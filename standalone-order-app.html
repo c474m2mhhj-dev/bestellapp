@@ -1,0 +1,953 @@
+import { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } from "react";
+
+/* ══════════════════════════════════════════════
+   DESIGN SYSTEM — Light + Dark tokens
+══════════════════════════════════════════════ */
+const LIGHT = {
+  primary:"#00695C", dark:"#004D40", light:"#E0F2F1", accent:"#D4A843",
+  bg:"#F7F6F1", surface:"#FFFFFF", surface2:"#F2F2ED", surfaceGlass:"rgba(255,255,255,0.72)",
+  border:"#E0E0DA", borderGlass:"rgba(255,255,255,0.35)",
+  text:"#1A1A1A", textMid:"#555550", textLight:"#999990",
+  red:"#E53935", amber:"#F59E0B", blue:"#2563EB", green:"#16A34A",
+  navBg:"rgba(255,255,255,0.97)", heroFrom:"#004D40", heroTo:"#00695C",
+};
+const DARK = {
+  primary:"#4DB6A9", dark:"#00695C", light:"#1A3A36", accent:"#D4A843",
+  bg:"#0F1918", surface:"#1C2B28", surface2:"#243330", surfaceGlass:"rgba(28,43,40,0.82)",
+  border:"#2A3D3A", borderGlass:"rgba(255,255,255,0.12)",
+  text:"#F0F0EB", textMid:"#AAAAAA", textLight:"#666660",
+  red:"#EF5350", amber:"#FBC02D", blue:"#42A5F5", green:"#66BB6A",
+  navBg:"rgba(15,25,24,0.97)", heroFrom:"#0A1614", heroTo:"#004D40",
+};
+
+const DS = {
+  radius:{ sm:10, md:14, lg:20, xl:28, full:999 },
+  shadow:{
+    xs:(dk)=> dk?"0 1px 4px rgba(0,0,0,.4)":"0 1px 4px rgba(0,0,0,.06)",
+    sm:(dk)=> dk?"0 2px 10px rgba(0,0,0,.5)":"0 2px 10px rgba(0,0,0,.08)",
+    md:(dk)=> dk?"0 4px 20px rgba(0,0,0,.6)":"0 4px 20px rgba(0,0,0,.11)",
+    lg:(dk)=> dk?"0 8px 32px rgba(0,0,0,.7)":"0 8px 32px rgba(0,0,0,.14)",
+    green:(dk)=> dk?"0 6px 20px rgba(77,182,169,.35)":"0 6px 20px rgba(0,105,92,.30)",
+  },
+  glass:(dk)=>({
+    background: dk?"rgba(28,43,40,0.75)":"rgba(255,255,255,0.68)",
+    backdropFilter:"blur(20px)",
+    WebkitBackdropFilter:"blur(20px)",
+    border: `1px solid ${dk?"rgba(255,255,255,.1)":"rgba(255,255,255,.4)"}`,
+  }),
+};
+
+/* ══════════════════════════════════════════════
+   STORAGE
+══════════════════════════════════════════════ */
+const hasSt = typeof window!=="undefined" && typeof window.storage!=="undefined";
+const Db = {
+  set:  async(k,v,sh=false)=>{ if(!hasSt)return; try{await window.storage.set(k,JSON.stringify(v),sh)}catch(e){} },
+  get:  async(k,sh=false)  =>{ if(!hasSt)return null; try{const r=await window.storage.get(k,sh);return r?JSON.parse(r.value):null}catch(e){return null} },
+  list: async(p,sh=false)  =>{ if(!hasSt)return[]; try{const r=await window.storage.list(p,sh);return r?r.keys:[]}catch(e){return[]} },
+  del:  async(k,sh=false)  =>{ if(!hasSt)return; try{await window.storage.delete(k,sh)}catch(e){} },
+};
+const LS = {
+  get:(k,d=null)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d} },
+  set:(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v))}catch{} },
+};
+
+/* ══════════════════════════════════════════════
+   IMAGES
+══════════════════════════════════════════════ */
+const IMG = {
+  espresso:"https://images.unsplash.com/photo-1510591509098-f4fdc6d0ff04?w=600&q=80&fit=crop",
+  cappuccino:"https://images.unsplash.com/photo-1572442388796-11668a67e53d?w=600&q=80&fit=crop",
+  latte:"https://images.unsplash.com/photo-1561047029-3000c68339ca?w=600&q=80&fit=crop",
+  filterkaffee:"https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=600&q=80&fit=crop",
+  cafecrema:"https://images.unsplash.com/photo-1509042239860-f550ce710b93?w=600&q=80&fit=crop",
+  mokka:"https://images.unsplash.com/photo-1517701604599-bb29b565090c?w=600&q=80&fit=crop",
+  matcha:"https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=600&q=80&fit=crop",
+  chai:"https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80&fit=crop",
+  tee:"https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?w=600&q=80&fit=crop",
+  schoko:"https://images.unsplash.com/photo-1542990253-0d0f5be5f0ed?w=600&q=80&fit=crop",
+  icedlatte:"https://images.unsplash.com/photo-1461023058943-07fcbe16d735?w=600&q=80&fit=crop",
+  icedmatcha:"https://images.unsplash.com/photo-1582146831564-c0b3f6f8df3c?w=600&q=80&fit=crop",
+  croissant:"https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=600&q=80&fit=crop",
+  brownie:"https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=600&q=80&fit=crop",
+  cookies:"https://images.unsplash.com/photo-1499636136210-6f4ee915583e?w=600&q=80&fit=crop",
+  schnecke:"https://images.unsplash.com/photo-1509440159596-0249088772ff?w=600&q=80&fit=crop",
+  brot:"https://images.unsplash.com/photo-1549931319-a545dcf3bc7c?w=600&q=80&fit=crop",
+  blatterteig:"https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600&q=80&fit=crop",
+  schoki:"https://images.unsplash.com/photo-1575377427642-087cf684b4ef?w=600&q=80&fit=crop",
+  mate:"https://images.unsplash.com/photo-1544145945-f90425340c7e?w=600&q=80&fit=crop",
+  eistee:"https://images.unsplash.com/photo-1499638673689-79a0b5115d87?w=600&q=80&fit=crop",
+  wasser:"https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=600&q=80&fit=crop",
+  apfel:"https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=600&q=80&fit=crop",
+  bier:"https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=80&fit=crop",
+  cola:"https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=600&q=80&fit=crop",
+};
+
+/* ══════════════════════════════════════════════
+   PRODUCTS
+══════════════════════════════════════════════ */
+const PRODUCTS_INITIAL = [
+  {id:1, name:"Espresso",          cat:"Heiße Getränke",img:IMG.espresso,    emoji:"☕",desc:"Kräftiger Espresso, frisch gezogen",           pop:true, tag:"Beliebt",available:true,milch:false,sirup:true, sizes:[{l:"klein",p:1.20},{l:"groß",p:2.00}]},
+  {id:2, name:"Cafe Crema",        cat:"Heiße Getränke",img:IMG.cafecrema,   emoji:"☕",desc:"Milder Kaffee mit feiner Crema",                pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"normal",p:2.20}]},
+  {id:3, name:"Filterkaffee",      cat:"Heiße Getränke",img:IMG.filterkaffee,emoji:"☕",desc:"Klassischer Filterkaffee",                      pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"klein",p:1.40},{l:"groß",p:2.20}]},
+  {id:4, name:"Latte Macchiato",   cat:"Heiße Getränke",img:IMG.latte,       emoji:"☕",desc:"Espresso mit aufgeschäumter Milch",              pop:true, tag:"Beliebt",available:true,milch:true, sirup:true, sizes:[{l:"klein",p:2.80},{l:"groß",p:3.20}]},
+  {id:5, name:"Cappuccino",        cat:"Heiße Getränke",img:IMG.cappuccino,  emoji:"☕",desc:"Espresso mit cremigem Milchschaum",              pop:true, tag:"Beliebt",available:true,milch:true, sirup:false,sizes:[{l:"klein",p:2.80},{l:"groß",p:3.20}]},
+  {id:6, name:"Milchkaffee",       cat:"Heiße Getränke",img:IMG.latte,       emoji:"☕",desc:"Kaffee mit viel warmer Milch",                   pop:false,tag:"",       available:true,milch:true, sirup:false,sizes:[{l:"groß",p:2.20}]},
+  {id:7, name:"Moccacino Dark",    cat:"Heiße Getränke",img:IMG.mokka,       emoji:"🍫",desc:"Espresso mit dunkler Schokolade",                pop:false,tag:"",       available:true,milch:true, sirup:false,sizes:[{l:"groß",p:3.00}]},
+  {id:8, name:"Moccacino White",   cat:"Heiße Getränke",img:IMG.mokka,       emoji:"☕",desc:"Espresso mit weißer Schokolade",                 pop:false,tag:"",       available:true,milch:true, sirup:false,sizes:[{l:"groß",p:3.00}]},
+  {id:9, name:"Dark/White Choco",  cat:"Heiße Getränke",img:IMG.schoko,      emoji:"🍫",desc:"Heiße Schokolade, dunkel oder weiß",             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"groß",p:2.50}]},
+  {id:10,name:"Chai Latte",        cat:"Heiße Getränke",img:IMG.chai,        emoji:"🍵",desc:"Würziger Chai mit aufgeschäumter Milch",          pop:false,tag:"",       available:true,milch:true, sirup:false,sizes:[{l:"groß",p:3.20}]},
+  {id:11,name:"Dirty Chai",        cat:"Heiße Getränke",img:IMG.chai,        emoji:"🍵",desc:"Chai Latte mit Espresso-Shot",                   pop:false,tag:"",       available:true,milch:true, sirup:false,sizes:[{l:"groß",p:3.80}]},
+  {id:12,name:"Matcha Latte",      cat:"Heiße Getränke",img:IMG.matcha,      emoji:"🍵",desc:"Japanischer Premium-Matcha",                     pop:true, tag:"Vegan",  available:true,milch:true, sirup:false,sizes:[{l:"groß",p:3.50}]},
+  {id:13,name:"Tee",               cat:"Heiße Getränke",img:IMG.tee,         emoji:"🍵",desc:"Verschiedene Teesorten",                         pop:false,tag:"Vegan",  available:true,milch:false,sirup:false,sizes:[{l:"groß",p:1.00}]},
+  {id:20,name:"Iced Latte",        cat:"Iced Drinks",   img:IMG.icedlatte,   emoji:"🧊",desc:"Espresso über Eis mit kalter Milch",             pop:true, tag:"Neu",    available:true,milch:true, sirup:true, sizes:[{l:"normal",p:3.40}]},
+  {id:21,name:"Iced Americano",    cat:"Iced Drinks",   img:IMG.icedlatte,   emoji:"🧊",desc:"Espresso mit kaltem Wasser über Eis",            pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"normal",p:2.20}]},
+  {id:22,name:"Iced Espresso",     cat:"Iced Drinks",   img:IMG.icedlatte,   emoji:"🧊",desc:"Doppelter Espresso auf Eis",                     pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"normal",p:2.20}]},
+  {id:23,name:"Iced Choc",         cat:"Iced Drinks",   img:IMG.schoko,      emoji:"🍫",desc:"Kalte Schokolade über Eis",                      pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"normal",p:2.70}]},
+  {id:24,name:"Iced Chai",         cat:"Iced Drinks",   img:IMG.icedlatte,   emoji:"🧊",desc:"Würziger Chai kalt über Eis",                    pop:false,tag:"",       available:true,milch:true, sirup:false,sizes:[{l:"normal",p:3.40}]},
+  {id:25,name:"Iced Matcha",       cat:"Iced Drinks",   img:IMG.icedmatcha,  emoji:"🍵",desc:"Premium Matcha kalt über Eis",                   pop:true, tag:"Vegan",  available:true,milch:true, sirup:false,sizes:[{l:"normal",p:3.70}]},
+  {id:30,name:"Cookies",           cat:"Gebäck",        img:IMG.cookies,     emoji:"🍪",desc:"Hausgemachte Cookies",                           pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.50}]},
+  {id:31,name:"Brownies",          cat:"Gebäck",        img:IMG.brownie,     emoji:"🍫",desc:"Saftige Schokoladen-Brownies",                   pop:true, tag:"Beliebt",available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.50}]},
+  {id:32,name:"Mohnschnecke",      cat:"Gebäck",        img:IMG.schnecke,    emoji:"🌀",desc:"Frische Mohnschnecke",                           pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.50}]},
+  {id:33,name:"Apfeltasche",       cat:"Gebäck",        img:IMG.blatterteig, emoji:"🍎",desc:"Blätterteig mit Apfelfüllung",                   pop:false,tag:"Vegan",  available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.50}]},
+  {id:34,name:"Vanille-Kirsch",    cat:"Gebäck",        img:IMG.blatterteig, emoji:"🍒",desc:"Blätterteig mit Vanille-Kirsch",                 pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.50}]},
+  {id:35,name:"Croissant",         cat:"Gebäck",        img:IMG.croissant,   emoji:"🥐",desc:"Täglich frisch gebacken",                        pop:true, tag:"Vegan",  available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.00}]},
+  {id:36,name:"Schoko-Croissant",  cat:"Gebäck",        img:IMG.croissant,   emoji:"🥐",desc:"Croissant mit Schokolade",                       pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.50}]},
+  {id:37,name:"Laugencroissant",   cat:"Gebäck",        img:IMG.croissant,   emoji:"🥐",desc:"Herzhaftes Laugencroissant",                     pop:false,tag:"Vegan",  available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.20}]},
+  {id:38,name:"Dinkel-Nuss-Stange",cat:"Gebäck",        img:IMG.brot,        emoji:"🥖",desc:"Knusprige Dinkelstange",                         pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.50}]},
+  {id:39,name:"Laugen-Käse-Stange",cat:"Gebäck",        img:IMG.brot,        emoji:"🧀",desc:"Herzhafte Laugenstange mit Käse",                pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.20}]},
+  {id:40,name:"Fetatasche",        cat:"Gebäck",        img:IMG.blatterteig, emoji:"🧀",desc:"Blätterteig mit Feta",                           pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.50}]},
+  {id:41,name:"Spinattasche",      cat:"Gebäck",        img:IMG.blatterteig, emoji:"🥬",desc:"Blätterteig mit Spinat",                         pop:false,tag:"Vegan",  available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.50}]},
+  {id:50,name:"Kinderriegel",      cat:"Snacks",        img:IMG.schoki,      emoji:"🍫",desc:"Klassischer Kinderriegel",                       pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:0.60}]},
+  {id:51,name:"Duplo",             cat:"Snacks",        img:IMG.schoki,      emoji:"🍫",desc:"Knuspriger Duplo-Riegel",                        pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:0.60}]},
+  {id:52,name:"Reeses",            cat:"Snacks",        img:IMG.schoki,      emoji:"🥜",desc:"Erdnussbutter-Schokolade",                       pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.80}]},
+  {id:53,name:"Doblito Bio",       cat:"Snacks",        img:IMG.schoki,      emoji:"🌿",desc:"Bio Milch-/Kakaocreme Riegel",                   pop:false,tag:"Neu",    available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.80}]},
+  {id:60,name:"Mate / Mio Mio",   cat:"Kaltgetränke",  img:IMG.mate,        emoji:"🌿",desc:"Mate-Getränk nach Wahl",                         pop:true, tag:"Beliebt",available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
+  {id:61,name:"Ice Tea",           cat:"Kaltgetränke",  img:IMG.eistee,      emoji:"🍋",desc:"Eistee Zitrone oder Pfirsich",                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.80}]},
+  {id:62,name:"Paulaner Spezi",    cat:"Kaltgetränke",  img:IMG.cola,        emoji:"🥤",desc:"Cola-Orange-Mischung",                           pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
+  {id:63,name:"Viva con Agua",     cat:"Kaltgetränke",  img:IMG.wasser,      emoji:"💧",desc:"Still oder sprudelnd",                           pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"0,33 l",p:1.70},{l:"0,75 l",p:2.20}]},
+  {id:64,name:"Apfelschorle",      cat:"Kaltgetränke",  img:IMG.apfel,       emoji:"🍎",desc:"Fruchtige Apfelsaftschorle",                     pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
+  {id:65,name:"Fritz-Kola",        cat:"Kaltgetränke",  img:IMG.cola,        emoji:"🥤",desc:"Hamburger Kultgetränk",                          pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
+  {id:66,name:"Red Bull",          cat:"Kaltgetränke",  img:IMG.mate,        emoji:"⚡",desc:"Energy Drink klassisch",                         pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Dose",p:2.80}]},
+  {id:67,name:"Clausthaler",       cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Alkoholfreies Bier",                             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
+  {id:68,name:"Braustübl",         cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Hausgetränk",                                    pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Glas",p:1.30}]},
+  {id:69,name:"Augustiner",        cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Münchner Kultbier",                              pop:true, tag:"Beliebt",available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.80}]},
+  {id:70,name:"Gösser Radler",     cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Bier-Limonaden-Mix",                             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.80}]},
+  {id:80,name:"Sirup",             cat:"Sonstiges",     img:IMG.espresso,    emoji:"🍶",desc:"Sirup-Zusatz",                                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Schuss",p:0.20}]},
+  {id:81,name:"Tassenpfand",       cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Mehrwegtasse",                             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.00}]},
+  {id:82,name:"Becherpfand",       cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Mehrwegbecher",                            pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.00}]},
+  {id:83,name:"Deckelpfand",       cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Deckel",                                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:0.50}]},
+  {id:84,name:"Besteckpfand",      cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Besteck",                                  pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.00}]},
+  {id:85,name:"Soli klein",        cat:"Sonstiges",     img:IMG.espresso,    emoji:"🤝",desc:"Solidaritätsbeitrag klein",                      pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Beitrag",p:0.20}]},
+  {id:86,name:"Soli groß",         cat:"Sonstiges",     img:IMG.espresso,    emoji:"🤝",desc:"Solidaritätsbeitrag groß",                       pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Beitrag",p:0.40}]},
+];
+
+const CATS  = ["Alle","Heiße Getränke","Iced Drinks","Gebäck","Snacks","Kaltgetränke","Sonstiges"];
+const CICO  = {"Alle":"🍽️","Heiße Getränke":"☕","Iced Drinks":"🧊","Gebäck":"🥐","Snacks":"🍫","Kaltgetränke":"🥤","Sonstiges":"📦"};
+const TABLES= ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
+const ADMIN_PIN  = "1234";
+const MILK_OPT   = ["Vollmilch","Hafermilch","Mandelmilch","Sojamilch"];
+const SIRUP_OPT  = [null,"Karamel","Vanille","Haselnuss"];
+const EXTRA_PRICE= 0.20;
+const FREE_ABOVE = 15;
+const DEL_FEE    = 0.99;
+
+/* ══════════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════════ */
+const fmt    = n=>typeof n==="number"?n.toFixed(2).replace(".",",")+"\u00a0€":"0,00\u00a0€";
+const tagSty = t=>({Beliebt:{bg:"#FEF3C7",cl:"#92400E"},Neu:{bg:"#DBEAFE",cl:"#1E40AF"},Vegan:{bg:"#D1FAE5",cl:"#065F46"}}[t]);
+const genId  = ()=>`${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+
+/* ══════════════════════════════════════════════
+   CONTEXT
+══════════════════════════════════════════════ */
+const Ctx = createContext(null);
+const useApp = ()=>useContext(Ctx);
+const useC   = ()=>{ const {darkMode:dk}=useApp(); return dk?DARK:LIGHT; };
+
+/* ══════════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════════ */
+function useToast(){
+  const [toasts,set]=useState([]);
+  const push=useCallback((msg,type="info",ms=2400)=>{
+    const id=genId();
+    set(p=>[...p,{id,msg,type}]);
+    setTimeout(()=>set(p=>p.filter(t=>t.id!==id)),ms);
+  },[]);
+  return{toasts,push};
+}
+function ToastStack({toasts,dk}){
+  return(
+    <div style={{position:"fixed",top:"max(16px,env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none",width:"min(92vw,360px)"}}>
+      {toasts.map(t=>(
+        <div key={t.id} style={{background:t.type==="error"?"#E53935":t.type==="success"?"#00695C":"#1A1A1A",color:"#fff",padding:"11px 18px",borderRadius:14,fontWeight:700,fontSize:14,textAlign:"center",animation:"tIn .3s cubic-bezier(.34,1.56,.64,1) both",boxShadow:"0 8px 32px rgba(0,0,0,.3)"}}>
+          {t.msg}
+        </div>
+      ))}
+      <style>{`@keyframes tIn{from{opacity:0;transform:translateY(-18px) scale(.92)}to{opacity:1;transform:none}}`}</style>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SKELETON LOADER
+══════════════════════════════════════════════ */
+function Skeleton({w="100%",h=16,r=8,mb=0}){
+  const C=useC();
+  return(
+    <div style={{width:w,height:h,borderRadius:r,marginBottom:mb,background:C.surface2,overflow:"hidden",position:"relative"}}>
+      <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${C.border},transparent)`,animation:"shimmer 1.4s infinite"}}/>
+      <style>{`@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}`}</style>
+    </div>
+  );
+}
+function ProductRowSkeleton(){
+  const C=useC();
+  return(
+    <div style={{background:C.surface,borderRadius:DS.radius.md,padding:12,marginBottom:9,display:"flex",gap:12,alignItems:"center"}}>
+      <Skeleton w={78} h={78} r={14}/>
+      <div style={{flex:1}}>
+        <Skeleton w="60%" h={14} r={6} mb={8}/>
+        <Skeleton w="90%" h={11} r={5} mb={6}/>
+        <Skeleton w="40%" h={11} r={5}/>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SWIPE-TO-REMOVE hook
+══════════════════════════════════════════════ */
+function useSwipe(onRemove){
+  const [dx,setDx]=useState(0);
+  const startX=useRef(null);
+  const onTStart=useCallback(e=>{startX.current=e.touches[0].clientX;},[]);
+  const onTMove =useCallback(e=>{
+    if(startX.current===null)return;
+    const d=e.touches[0].clientX-startX.current;
+    if(d<0) setDx(Math.max(d,-90));
+  },[]);
+  const onTEnd  =useCallback(()=>{
+    if(dx<-60){onRemove();setDx(0);}
+    else setDx(0);
+    startX.current=null;
+  },[dx,onRemove]);
+  return{dx,onTStart,onTMove,onTEnd};
+}
+
+/* ══════════════════════════════════════════════
+   SHARED UI
+══════════════════════════════════════════════ */
+function PImg({src,alt,emoji,w,h,r=0,style={}}){
+  const C=useC();
+  const [err,setErr]=useState(false);
+  const base={width:w,height:h,flexShrink:0,borderRadius:r,...style};
+  if(err||!src)return<div style={{...base,background:`linear-gradient(135deg,${C.dark},${C.primary})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:Math.min(w||60,h||60)*0.42}}>{emoji||"☕"}</div>;
+  return<img src={src} alt={alt} loading="lazy" style={{...base,objectFit:"cover",display:"block"}} onError={()=>setErr(true)}/>;
+}
+function Tag({label}){
+  const s=tagSty(label);
+  if(!s)return null;
+  return<span style={{background:s.bg,color:s.cl,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:DS.radius.full,textTransform:"uppercase",letterSpacing:".05em"}}>{label}</span>;
+}
+function BackBtn({onPress}){
+  const C=useC(),{darkMode:dk}=useApp();
+  return(
+    <button onClick={onPress} aria-label="Zurück" style={{width:40,height:40,borderRadius:DS.radius.md,border:"none",...DS.glass(dk),display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer"}}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={C.text} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+    </button>
+  );
+}
+function QtyBtn({op,onPress,sz=34}){
+  const C=useC();
+  return(
+    <button onClick={onPress} aria-label={op==="+"?"Mehr":"Weniger"} style={{width:sz,height:sz,borderRadius:"50%",border:op==="+"?"none":`2px solid ${C.primary}`,background:op==="+"?C.primary:"transparent",color:op==="+"?"#fff":C.primary,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,lineHeight:1,transition:"opacity .12s"}}>
+      {op}
+    </button>
+  );
+}
+function OptionBtn({active,onClick,children}){
+  const C=useC();
+  return(
+    <button onClick={onClick} style={{padding:"9px 13px",borderRadius:DS.radius.sm,border:`1.5px solid ${active?C.primary:"transparent"}`,background:active?`rgba(0,105,92,.12)`:C.surface2,color:active?C.primary:C.text,fontWeight:600,fontSize:12,minHeight:40,cursor:"pointer",transition:"all .12s"}}>
+      {children}
+    </button>
+  );
+}
+function Chip({children}){
+  return<span style={{background:"rgba(255,255,255,.15)",borderRadius:DS.radius.full,padding:"5px 12px",fontSize:11,fontWeight:700,color:"#fff",border:"1px solid rgba(255,255,255,.2)"}}>{children}</span>;
+}
+
+/* ══════════════════════════════════════════════
+   QR CODE (SVG, no library)
+══════════════════════════════════════════════ */
+function QRCode({table,size=200}){
+  const hash=(s,seed=0x811c9dc5)=>{let h=seed;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h;};
+  const url=`https://zeitraum.app/order?table=${table}`;
+  const GRID=21,cells=[];
+  const finderCell=(r,c)=>{
+    for(const[pr,pc]of[[0,0],[0,14],[14,0]]){
+      const dr=r-pr,dc=c-pc;
+      if(dr>=0&&dr<=6&&dc>=0&&dc<=6){
+        if(dr===0||dr===6||dc===0||dc===6)return true;
+        if(dr>=2&&dr<=4&&dc>=2&&dc<=4)return true;
+        return false;
+      }
+    }
+    return null;
+  };
+  const h1=hash(url),h2=hash(url+table),h3=hash(table);
+  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
+    const f=finderCell(r,c);
+    if(f!==null){cells.push({r,c,on:f});continue;}
+    const bit=((h1>>((r*GRID+c)%32))^(h2>>((r+c)%32))^(h3>>((r*c+1)%32)))&1;
+    cells.push({r,c,on:!!bit});
+  }
+  const cell=size/GRID;
+  return(
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg" style={{display:"block"}}>
+      <rect width={size} height={size} fill="#fff" rx="10"/>
+      {cells.map(({r,c,on})=>on?<rect key={`${r}-${c}`} x={c*cell+1} y={r*cell+1} width={cell-1} height={cell-1} fill="#004D40" rx="1"/>:null)}
+      <rect x={size/2-15} y={size/2-15} width={30} height={30} fill="#fff" rx="6"/>
+      <text x={size/2} y={size/2+9} textAnchor="middle" fontSize={18}>☕</text>
+    </svg>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   BOTTOM NAV
+══════════════════════════════════════════════ */
+const NAV=[
+  {id:"home",  label:"Home",  icon:on=><svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={on?2.2:1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>},
+  {id:"menu",  label:"Menü",  icon:on=><svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={on?2.2:1.8} strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>},
+  {id:"orders",label:"Bestellungen",icon:on=><svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={on?2.2:1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>},
+  {id:"admin", label:"Admin", icon:on=><svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={on?2.2:1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>},
+];
+function BottomNav(){
+  const{screen,go,cart,darkMode:dk}=useApp();const C=useC();
+  const qty=cart.reduce((s,i)=>s+i.qty,0);
+  const active=s=>["cart","detail","qr"].includes(screen)?s==="menu":screen===s;
+  return(
+    <nav style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.navBg,backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderTop:`1px solid ${C.border}`,display:"flex",zIndex:400,paddingTop:5,paddingBottom:"max(8px,env(safe-area-inset-bottom))"}}>
+      {NAV.map(({id,label,icon})=>{const on=active(id);return(
+        <button key={id} onClick={()=>go(id)} aria-label={label} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px 2px",minHeight:48,justifyContent:"center",position:"relative",border:"none",background:"none",cursor:"pointer",color:on?C.primary:C.textLight,fontSize:10,fontWeight:on?700:500,transition:"color .15s"}}>
+          {icon(on)}
+          <span>{label}</span>
+          {id==="menu"&&qty>0&&<span style={{position:"absolute",top:2,right:"calc(50% - 22px)",background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:DS.radius.full,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{qty}</span>}
+        </button>
+      );})}
+    </nav>
+  );
+}
+function FloatCart(){
+  const{cart,go,darkMode:dk}=useApp();const C=useC();
+  const qty=cart.reduce((s,i)=>s+i.qty,0);
+  const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  if(qty===0)return null;
+  return(
+    <div style={{position:"fixed",bottom:68,left:"50%",transform:"translateX(-50%)",width:"calc(100% - 24px)",maxWidth:402,zIndex:300}}>
+      <button onClick={()=>go("cart")} style={{width:"100%",background:`linear-gradient(135deg,${C.dark},${C.primary})`,borderRadius:18,padding:"13px 20px",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:DS.shadow.green(dk),border:"none",cursor:"pointer"}}>
+        <span style={{background:"rgba(255,255,255,.2)",borderRadius:9,padding:"3px 10px",fontWeight:800,fontSize:14}}>{qty}</span>
+        <span style={{fontWeight:800,fontSize:15}}>Warenkorb ansehen</span>
+        <span style={{fontWeight:800,fontSize:15}}>{fmt(tot)}</span>
+      </button>
+    </div>
+  );
+}
+function Screen({children,noNav=false}){
+  const C=useC();
+  return(
+    <div style={{maxWidth:430,margin:"0 auto",background:C.bg,minHeight:"100svh",paddingBottom:noNav?0:82,position:"relative",overflowX:"hidden"}}>
+      {children}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   SPLASH
+══════════════════════════════════════════════ */
+function SplashScreen(){
+  const C=useC();
+  return(
+    <div style={{background:`linear-gradient(160deg,${C.dark},${C.primary})`,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:22,minHeight:"100svh"}}>
+      <div style={{width:96,height:96,borderRadius:28,background:"rgba(255,255,255,.15)",border:"1.5px solid rgba(255,255,255,.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"2.8rem"}}>☕</div>
+      <div style={{textAlign:"center",color:"#fff"}}>
+        <p style={{fontSize:30,fontWeight:900,letterSpacing:"-.03em"}}>zeitraum</p>
+        <p style={{marginTop:4,opacity:.6,fontSize:12,letterSpacing:".07em",textTransform:"uppercase"}}>Café &amp; Bar</p>
+      </div>
+      <div style={{width:52,height:3,background:"rgba(255,255,255,.22)",borderRadius:2,overflow:"hidden"}}>
+        <div style={{height:"100%",background:"#fff",borderRadius:2,animation:"ldbar 2.4s ease forwards"}}/>
+      </div>
+      <style>{`@keyframes ldbar{from{width:0}to{width:100%}}`}</style>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   HOME
+══════════════════════════════════════════════ */
+function HomeScreen(){
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode}=useApp();
+  const C=useC(),dk=darkMode;
+  const[loading,setLoading]=useState(true);
+  const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
+  useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
+
+  return(
+    <Screen>
+      {/* HERO */}
+      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"52px 18px 28px",borderBottomLeftRadius:32,borderBottomRightRadius:32,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.04)",pointerEvents:"none"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{color:"#fff"}}>
+            <p style={{fontSize:11,opacity:.6,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>Guten Tag 👋</p>
+            <h1 style={{margin:"5px 0 4px",fontSize:27,fontWeight:900,letterSpacing:"-.03em"}}>zeitraum</h1>
+            <p style={{opacity:.65,fontSize:13}}>Direkt an deinen Tisch bestellen</p>
+          </div>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            {/* Dark mode toggle */}
+            <button onClick={()=>setDarkMode(d=>!d)} aria-label="Dark Mode" style={{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.3)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:17}}>
+              {dk?"☀️":"🌙"}
+            </button>
+          </div>
+        </div>
+        <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
+          <Chip>⏱ ~8 Min</Chip><Chip>🌿 Bio</Chip><Chip>♻️ Mehrweg</Chip>
+        </div>
+      </div>
+
+      <div style={{padding:"16px 16px 0"}}>
+        {/* Table picker */}
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16,marginBottom:14}}>
+          <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".06em",marginBottom:11}}>Tisch wählen</p>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+            {TABLES.map(t=>(
+              <button key={t} onClick={()=>setSelTable(selTable===t?null:t)} style={{padding:"9px 14px",borderRadius:DS.radius.sm,background:selTable===t?C.primary:C.surface2,color:selTable===t?"#fff":C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",boxShadow:selTable===t?DS.shadow.green(dk):"none",transition:"all .15s"}}>
+                {t}
+              </button>
+            ))}
+          </div>
+          {selTable&&(
+            <div style={{marginTop:11,background:C.light,borderRadius:DS.radius.sm,padding:"9px 13px",display:"flex",alignItems:"center"}}>
+              <span style={{color:C.primary,fontWeight:800,fontSize:13}}>✓ Tisch {selTable} ausgewählt</span>
+              <button onClick={()=>setSelTable(null)} style={{marginLeft:"auto",color:C.textLight,fontSize:20,padding:"2px 8px",background:"none",border:"none",cursor:"pointer"}}>×</button>
+            </div>
+          )}
+        </div>
+
+        {/* QR shortcut — glass card */}
+        <button onClick={()=>go("qr")} style={{width:"100%",marginBottom:14,padding:"13px 16px",...DS.glass(dk),borderRadius:DS.radius.md,display:"flex",alignItems:"center",gap:12,cursor:"pointer",boxShadow:DS.shadow.md(dk),border:`1px solid ${C.borderGlass}`}}>
+          <div style={{width:40,height:40,borderRadius:DS.radius.sm,background:C.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>⬛</div>
+          <div style={{textAlign:"left"}}>
+            <p style={{fontWeight:800,fontSize:14,color:C.text}}>QR-Code für Tisch</p>
+            <p style={{fontSize:12,color:C.textLight,marginTop:1}}>Scan → automatische Tischerkennung</p>
+          </div>
+          <span style={{marginLeft:"auto",fontSize:18,color:C.textLight}}>›</span>
+        </button>
+
+        {/* Categories */}
+        <p style={{fontWeight:800,fontSize:16,marginBottom:12,color:C.text}}>Kategorien</p>
+        <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16,marginBottom:18}}>
+          {CATS.filter(c=>c!=="Alle").map(c=>(
+            <div key={c} onClick={()=>go("menu",c)} style={{minWidth:90,background:C.surface,borderRadius:DS.radius.md,padding:"12px 9px",textAlign:"center",boxShadow:DS.shadow.sm(dk),cursor:"pointer",flexShrink:0,userSelect:"none",transition:"transform .12s"}}>
+              <div style={{fontSize:22,marginBottom:5}}>{CICO[c]}</div>
+              <p style={{fontSize:11,fontWeight:700,lineHeight:1.3,color:C.text}}>{c}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Popular */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+          <p style={{fontWeight:800,fontSize:16,color:C.text}}>⭐ Beliebt heute</p>
+          <button onClick={()=>go("menu")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer"}}>Alle →</button>
+        </div>
+        <div style={{display:"flex",gap:12,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16}}>
+          {loading
+            ?[...Array(4)].map((_,i)=><div key={i} style={{minWidth:148,background:C.surface,borderRadius:DS.radius.lg,overflow:"hidden",flexShrink:0}}><Skeleton w={148} h={94} r={0}/><div style={{padding:"9px 11px"}}><Skeleton w="60%" h={12} r={5} mb={6}/><Skeleton w="40%" h={12} r={5}/></div></div>)
+            :pop.map(p=>(
+              <div key={p.id} onClick={()=>go("detail",p)} style={{minWidth:148,background:C.surface,borderRadius:DS.radius.lg,overflow:"hidden",boxShadow:DS.shadow.md(dk),flexShrink:0,cursor:"pointer"}}>
+                <PImg src={p.img} alt={p.name} emoji={p.emoji} w="100%" h={94}/>
+                <div style={{padding:"9px 11px"}}>
+                  <p style={{fontWeight:700,fontSize:12,lineHeight:1.3,color:C.text}}>{p.name}</p>
+                  <p style={{marginTop:3,fontWeight:800,color:C.primary,fontSize:13}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</p>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        <button onClick={()=>go("menu")} style={{width:"100%",marginTop:18,padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>
+          Jetzt bestellen →
+        </button>
+      </div>
+      <FloatCart/><BottomNav/>
+    </Screen>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   QR SCREEN
+══════════════════════════════════════════════ */
+function QRScreen(){
+  const{go,selTable,darkMode:dk}=useApp();const C=useC();
+  const[t,setT]=useState(selTable||"T1");
+  return(
+    <Screen>
+      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 28px",borderBottomLeftRadius:32,borderBottomRightRadius:32}}>
+        <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:16}}>
+          <BackBtn onPress={()=>go("home")}/>
+          <div>
+            <p style={{color:"#fff",fontWeight:900,fontSize:19}}>QR-Code Bestellen</p>
+            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>Tisch scannen &amp; direkt bestellen</p>
+          </div>
+        </div>
+      </div>
+      <div style={{padding:"20px 16px 0"}}>
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.md(dk),marginBottom:16}}>
+          <p style={{fontWeight:700,fontSize:14,marginBottom:11,color:C.text}}>Tisch auswählen</p>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+            {TABLES.map(tb=><button key={tb} onClick={()=>setT(tb)} style={{padding:"8px 13px",borderRadius:DS.radius.sm,background:t===tb?C.primary:C.surface2,color:t===tb?"#fff":C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s",boxShadow:t===tb?DS.shadow.green(dk):"none"}}>{tb}</button>)}
+          </div>
+        </div>
+        <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:24,boxShadow:DS.shadow.md(dk),textAlign:"center",marginBottom:16}}>
+          <div style={{display:"inline-block",padding:12,background:"#fff",borderRadius:DS.radius.lg,boxShadow:DS.shadow.sm(dk)}}>
+            <QRCode table={t} size={200}/>
+          </div>
+          <p style={{marginTop:16,fontWeight:800,fontSize:18,color:C.text}}>Tisch {t}</p>
+          <p style={{color:C.textLight,fontSize:13,marginTop:4}}>Scan → Tisch automatisch erkannt</p>
+          <div style={{marginTop:12,background:C.surface2,borderRadius:DS.radius.sm,padding:"9px 14px",display:"inline-block"}}>
+            <code style={{fontSize:11,color:C.textMid}}>zeitraum.app/order?table={t}</code>
+          </div>
+        </div>
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.sm(dk)}}>
+          <p style={{fontWeight:700,fontSize:14,marginBottom:12,color:C.text}}>Ablauf</p>
+          {[["1","QR-Code am Tisch aufstellen"],["2","Gast scannt mit Kamera-App"],["3","Tisch wird automatisch erkannt"],["4","Direkt bestellen ohne manuelle Auswahl"]].map(([n,txt])=>(
+            <div key={n} style={{display:"flex",alignItems:"center",gap:11,marginBottom:10}}>
+              <div style={{width:26,height:26,borderRadius:"50%",background:C.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,flexShrink:0}}>{n}</div>
+              <p style={{fontSize:14,color:C.textMid}}>{txt}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <BottomNav/>
+    </Screen>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   MENU
+══════════════════════════════════════════════ */
+function MenuScreen(){
+  const{go,cart,products,activeCat,setActiveCat,darkMode:dk}=useApp();const C=useC();
+  const[search,setSearch]=useState("");
+  const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
+  const[loading,setLoading]=useState(true);
+  const qty=cart.reduce((s,i)=>s+i.qty,0);
+
+  useEffect(()=>{const t=setTimeout(()=>setLoading(false),600);return()=>clearTimeout(t);},[activeCat]);
+
+  const toggleFav=id=>{setFavs(prev=>{const n=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];LS.set("zr_favs",n);return n;});};
+  const filtered=useMemo(()=>{
+    const q=search.toLowerCase().trim();
+    return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)));
+  },[products,activeCat,search]);
+
+  return(
+    <Screen>
+      <div style={{position:"sticky",top:0,zIndex:50,background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"12px 16px 0",borderBottomLeftRadius:22,borderBottomRightRadius:22}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+          <p style={{flex:1,color:"#fff",fontWeight:800,fontSize:17}}>Speisekarte</p>
+          {qty>0&&<button onClick={()=>go("cart")} style={{background:"rgba(255,255,255,.18)",borderRadius:13,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>🛒 {qty}</button>}
+        </div>
+        <div style={{background:"rgba(255,255,255,.13)",borderRadius:13,padding:"9px 13px",display:"flex",alignItems:"center",gap:7,marginBottom:10,border:"1px solid rgba(255,255,255,.16)"}}>
+          <span style={{opacity:.55}}>🔍</span>
+          <input value={search} onChange={e=>{setSearch(e.target.value);setLoading(true);setTimeout(()=>setLoading(false),400);}} placeholder="Produkt suchen…" style={{background:"none",border:"none",color:"#fff",fontSize:14,flex:1,outline:"none"}}/>
+          {search&&<button onClick={()=>setSearch("")} style={{color:"rgba(255,255,255,.6)",background:"none",border:"none",cursor:"pointer",fontSize:18}}>×</button>}
+        </div>
+        <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:13,scrollbarWidth:"none"}}>
+          {CATS.map(c=>(
+            <button key={c} onClick={()=>{setActiveCat(c);setLoading(true);setTimeout(()=>setLoading(false),500);}} style={{padding:"8px 14px",borderRadius:DS.radius.full,fontWeight:700,fontSize:12,whiteSpace:"nowrap",background:activeCat===c?"#fff":"rgba(255,255,255,.17)",color:activeCat===c?C.primary:"#fff",border:"none",cursor:"pointer",flexShrink:0,transition:"all .16s"}}>
+              {CICO[c]} {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{padding:"10px 16px 0"}}>
+        {loading
+          ?[...Array(5)].map((_,i)=><ProductRowSkeleton key={i}/>)
+          :filtered.length===0
+            ?<div style={{textAlign:"center",padding:"60px 16px",color:C.textLight}}><div style={{fontSize:48,marginBottom:12}}>🔍</div><h3 style={{fontSize:16,fontWeight:700,color:C.text}}>Nichts gefunden</h3></div>
+            :filtered.map(p=>{
+              const iq=cart.filter(i=>i.id===p.id).reduce((s,i)=>s+i.qty,0);
+              const isFav=favs.includes(p.id);
+              return(
+                <div key={p.id} onClick={()=>go("detail",p)} style={{background:C.surface,borderRadius:DS.radius.md,padding:12,marginBottom:9,display:"flex",gap:12,alignItems:"center",boxShadow:DS.shadow.sm(dk),cursor:"pointer",userSelect:"none",transition:"transform .1s"}}>
+                  <div style={{position:"relative",flexShrink:0}}>
+                    <PImg src={p.img} alt={p.name} emoji={p.emoji} w={78} h={78} r={14}/>
+                    <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} style={{position:"absolute",top:-4,right:-4,width:24,height:24,borderRadius:"50%",background:C.surface,border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:DS.shadow.xs(dk),color:isFav?C.red:C.textLight}}>♥</button>
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{display:"flex",gap:5,marginBottom:4}}><Tag label={p.tag}/></div>
+                    <p style={{fontWeight:700,fontSize:14,lineHeight:1.3,color:C.text}}>{p.name}</p>
+                    <p style={{fontSize:12,color:C.textLight,marginTop:2,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{p.desc}</p>
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}>
+                      <span style={{fontWeight:800,color:C.primary,fontSize:14}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
+                      <div onClick={e=>e.stopPropagation()}>
+                        {iq>0
+                          ?<div style={{display:"flex",alignItems:"center",gap:7}}>
+                              <div style={{background:C.light,borderRadius:8,padding:"3px 9px",fontWeight:800,fontSize:12,color:C.primary}}>{iq}×</div>
+                              <button onClick={()=>go("detail",p)} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                            </div>
+                          :<button onClick={()=>go("detail",p)} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+        }
+        <div style={{height:80}}/>
+      </div>
+      <FloatCart/><BottomNav/>
+    </Screen>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   DETAIL
+══════════════════════════════════════════════ */
+function DetailScreen(){
+  const{go,addToCart,cart,detailProduct:p,darkMode:dk}=useApp();const C=useC();
+  const[qty,setQty]=useState(1);
+  const[sIdx,setSIdx]=useState(0);
+  const[milk,setMilk]=useState("Vollmilch");
+  const[sirup,setSirup]=useState(null);
+  const[note,setNote]=useState("");
+  useEffect(()=>{setQty(1);setSIdx(0);setMilk("Vollmilch");setSirup(null);setNote("");},[p?.id]);
+  if(!p){go("menu");return null;}
+  const baseP=(p.sizes[sIdx]||p.sizes[0]).p;
+  const unitP=baseP+(sirup?EXTRA_PRICE:0);
+  const totP=unitP*qty;
+  const iq=cart.filter(i=>i.id===p.id).reduce((s,i)=>s+i.qty,0);
+  const handleAdd=()=>{
+    const sz=p.sizes.length>1?(p.sizes[sIdx]||p.sizes[0]).l:"";
+    const mk=p.milch?milk:"";
+    const sp=sirup?"Sirup "+sirup:"";
+    const parts=[sz,mk,sp,note.trim()].filter(Boolean).join(", ");
+    const ck=`${p.id}|${parts}|${unitP.toFixed(2)}`;
+    addToCart({id:p.id,name:p.name,price:unitP,img:p.img,emoji:p.emoji,note:parts,ck},qty);
+  };
+  return(
+    <Screen noNav>
+      <div style={{position:"relative"}}>
+        <PImg src={p.img} alt={p.name} emoji={p.emoji} w="100%" h={240} style={{display:"block"}}/>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.45) 100%)",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",top:"max(44px,env(safe-area-inset-top))",left:14}}><BackBtn onPress={()=>go("menu")}/></div>
+        <div style={{position:"absolute",bottom:14,left:16}}><Tag label={p.tag}/></div>
+      </div>
+      <div style={{padding:"17px 18px 110px"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+          <div style={{flex:1}}>
+            <h2 style={{fontSize:22,fontWeight:900,lineHeight:1.25,color:C.text}}>{p.name}</h2>
+            <p style={{marginTop:6,color:C.textMid,fontSize:14,lineHeight:1.55}}>{p.desc}</p>
+          </div>
+          <p style={{fontSize:22,fontWeight:900,color:C.primary,flexShrink:0,whiteSpace:"nowrap"}}>{fmt(unitP)}</p>
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:14}}>
+          {[["⭐","4.9"],["⏱","~8 Min"],["🌿",p.tag||"Frisch"]].map(([ic,v])=>(
+            <div key={v} style={{flex:1,background:C.surface2,borderRadius:DS.radius.sm,padding:"10px 8px",textAlign:"center"}}>
+              <div style={{fontSize:16}}>{ic}</div>
+              <div style={{fontSize:11,fontWeight:700,color:C.textMid,marginTop:3}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        {p.sizes.length>1&&(
+          <div style={{marginTop:18}}>
+            <p style={{fontWeight:700,fontSize:14,marginBottom:9,color:C.text}}>Größe wählen</p>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {p.sizes.map((s,i)=>(
+                <button key={i} onClick={()=>setSIdx(i)} style={{padding:"9px 16px",borderRadius:DS.radius.sm,background:sIdx===i?C.primary:C.surface2,color:sIdx===i?"#fff":C.text,fontWeight:700,fontSize:13,minHeight:42,border:"none",cursor:"pointer",transition:"all .12s",boxShadow:sIdx===i?DS.shadow.green(dk):"none"}}>
+                  {s.l} · {fmt(s.p)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {p.milch&&(
+          <div style={{marginTop:18}}>
+            <p style={{fontWeight:700,fontSize:14,marginBottom:9,color:C.text}}>Milch</p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+              {MILK_OPT.map(m=><OptionBtn key={m} active={milk===m} onClick={()=>setMilk(m)}>{m}</OptionBtn>)}
+            </div>
+          </div>
+        )}
+        {p.sirup&&(
+          <div style={{marginTop:18}}>
+            <p style={{fontWeight:700,fontSize:14,marginBottom:3,color:C.text}}>Sirup <span style={{fontWeight:400,fontSize:12,color:C.textLight}}>(+{fmt(EXTRA_PRICE)})</span></p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:9}}>
+              {SIRUP_OPT.map(sv=><OptionBtn key={String(sv)} active={sirup===sv} onClick={()=>setSirup(sv)}>{sv===null?"Keiner":sv}</OptionBtn>)}
+            </div>
+          </div>
+        )}
+        <div style={{marginTop:18}}>
+          <p style={{fontWeight:700,fontSize:14,marginBottom:8,color:C.text}}>Besondere Wünsche</p>
+          <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, Extra-Wünsche…" style={{width:"100%",padding:"10px 13px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,color:C.text,height:50,resize:"none",fontFamily:"inherit",outline:"none"}}/>
+        </div>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:18,background:C.surface2,borderRadius:DS.radius.md,padding:"13px 16px"}}>
+          <p style={{fontWeight:700,fontSize:15,color:C.text}}>Menge</p>
+          <div style={{display:"flex",alignItems:"center",gap:16}}>
+            <QtyBtn op="−" onPress={()=>setQty(q=>Math.max(1,q-1))}/>
+            <span style={{fontWeight:900,fontSize:20,minWidth:24,textAlign:"center",color:C.text}}>{qty}</span>
+            <QtyBtn op="+" onPress={()=>setQty(q=>q+1)}/>
+          </div>
+        </div>
+      </div>
+      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,padding:"12px 18px max(14px,env(safe-area-inset-bottom))",background:C.surfaceGlass,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:`1px solid ${C.borderGlass}`,zIndex:300}}>
+        <button onClick={handleAdd} style={{width:"100%",padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>
+          {iq>0?`Weitere hinzufügen · ${fmt(totP)}`:`In den Warenkorb · ${fmt(totP)}`}
+        </button>
+      </div>
+      <BottomNav/>
+    </Screen>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   CART ITEM with swipe-to-remove
+══════════════════════════════════════════════ */
+function CartItem({item,onChQty,onRemove}){
+  const C=useC(),{darkMode:dk}=useApp();
+  const{dx,onTStart,onTMove,onTEnd}=useSwipe(onRemove);
+  return(
+    <div style={{position:"relative",marginBottom:9,overflow:"hidden",borderRadius:DS.radius.md}}>
+      {/* Delete reveal */}
+      <div style={{position:"absolute",right:0,top:0,bottom:0,width:80,background:C.red,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:22,borderRadius:DS.radius.md}}>🗑</div>
+      {/* Swipeable content */}
+      <div onTouchStart={onTStart} onTouchMove={onTMove} onTouchEnd={onTEnd}
+        style={{background:C.surface,borderRadius:DS.radius.md,padding:12,display:"flex",gap:11,alignItems:"center",boxShadow:DS.shadow.sm(dk),transform:`translateX(${dx}px)`,transition:dx===0?"transform .25s":undefined,position:"relative",zIndex:1}}>
+        <PImg src={item.img} alt={item.name} emoji={item.emoji} w={58} h={58} r={11}/>
+        <div style={{flex:1,minWidth:0}}>
+          <p style={{fontWeight:700,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:C.text}}>{item.name}</p>
+          {item.note&&<p style={{fontSize:11,color:C.textLight,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{item.note}</p>}
+          <p style={{color:C.primary,fontWeight:800,fontSize:13,marginTop:3}}>{fmt(item.price*item.qty)}</p>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+          <QtyBtn op="−" onPress={()=>onChQty(-1)} sz={32}/>
+          <span style={{fontWeight:800,minWidth:16,textAlign:"center",fontSize:15,color:C.text}}>{item.qty}</span>
+          <QtyBtn op="+" onPress={()=>onChQty(1)} sz={32}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   CART SCREEN
+══════════════════════════════════════════════ */
+function CartScreen(){
+  const{go,cart,chQty,removeItem,selTable,setSelTable,submitOrder,submitting,darkMode:dk}=useApp();const C=useC();
+  const[note,setNote]=useState("");
+  const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const del=sub>=FREE_ABOVE?0:DEL_FEE;
+  const tot=sub+del;
+  return(
+    <Screen>
+      <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
+        <div style={{display:"flex",alignItems:"center",gap:11}}>
+          <BackBtn onPress={()=>go("menu")}/>
+          <div>
+            <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Warenkorb</p>
+            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>{selTable?`Tisch ${selTable}`:"—"}</p>
+          </div>
+        </div>
+      </div>
+      <div style={{padding:"14px 16px 0"}}>
+        {cart.length===0&&(
+          <div style={{textAlign:"center",padding:"60px 16px 120px"}}>
+            <div style={{fontSize:50,marginBottom:14}}>🛒</div>
+            <h3 style={{fontSize:17,fontWeight:800,marginBottom:16,color:C.text}}>Warenkorb ist leer</h3>
+            <button onClick={()=>go("menu")} style={{padding:"12px 28px",background:C.primary,color:"#fff",border:"none",borderRadius:DS.radius.md,fontWeight:700,cursor:"pointer",fontSize:15}}>Zur Speisekarte</button>
+          </div>
+        )}
+        {cart.map(item=>(
+          <CartItem key={item.ck} item={item} onChQty={d=>chQty(item.ck,d)} onRemove={()=>removeItem(item.ck)}/>
+        ))}
+        {cart.length>0&&(
+          <>
+            {!selTable&&(
+              <div style={{background:"#FFF7ED",border:"2px solid #FED7AA",borderRadius:DS.radius.md,padding:14,marginBottom:9}}>
+                <p style={{fontWeight:700,fontSize:13,color:"#C2410C",marginBottom:9}}>⚠️ Bitte Tisch wählen</p>
+                <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                  {TABLES.map(t=><button key={t} onClick={()=>setSelTable(t)} style={{padding:"8px 13px",borderRadius:DS.radius.sm,background:C.surface2,color:C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",minHeight:42}}>{t}</button>)}
+                </div>
+              </div>
+            )}
+            <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
+              <p style={{fontWeight:700,fontSize:13,marginBottom:7,color:C.text}}>📝 Bestellnotiz</p>
+              <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, besondere Wünsche…" style={{width:"100%",padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,height:46,resize:"none",fontFamily:"inherit",outline:"none",color:C.text}}/>
+            </div>
+            {/* Free delivery progress */}
+            {sub<FREE_ABOVE&&(
+              <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.xs(dk),padding:13,marginBottom:9}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textMid}}>🎁 Noch {fmt(FREE_ABOVE-sub)} bis kostenlose Lieferung</p>
+                </div>
+                <div style={{height:5,background:C.surface2,borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",width:`${(sub/FREE_ABOVE)*100}%`,background:`linear-gradient(90deg,${C.primary},${C.accent})`,borderRadius:3,transition:"width .4s ease"}}/>
+                </div>
+              </div>
+            )}
+            <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
+              {[["Zwischensumme",fmt(sub)],["Liefergebühr",del===0?"Kostenlos 🎉":fmt(del)]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.textMid,marginBottom:7}}>
+                  <span>{l}</span>
+                  <span style={{fontWeight:600,color:l==="Liefergebühr"&&del===0?C.primary:C.text}}>{v}</span>
+                </div>
+              ))}
+              <div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,display:"flex",justifyContent:"space-between",fontWeight:800,fontSize:17}}>
+                <span style={{color:C.text}}>Gesamt</span><span style={{color:C.primary}}>{fmt(tot)}</span>
+              </div>
+            </div>
+            <div style={{background:C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:120,display:"flex",alignItems:"center",gap:9}}>
+              <span>⏱</span>
+              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>~8 Min Lieferzeit</p><p style={{fontSize:11,color:C.textMid}}>Nach Bestätigung</p></div>
+            </div>
+            <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,padding:"12px 18px max(14px,env(safe-area-inset-bottom))",background:C.surfaceGlass,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:`1px solid ${C.borderGlass}`,zIndex:300}}>
+              <button onClick={()=>submitOrder(note)} disabled={!selTable||submitting} style={{width:"100%",padding:15,background:!selTable||submitting?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!selTable||submitting?C.textLight:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:!selTable||submitting?"default":"pointer",boxShadow:selTable&&!submitting?DS.shadow.green(dk):"none",transition:"all .2s"}}>
+                {submitting?"Wird gesendet…":selTable?`Jetzt bestellen · ${fmt(tot)}`:"Bitte zuerst Tisch wählen"}
+              </button>
+              <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginTop:7}}>Bezahlung am Tisch · Keine Vorauszahlung</p>
+            </div>
+          </>
+        )}
+      </div>
+      <BottomNav/>
+    </Screen>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ORDER TRACKING
+══════════════════════════════════════════════ */
+const STEPS=[
+  {key:"new",    label:"Bestätigt",      icon:"✅",color:"#00695C"},
+  {key:"making", label:"In Zubereitung", icon:"👨‍🍳",color:"#F59E0B"},
+  {key:"ready",  label:"Bereit",         icon:"🔔",color:"#2563EB"},
+  {key:"done",   label:"Geliefert ✓",    icon:"🎉",color:"#16A34A"},
+];
+function OrderCard({o}){
+  const C=useC(),{darkMode:dk}=useApp();
+  const si=Math.max(0,STEPS.findIndex(s=>s.key===o.status));
+  const step=STEPS[si];
+  const pct=(si/(STEPS.length-1))*100;
+  return(
+    <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk)}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
+        <div style={{flex:1}}>
+          <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung #{String(o.createdAt).slice(-4)}</p>
+          <p style={{fontSize:12,color:C.textLight,marginTop:2}}>Tisch {o.table} · {o.time}</p>
+          {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:7,padding:"3px 8px",marginTop:5,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
+        </div>
+        <div style={{textAlign:"center",background:`${step.color}18`,borderRadius:14,padding:"9px 13px",flexShrink:0,marginLeft:11}}>
+          <div style={{fontSize:22}}>{step.icon}</div>
+          <div style={{fontSize:10,fontWeight:800,color:step.color,marginTop:3,whiteSpace:"nowrap"}}>{step.label}</div>
+        </div>
+      </div>
+      {/* Gradient progress bar */}
+      <div style={{marginBottom:10}}>
+        <div style={{height:5,background:C.surface2,borderRadius:3,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${STEPS[0].color},${step.color})`,borderRadius:3,transition:"width .8s ease"}}/>
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",marginTop:4}}>
+          {STEPS.map((s,i)=><span key={s.key} style={{fontSize:9,fontWeight:700,color:si>=i?s.color:C.textLight,transition:"color .4s"}}>{s.label.split(" ")[0]}</span>)}
+        </div>
+      </div>
+      {/* Dot stepper */}
+      <div style={{display:"flex",alignItems:"center",marginBottom:11}}>
+        {STEPS.map((s,i)=>(
+          <div key={s.key} style={{display:"flex",alignItems:"center",flex:i<STEPS.length-1?1:"auto"}}>
+            <div style={{width:24,height:24,borderRadius:"50%",background:si>=i?s.color:C.border,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:9,boxShadow:si===i?`0 0 0 3px ${s.color}22`:"none",transition:"all .4s"}}>
+              {si>=i?<span style={{color:"#fff",fontSize:9}}>✓</span>:<span style={{opacity:.3}}>○</span>}
+            </div>
+            {i<STEPS.length-1&&<div style={{flex:1,height:2,borderRadius:2,background:si>i?STEPS[i+1].color:C.border,transition:"background .5s"}}/>}
+          </div>
+        ))}
+      </div>
+      <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingTop:9,borderTop:`1px solid ${C.border}`,alignItems:"center"}}>
+        {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
+        <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:14}}>{fmt(o.total)}</span>
+      </div>
+    </div>
+  );
+}
+function OrdersScreen(){
+  const{myOrders,syncOrders,darkMode:dk}=useApp();const C=useC();
+  const sorted=useMemo(()=>[...myOrders].sort((a,b)=>b.createdAt-a.createdAt),[myOrders]);
+  return(
+    <Screen>
+      <div style={{padding:"50px 16px 0"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>Live · alle 5 Sek.</p></div>
+          <button onClick={()=>syncOrders(true)} style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
+        </div>
+        {sorted.length===0&&<div style={{textAlign:"center",padding:"56px 16px",color:C.textLight}}><div style={{fontSize:50,marginBottom:12}}>📋</div><h3 style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:4}}>Noch keine Bestellungen</h3><p>Bestellungen erscheinen hier live</p></div>}
+        {sorted.map(o=><OrderCard key={o.id} o={o}/>)}
+        <div style={{height:20}}/>
+      </div>
+      <BottomNav/>
+    </Screen>
+  );
+}
+
+/* ══════════════════════════════════════════════
+   ADMIN
+══════════════════════════════════════════════ */
+function AdminScreen(){
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,products,addProduct,deleteProduct,darkMode:dk}=useApp();const C=useC();
+  const[ok,setOk]=useState(false);
+  const[pin,setPin]=useState("");
+  const[err,setErr]=useState(false);
+  const[tab,setTab]=useState("orders");
+  const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
+  const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
+  const bySt=s=>allOrders.filter(o=>o.status===s).length;
+  const stL={new:"Neu",making:"In Zubereitung",ready:"Bereit",done:"Geliefert"};
+  const stN={new:"making",making:"ready",ready:"done"};
+  const stNL={new:"→ Zubereitung",making:"→ Bereit",ready:"→ Geliefert"};
+  const stCl={new:{bg:"#DBEAFE",cl:"#1E40AF"},making:{bg:"#FEF3C7",cl:"#92400E"},ready:{bg:"#D1FAE5",cl:"#065F46"},done:{bg:C.border,cl:C.textLight}};
+  const inp={padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,color:C.text,outline:"none",width:"100%"};
+  const check=()=>{if(pin===ADMIN_PIN){setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}};
+  const addProd=()=>{
+    if(!np.name||!np.price)return;
+    addProduct({...np,id:Date.now(),price:parseFloat(np.price),sizes:[{l:"normal",p:parseFloat(np.price)}],milch:false,sirup:false,pop:false});
+    setNp({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
+  };
+
+  if(!ok)return(
+    <Screen>
+      <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
+        <p style={{color:"#fff",fontWeight:900,fontSize:20}}>Admin Panel</p>
+      </div>
+      <div style={{padding:"26px 18px"}}>
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16}}>
+          <p style={{fontWeight:800,fontSize:16,marginBottom:5,color:C.text}}>🔒 Admin-Zugang</p>
+          <p style={{color:C.textLight,fontSize:13,marginBottom:15}}>PIN: 1234</p>
+          <input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e=>{setPin(e.target.value);setErr(false);}} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="••••" style={{...inp,fontSize:28,letterSpacing:12,textAlign:"center",marginBottom:12,padding:13}}/>
+          <button onClick={check} style={{width:"100%",padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer"}}>Bestätigen</button>
+          {err&&<p style={{textAlign:"center",color:C.red,fontSize:13,fontWeight:700,marginTop:10}}>Falscher PIN</p>}
+        </div>
+      </div>
+      <BottomNav/>
+    </Screen>
+  );
+
+  return(
+    <Screen>
+      <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 18px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div><p style={{color:"#fff",fontWeight:900,fontSize:20}}>Admin Panel</p><p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:3}}>{allOrders.length} Bestellung{allOrders.length!==1?"en":""}</p></div>
+          <div style={{background:"rgba(
