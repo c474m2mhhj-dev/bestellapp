@@ -587,7 +587,7 @@ function QRScreen(){
    MENU
 ══════════════════════════════════════════════ */
 function MenuScreen(){
-  const{go,cart,products,activeCat,setActiveCat,darkMode:dk}=useApp();const C=useC();
+  const{go,cart,addToCart,products,activeCat,setActiveCat,darkMode:dk}=useApp();const C=useC();
   const[search,setSearch]=useState("");
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const[loading,setLoading]=useState(true);
@@ -599,7 +599,7 @@ function MenuScreen(){
   const toggleFav=id=>{setFavs(prev=>{const n=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];LS.set("zr_favs",n);return n;});};
   const filtered=useMemo(()=>{
     const q=search.toLowerCase().trim();
-    return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)));
+    return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
   },[products,activeCat,search]);
 
   return(
@@ -644,13 +644,8 @@ function MenuScreen(){
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}>
                       <span style={{fontWeight:800,color:C.primary,fontSize:14}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
                       <div onClick={e=>e.stopPropagation()}>
-                        {iq>0
-                          ?<div style={{display:"flex",alignItems:"center",gap:7}}>
-                              <div style={{background:C.light,borderRadius:8,padding:"3px 9px",fontWeight:800,fontSize:12,color:C.primary}}>{iq}×</div>
-                              <button onClick={()=>go("detail",p)} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
-                            </div>
-                          :<button onClick={()=>go("detail",p)} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center"}}>+</button>
-                        }
+                        {iq>0&&<div style={{background:C.light,borderRadius:8,padding:"3px 9px",fontWeight:800,fontSize:12,color:C.primary,display:"inline-block",marginRight:5}}>{iq}×</div>}
+                        <button onClick={()=>{const sz=p.sizes.length>1?p.sizes[0].l:"";const mk=p.milch?"Vollmilch":"";const parts=[sz,mk].filter(Boolean).join(", ");const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
                       </div>
                     </div>
                   </div>
@@ -1134,6 +1129,7 @@ function App(){
     if(sc==="detail")setDetailProduct(param);
     if(sc==="menu"&&typeof param==="string")setActiveCat(param);
     setScreen(sc);
+    window.scrollTo(0,0);
   },[screen]);
 
   const addToCart=useCallback((item,qty)=>{
