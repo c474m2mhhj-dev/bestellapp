@@ -282,10 +282,16 @@ function useSwipe(onRemove){
 ══════════════════════════════════════════════ */
 function PImg({src,alt,emoji,w,h,r=0,style={}}){
   const C=useC();
-  const [err,setErr]=useState(false);
+  const[err,setErr]=useState(false);
+  const[loaded,setLoaded]=useState(false);
   const base={width:w,height:h,flexShrink:0,borderRadius:r,...style};
   if(err||!src)return<div style={{...base,background:`linear-gradient(135deg,${C.dark},${C.primary})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:Math.min(w||60,h||60)*0.42}}>{emoji||"☕"}</div>;
-  return<img src={src} alt={alt} loading="lazy" style={{...base,objectFit:"cover",display:"block"}} onError={()=>setErr(true)}/>;
+  return(
+    <div style={{...base,position:"relative",overflow:"hidden"}}>
+      {!loaded&&<div style={{position:"absolute",inset:0,background:C.surface2,overflow:"hidden"}}><div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 50%,transparent 100%)",animation:"shimmer 1.4s infinite"}}/></div>}
+      <img src={src} alt={alt||""} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",opacity:loaded?1:0,transition:"opacity .35s"}} onLoad={()=>setLoaded(true)} onError={()=>setErr(true)}/>
+    </div>
+  );
 }
 function Tag({label}){
   const s=tagSty(label);
@@ -611,7 +617,7 @@ function MenuScreen(){
         </div>
         <div style={{background:"rgba(255,255,255,.13)",borderRadius:13,padding:"9px 13px",display:"flex",alignItems:"center",gap:7,marginBottom:10,border:"1px solid rgba(255,255,255,.16)"}}>
           <span style={{opacity:.55}}>🔍</span>
-          <input value={search} onChange={e=>{setSearch(e.target.value);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),400);}} placeholder="Produkt suchen…" style={{background:"none",border:"none",color:"#fff",fontSize:14,flex:1,outline:"none"}}/>
+          <input value={search} aria-label="Produkte suchen" onChange={e=>{setSearch(e.target.value);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),400);}} placeholder="Produkt suchen…" style={{background:"none",border:"none",color:"#fff",fontSize:14,flex:1,outline:"none"}}/>
           {search&&<button onClick={()=>setSearch("")} aria-label="Suche löschen" style={{color:"rgba(255,255,255,.6)",background:"none",border:"none",cursor:"pointer",fontSize:18}}>×</button>}
         </div>
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:13,scrollbarWidth:"none"}}>
@@ -997,9 +1003,12 @@ function AdminScreen(){
       <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 18px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div><p style={{color:"#fff",fontWeight:900,fontSize:20}}>Admin Panel</p><p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:3}}>{allOrders.length} Bestellung{allOrders.length!==1?"en":""} · {allOrders.filter(o=>o.status==="new").length} neu</p></div>
-          <div style={{background:"rgba(255,255,255,.18)",borderRadius:DS.radius.sm,padding:"7px 14px",cursor:"default"}}>
-            <p style={{color:"#fff",fontWeight:900,fontSize:17,lineHeight:1}}>{fmt(revenue)}</p>
-            <p style={{color:"rgba(255,255,255,.6)",fontSize:10,fontWeight:700,marginTop:2}}>Umsatz gesamt</p>
+          <div style={{display:"flex",gap:7,alignItems:"center"}}>
+            <div style={{background:"rgba(255,255,255,.18)",borderRadius:DS.radius.sm,padding:"7px 14px",cursor:"default"}}>
+              <p style={{color:"#fff",fontWeight:900,fontSize:17,lineHeight:1}}>{fmt(revenue)}</p>
+              <p style={{color:"rgba(255,255,255,.6)",fontSize:10,fontWeight:700,marginTop:2}}>Umsatz gesamt</p>
+            </div>
+            <button onClick={()=>{sessionStorage.removeItem("zr_admin_ok");setOk(false);}} aria-label="Abmelden" style={{width:36,height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}} title="Abmelden">🔒</button>
           </div>
         </div>
         <div style={{display:"flex",gap:8,marginTop:14}}>
