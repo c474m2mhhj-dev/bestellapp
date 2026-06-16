@@ -73,6 +73,7 @@ const Db = {
 const LS = {
   get:(k,d=null)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d} },
   set:(k,v)=>{ try{localStorage.setItem(k,JSON.stringify(v))}catch{} },
+  del:(k)=>{ try{localStorage.removeItem(k)}catch{} },
 };
 
 /* ══════════════════════════════════════════════
@@ -104,6 +105,8 @@ const IMG = {
   apfel:"https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=600&q=80&fit=crop",
   bier:"https://images.unsplash.com/photo-1608270586620-248524c67de9?w=600&q=80&fit=crop",
   cola:"https://images.unsplash.com/photo-1581636625402-29b2a704ef13?w=600&q=80&fit=crop",
+  redbull:"https://images.unsplash.com/photo-1609952048180-7b35ea6b083b?w=600&q=80&fit=crop",
+  icedtea:"https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80&fit=crop",
 };
 
 /* ══════════════════════════════════════════════
@@ -146,23 +149,23 @@ const PRODUCTS_INITIAL = [
   {id:52,name:"Reese's",           cat:"Snacks",        img:IMG.schoki,      emoji:"🥜",desc:"Erdnussbutter-Schokolade",                       pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.80}]},
   {id:53,name:"Doblito Bio",       cat:"Snacks",        img:IMG.schoki,      emoji:"🌿",desc:"Bio Milch-/Kakaocreme Riegel",                   pop:false,tag:"Neu",    available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.80}]},
   {id:60,name:"Mate / Mio Mio",   cat:"Kaltgetränke",  img:IMG.mate,        emoji:"🌿",desc:"Mate-Getränk nach Wahl",                         pop:true, tag:"Beliebt",available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
-  {id:61,name:"Iced Tea",          cat:"Kaltgetränke",  img:IMG.eistee,      emoji:"🍋",desc:"Eistee Zitrone oder Pfirsich",                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.80}]},
+  {id:61,name:"Iced Tea",          cat:"Kaltgetränke",  img:IMG.icedtea,     emoji:"🍋",desc:"Eistee Zitrone oder Pfirsich",                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.80}]},
   {id:62,name:"Paulaner Spezi",    cat:"Kaltgetränke",  img:IMG.cola,        emoji:"🥤",desc:"Cola-Orange-Mischung",                           pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
   {id:63,name:"Viva con Agua",     cat:"Kaltgetränke",  img:IMG.wasser,      emoji:"💧",desc:"Still oder sprudelnd",                           pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"0,33 l",p:1.70},{l:"0,75 l",p:2.20}]},
   {id:64,name:"Apfelschorle",      cat:"Kaltgetränke",  img:IMG.apfel,       emoji:"🍎",desc:"Fruchtige Apfelsaftschorle",                     pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
   {id:65,name:"Fritz-Kola",        cat:"Kaltgetränke",  img:IMG.cola,        emoji:"🥤",desc:"Hamburger Kultgetränk",                          pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
-  {id:66,name:"Red Bull",          cat:"Kaltgetränke",  img:IMG.mate,        emoji:"⚡",desc:"Energy Drink klassisch",                         pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Dose",p:2.80}]},
+  {id:66,name:"Red Bull",          cat:"Kaltgetränke",  img:IMG.redbull,     emoji:"⚡",desc:"Energy Drink klassisch",                         pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Dose",p:2.80}]},
   {id:67,name:"Clausthaler",       cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Alkoholfreies Bier",                             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.20}]},
   {id:68,name:"Braustübl",         cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Hausgetränk",                                    pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Glas",p:1.30}]},
   {id:69,name:"Augustiner",        cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Münchner Kultbier",                              pop:true, tag:"Beliebt",available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.80}]},
   {id:70,name:"Gösser Radler",     cat:"Kaltgetränke",  img:IMG.bier,        emoji:"🍺",desc:"Bier-Limonaden-Mix",                             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Flasche",p:2.80}]},
-  {id:80,name:"Sirup",             cat:"Sonstiges",     img:IMG.espresso,    emoji:"🍶",desc:"Sirup-Zusatz",                                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Schuss",p:0.20}]},
-  {id:81,name:"Tassenpfand",       cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Mehrwegtasse",                             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.00}]},
-  {id:82,name:"Becherpfand",       cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Mehrwegbecher",                            pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.00}]},
-  {id:83,name:"Deckelpfand",       cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Deckel",                                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:0.50}]},
-  {id:84,name:"Besteckpfand",      cat:"Sonstiges",     img:IMG.espresso,    emoji:"♻️",desc:"Pfand Besteck",                                  pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.00}]},
-  {id:85,name:"Soli klein",        cat:"Sonstiges",     img:IMG.espresso,    emoji:"🤝",desc:"Solidaritätsbeitrag klein",                      pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Beitrag",p:0.20}]},
-  {id:86,name:"Soli groß",         cat:"Sonstiges",     img:IMG.espresso,    emoji:"🤝",desc:"Solidaritätsbeitrag groß",                       pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Beitrag",p:0.40}]},
+  {id:80,name:"Sirup",             cat:"Sonstiges",     img:"",              emoji:"🍶",desc:"Sirup-Zusatz",                                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Schuss",p:0.20}]},
+  {id:81,name:"Tassenpfand",       cat:"Sonstiges",     img:"",              emoji:"♻️",desc:"Pfand Mehrwegtasse",                             pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:2.00}]},
+  {id:82,name:"Becherpfand",       cat:"Sonstiges",     img:"",              emoji:"♻️",desc:"Pfand Mehrwegbecher",                            pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.00}]},
+  {id:83,name:"Deckelpfand",       cat:"Sonstiges",     img:"",              emoji:"♻️",desc:"Pfand Deckel",                                   pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:0.50}]},
+  {id:84,name:"Besteckpfand",      cat:"Sonstiges",     img:"",              emoji:"♻️",desc:"Pfand Besteck",                                  pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Stück",p:1.00}]},
+  {id:85,name:"Soli klein",        cat:"Sonstiges",     img:"",              emoji:"🤝",desc:"Solidaritätsbeitrag klein",                      pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Beitrag",p:0.20}]},
+  {id:86,name:"Soli groß",         cat:"Sonstiges",     img:"",              emoji:"🤝",desc:"Solidaritätsbeitrag groß",                       pop:false,tag:"",       available:true,milch:false,sirup:false,sizes:[{l:"Beitrag",p:0.40}]},
 ];
 
 const CATS  = ["Alle","Heiße Getränke","Iced Drinks","Gebäck","Snacks","Kaltgetränke","Sonstiges"];
@@ -1083,7 +1086,11 @@ function App(){
   const{toasts,push}=useToast();
 
   useEffect(()=>{LS.set("zr_dark",darkMode);},[darkMode]);
-  useEffect(()=>{Db.get("zr_products").then(p=>{if(p&&p.length)setProducts(p);});},[]);
+  useEffect(()=>{
+    const local=LS.get("zr_products");
+    if(local&&local.length)setProducts(local);
+    Db.get("zr_products").then(p=>{if(p&&p.length)setProducts(p);});
+  },[]);
   useEffect(()=>{
     syncOrders();
     const t=setInterval(syncOrders,5000);
@@ -1128,9 +1135,11 @@ function App(){
       total:Math.round((sub+del)*100)/100,
       note:note.trim(),
     };
-    await Db.set(`order_${id}`,order,true);
     const myIds=LS.get("zr_my_orders",[]);
     LS.set("zr_my_orders",[...myIds,id]);
+    LS.set(`zr_order_${id}`,order);
+    LS.set("zr_all_orders",[...LS.get("zr_all_orders",[]),id]);
+    await Db.set(`order_${id}`,order,true);
     setMyOrders(prev=>[...prev,order]);
     setCart([]);
     setSubmitting(false);
@@ -1141,39 +1150,51 @@ function App(){
   const syncOrders=useCallback(async()=>{
     const myIds=LS.get("zr_my_orders",[]);
     if(!myIds.length)return;
-    const updated=await Promise.all(myIds.map(id=>Db.get(`order_${id}`,true)));
-    setMyOrders(updated.filter(Boolean));
+    if(hasSt){
+      const updated=await Promise.all(myIds.map(id=>Db.get(`order_${id}`,true)));
+      setMyOrders(updated.filter(Boolean));
+    } else {
+      setMyOrders(myIds.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean));
+    }
   },[]);
 
   const loadAdminOrders=useCallback(async()=>{
-    const keys=await Db.list("order_",true);
-    const orders=await Promise.all(keys.map(k=>Db.get(k,true)));
+    let orders;
+    if(hasSt){
+      const keys=await Db.list("order_",true);
+      orders=await Promise.all(keys.map(k=>Db.get(k,true)));
+    } else {
+      const allIds=LS.get("zr_all_orders",[]);
+      orders=allIds.map(id=>LS.get(`zr_order_${id}`,null));
+    }
     setAllOrders(orders.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt));
   },[]);
 
   const setOrderStatus=useCallback(async(id,status)=>{
-    const order=await Db.get(`order_${id}`,true);
+    const order=hasSt?await Db.get(`order_${id}`,true):LS.get(`zr_order_${id}`);
     if(!order)return;
     const updated={...order,status};
-    await Db.set(`order_${id}`,updated,true);
+    if(hasSt) await Db.set(`order_${id}`,updated,true);
+    else LS.set(`zr_order_${id}`,updated);
     setAllOrders(prev=>prev.map(o=>o.id===id?updated:o));
   },[]);
 
   const deleteOrder=useCallback(async(id)=>{
-    await Db.del(`order_${id}`,true);
+    if(hasSt) await Db.del(`order_${id}`,true);
+    else{ LS.del(`zr_order_${id}`); LS.set("zr_all_orders",LS.get("zr_all_orders",[]).filter(i=>i!==id)); }
     setAllOrders(prev=>prev.filter(o=>o.id!==id));
   },[]);
 
   const addProduct=useCallback((product)=>{
-    setProducts(prev=>{const next=[...prev,product];Db.set("zr_products",next);return next;});
+    setProducts(prev=>{const next=[...prev,product];LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
   const deleteProduct=useCallback((id)=>{
-    setProducts(prev=>{const next=prev.filter(p=>p.id!==id);Db.set("zr_products",next);return next;});
+    setProducts(prev=>{const next=prev.filter(p=>p.id!==id);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
   const setProductAvailable=useCallback((id,available)=>{
-    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);Db.set("zr_products",next);return next;});
+    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
   const ctx={
