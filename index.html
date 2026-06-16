@@ -970,13 +970,15 @@ function OrdersScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,products,addProduct,deleteProduct,setProductAvailable,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,products,addProduct,deleteProduct,setProductAvailable,editProduct,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
   const[tab,setTab]=useState("orders");
   const[stFilter,setStFilter]=useState("all");
   const[prodSearch,setProdSearch]=useState("");
+  const[editId,setEditId]=useState(null);
+  const[editData,setEditData]=useState({});
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
@@ -1040,7 +1042,7 @@ function AdminScreen(){
 
       <div style={{display:"flex",gap:2,padding:"14px 16px 0"}}>
         {[["orders","Bestellungen"],["products","Produkte"]].map(([id,label])=>(
-          <button key={id} onClick={()=>{setTab(id);setProdSearch("");}} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,background:tab===id?C.primary:C.surface2,color:tab===id?"#fff":C.textMid,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s"}}>
+          <button key={id} onClick={()=>{setTab(id);setProdSearch("");setEditId(null);}} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,background:tab===id?C.primary:C.surface2,color:tab===id?"#fff":C.textMid,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s"}}>
             {label}
           </button>
         ))}
@@ -1110,18 +1112,36 @@ function AdminScreen(){
             </div>
             <input value={prodSearch} onChange={e=>setProdSearch(e.target.value)} placeholder="🔍 Produkte durchsuchen…" style={{...inp,marginBottom:10}}/>
             {products.filter(p=>!prodSearch||p.name.toLowerCase().includes(prodSearch.toLowerCase())||p.cat.toLowerCase().includes(prodSearch.toLowerCase())).map(p=>(
-              <div key={p.id} style={{background:C.surface,borderRadius:DS.radius.md,padding:12,marginBottom:8,display:"flex",gap:10,alignItems:"center",boxShadow:DS.shadow.xs(dk),opacity:p.available?1:.5}}>
-                <div style={{fontSize:22,width:36,textAlign:"center",flexShrink:0}}>{p.emoji}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{fontWeight:700,fontSize:13,color:C.text}}>{p.name}</p>
-                  <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{p.cat} · {p.sizes.map(s=>`${s.l} ${fmt(s.p)}`).join(", ")}</p>
-                </div>
-                <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-                  <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>
-                    {p.available?"✓ Aktiv":"Pausiert"}
-                  </button>
-                  {p.id>100&&<button onClick={()=>deleteProduct(p.id)} aria-label="Produkt löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.red}}>🗑</button>}
-                </div>
+              <div key={p.id} style={{marginBottom:8}}>
+                {editId===p.id?(
+                  <div style={{background:C.surface,borderRadius:DS.radius.md,padding:12,boxShadow:DS.shadow.sm(dk)}}>
+                    <div style={{display:"flex",gap:7,marginBottom:8}}>
+                      <input value={editData.emoji} onChange={e=>setEditData(d=>({...d,emoji:e.target.value}))} style={{...inp,width:52,textAlign:"center",fontSize:18,flex:"none"}}/>
+                      <input value={editData.name} onChange={e=>setEditData(d=>({...d,name:e.target.value}))} placeholder="Name" style={{...inp,flex:1}}/>
+                      <input value={editData.price} onChange={e=>setEditData(d=>({...d,price:e.target.value}))} type="number" step="0.10" min="0" placeholder="Preis" style={{...inp,width:82,flex:"none"}}/>
+                    </div>
+                    <select value={editData.tag} onChange={e=>setEditData(d=>({...d,tag:e.target.value}))} style={{...inp,marginBottom:8}}>
+                      {["","Beliebt","Neu","Vegan"].map(t=><option key={t} value={t}>{t||"Kein Tag"}</option>)}
+                    </select>
+                    <div style={{display:"flex",gap:7}}>
+                      <button onClick={()=>{editProduct({id:p.id,...editData});setEditId(null);}} style={{flex:1,padding:"9px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>Speichern</button>
+                      <button onClick={()=>setEditId(null)} style={{padding:"9px 13px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>✕</button>
+                    </div>
+                  </div>
+                ):(
+                  <div style={{background:C.surface,borderRadius:DS.radius.md,padding:12,display:"flex",gap:10,alignItems:"center",boxShadow:DS.shadow.xs(dk),opacity:p.available?1:.5}}>
+                    <PImg src={p.img} emoji={p.emoji} w={36} h={36} r={8}/>
+                    <div style={{flex:1,minWidth:0}}>
+                      <p style={{fontWeight:700,fontSize:13,color:C.text}}>{p.name}</p>
+                      <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{p.cat} · {p.sizes.map(s=>`${s.l} ${fmt(s.p)}`).join(", ")}</p>
+                    </div>
+                    <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                      <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,price:String(p.sizes[0].p),emoji:p.emoji,tag:p.tag||""});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
+                      <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>{p.available?"✓ Aktiv":"Pausiert"}</button>
+                      {p.id>100&&<button onClick={()=>deleteProduct(p.id)} aria-label="Produkt löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.red}}>🗑</button>}
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </>
@@ -1283,6 +1303,10 @@ function App(){
     setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
+  const editProduct=useCallback(({id,name,price,emoji,tag})=>{
+    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,name:name||p.name,emoji:emoji||p.emoji,tag:tag!==undefined?tag:p.tag,sizes:p.sizes.map((s,i)=>i===0?{...s,p:parseFloat(price)||s.p}:s)}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
+  },[]);
+
   const clearCart=useCallback(()=>setCart([]),[]);
 
   const clearDoneOrders=useCallback(()=>{
@@ -1299,7 +1323,7 @@ function App(){
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
-    setOrderStatus,deleteOrder,addProduct,deleteProduct,setProductAvailable,
+    setOrderStatus,deleteOrder,addProduct,deleteProduct,setProductAvailable,editProduct,
   };
 
   const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen};
