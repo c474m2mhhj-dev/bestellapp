@@ -322,38 +322,11 @@ function Chip({children}){
 /* ══════════════════════════════════════════════
    QR CODE (SVG, no library)
 ══════════════════════════════════════════════ */
-function QRCode({table,size=200}){
-  const hash=(s,seed=0x811c9dc5)=>{let h=seed;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h;};
+function QRWidget({table,size=200}){
   const base=typeof window!=="undefined"?window.location.origin+window.location.pathname.replace(/\/$/,""):"https://c474m2mhhj-dev.github.io/bestellapp";
-  const url=`${base}?table=${table}`;
-  const GRID=21,cells=[];
-  const finderCell=(r,c)=>{
-    for(const[pr,pc]of[[0,0],[0,14],[14,0]]){
-      const dr=r-pr,dc=c-pc;
-      if(dr>=0&&dr<=6&&dc>=0&&dc<=6){
-        if(dr===0||dr===6||dc===0||dc===6)return true;
-        if(dr>=2&&dr<=4&&dc>=2&&dc<=4)return true;
-        return false;
-      }
-    }
-    return null;
-  };
-  const h1=hash(url),h2=hash(url+table),h3=hash(table);
-  for(let r=0;r<GRID;r++)for(let c=0;c<GRID;c++){
-    const f=finderCell(r,c);
-    if(f!==null){cells.push({r,c,on:f});continue;}
-    const bit=((h1>>((r*GRID+c)%32))^(h2>>((r+c)%32))^(h3>>((r*c+1)%32)))&1;
-    cells.push({r,c,on:!!bit});
-  }
-  const cell=size/GRID;
-  return(
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg" style={{display:"block"}}>
-      <rect width={size} height={size} fill="#fff" rx="10"/>
-      {cells.map(({r,c,on})=>on?<rect key={`${r}-${c}`} x={c*cell+1} y={r*cell+1} width={cell-1} height={cell-1} fill="#004D40" rx="1"/>:null)}
-      <rect x={size/2-15} y={size/2-15} width={30} height={30} fill="#fff" rx="6"/>
-      <text x={size/2} y={size/2+9} textAnchor="middle" fontSize={18}>☕</text>
-    </svg>
-  );
+  const url=`${base}?table=${encodeURIComponent(table)}`;
+  const src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=4&color=004D40`;
+  return<img src={src} width={size} height={size} alt={`QR Code Tisch ${table}`} style={{display:"block",borderRadius:8}}/>;
 }
 
 /* ══════════════════════════════════════════════
@@ -583,7 +556,7 @@ function QRScreen(){
         </div>
         <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:24,boxShadow:DS.shadow.md(dk),textAlign:"center",marginBottom:16}}>
           <div style={{display:"inline-block",padding:12,background:"#fff",borderRadius:DS.radius.lg,boxShadow:DS.shadow.sm(dk)}}>
-            <QRCode table={t} size={200}/>
+            <QRWidget table={t} size={200}/>
           </div>
           <p style={{marginTop:16,fontWeight:800,fontSize:18,color:C.text}}>Tisch {t}</p>
           <p style={{color:C.textLight,fontSize:13,marginTop:4}}>Scan → Tisch automatisch erkannt</p>
