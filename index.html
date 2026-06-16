@@ -203,6 +203,7 @@ const fmt    = n=>typeof n==="number"?n.toFixed(2).replace(".",",")+"\u00a0€":
 const tagSty = t=>({Beliebt:{bg:"#FEF3C7",cl:"#92400E"},Neu:{bg:"#DBEAFE",cl:"#1E40AF"},Vegan:{bg:"#D1FAE5",cl:"#065F46"}}[t]);
 const genId  = ()=>`${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 const playBell=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(t=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;o.type="sine";g.gain.setValueAtTime(.35,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.45);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.45);});}catch(e){}};
+const relTime=t=>{const d=Math.floor((Date.now()-t)/1000);if(d<60)return"gerade eben";if(d<3600)return"vor "+Math.floor(d/60)+" min";if(d<86400)return"vor "+Math.floor(d/3600)+" Std";return"vor "+Math.floor(d/86400)+" T";};
 
 /* ══════════════════════════════════════════════
    CONTEXT
@@ -610,6 +611,7 @@ function MenuScreen(){
     const q=search.toLowerCase().trim();
     return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
   },[products,activeCat,search]);
+  const catCounts=useMemo(()=>{const m={};products.filter(p=>p.available).forEach(p=>{m[p.cat]=(m[p.cat]||0)+1;});return m;},[products]);
 
   return(
     <Screen>
@@ -626,7 +628,7 @@ function MenuScreen(){
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:13,scrollbarWidth:"none"}}>
           {CATS.map(c=>(
             <button key={c} onClick={()=>{setActiveCat(c);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),500);}} style={{padding:"8px 14px",borderRadius:DS.radius.full,fontWeight:700,fontSize:12,whiteSpace:"nowrap",background:activeCat===c?"#fff":"rgba(255,255,255,.17)",color:activeCat===c?C.primary:"#fff",border:"none",cursor:"pointer",flexShrink:0,transition:"all .16s"}}>
-              {CICO[c]} {c}
+              {CICO[c]} {c}{c!=="Alle"&&catCounts[c]?<span style={{opacity:.55,fontSize:10,fontWeight:600,marginLeft:2}}>({catCounts[c]})</span>:null}
             </button>
           ))}
         </div>
@@ -975,6 +977,8 @@ function AdminScreen(){
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
+  const markAllReady=useCallback(async()=>{await Promise.all(allOrders.filter(o=>o.status==="ready").map(o=>setOrderStatus(o.id,"done")));},[allOrders,setOrderStatus]);
+  const clearAllDone=useCallback(()=>{allOrders.filter(o=>o.status==="done").forEach(o=>deleteOrder(o.id));},[allOrders,deleteOrder]);
   const stL={new:"Neu",making:"In Zubereitung",ready:"Bereit",done:"Serviert"};
   const stN={new:"making",making:"ready",ready:"done"};
   const stNL={new:"→ Zubereitung",making:"→ Bereit",ready:"→ Serviert"};
@@ -1047,6 +1051,12 @@ function AdminScreen(){
             ))}
           </div>
         )}
+        {tab==="orders"&&(bySt("ready")>0||bySt("done")>0)&&(
+          <div style={{display:"flex",gap:6,marginBottom:10}}>
+            {bySt("ready")>0&&<button onClick={markAllReady} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#D1FAE5",color:"#065F46"}}>✓ Alle Bereit → Serviert ({bySt("ready")})</button>}
+            {bySt("done")>0&&<button onClick={clearAllDone} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid}}>🗑 Erledigte löschen ({bySt("done")})</button>}
+          </div>
+        )}
         {tab==="orders"?(
           allOrders.filter(o=>stFilter==="all"||o.status===stFilter).length===0
             ?<div style={{textAlign:"center",padding:"44px 16px",color:C.textLight}}><div style={{fontSize:46,marginBottom:12}}>📋</div><p style={{fontSize:15,fontWeight:700,color:C.text}}>{allOrders.length===0?"Noch keine Bestellungen":"Keine Bestellungen mit diesem Status"}</p></div>
@@ -1055,7 +1065,7 @@ function AdminScreen(){
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
                     <p style={{fontWeight:800,fontSize:14,color:C.text}}>Tisch {o.table} · #{String(o.createdAt).slice(-4)}</p>
-                    <p style={{fontSize:12,color:C.textLight,marginTop:1}}>{o.time}</p>
+                    <p style={{fontSize:12,color:C.textLight,marginTop:1}}>{relTime(o.createdAt)} · {o.time}</p>
                     {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:6,padding:"2px 7px",marginTop:4,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
                   </div>
                   <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
