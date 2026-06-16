@@ -310,7 +310,7 @@ function QtyBtn({op,onPress,sz=34}){
 function OptionBtn({active,onClick,children}){
   const C=useC();
   return(
-    <button onClick={onClick} style={{padding:"9px 13px",borderRadius:DS.radius.sm,border:`1.5px solid ${active?C.primary:"transparent"}`,background:active?`rgba(0,105,92,.12)`:C.surface2,color:active?C.primary:C.text,fontWeight:600,fontSize:12,minHeight:40,cursor:"pointer",transition:"all .12s"}}>
+    <button onClick={onClick} style={{padding:"9px 13px",borderRadius:DS.radius.sm,border:`1.5px solid ${active?C.primary:C.border}`,background:active?C.light:C.surface2,color:active?C.primary:C.text,fontWeight:600,fontSize:12,minHeight:40,cursor:"pointer",transition:"all .12s"}}>
       {children}
     </button>
   );
@@ -849,8 +849,8 @@ function CartScreen(){
         {cart.length>0&&(
           <>
             {!selTable&&(
-              <div style={{background:"#FFF7ED",border:"2px solid #FED7AA",borderRadius:DS.radius.md,padding:14,marginBottom:9}}>
-                <p style={{fontWeight:700,fontSize:13,color:"#C2410C",marginBottom:9}}>⚠️ Bitte Tisch wählen</p>
+              <div style={{background:dk?"rgba(251,192,45,.1)":"#FFF7ED",border:`2px solid ${dk?C.amber+"55":"#FED7AA"}`,borderRadius:DS.radius.md,padding:14,marginBottom:9}}>
+                <p style={{fontWeight:700,fontSize:13,color:dk?C.amber:"#C2410C",marginBottom:9}}>⚠️ Bitte Tisch wählen</p>
                 <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                   {TABLES.map(t=><button key={t} onClick={()=>setSelTable(t)} style={{padding:"8px 13px",borderRadius:DS.radius.sm,background:C.surface2,color:C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",minHeight:42}}>{t}</button>)}
                 </div>
