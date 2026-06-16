@@ -26,6 +26,7 @@
     @keyframes ldbar{from{width:0}to{width:100%}}
     @keyframes tIn{from{opacity:0;transform:translateY(-18px) scale(.92)}to{opacity:1;transform:none}}
     @keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
+    @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.45)}50%{box-shadow:0 0 0 8px rgba(37,99,235,0)}}
   </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
@@ -461,7 +462,7 @@ function HomeScreen(){
 
         {/* QR shortcut — glass card */}
         <button onClick={()=>go("qr")} style={{width:"100%",marginBottom:14,padding:"13px 16px",...DS.glass(dk),borderRadius:DS.radius.md,display:"flex",alignItems:"center",gap:12,cursor:"pointer",boxShadow:DS.shadow.md(dk),border:`1px solid ${C.borderGlass}`}}>
-          <div style={{width:40,height:40,borderRadius:DS.radius.sm,background:C.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>⬛</div>
+          <div style={{width:40,height:40,borderRadius:DS.radius.sm,background:C.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🔳</div>
           <div style={{textAlign:"left"}}>
             <p style={{fontWeight:800,fontSize:14,color:C.text}}>QR-Code für Tisch</p>
             <p style={{fontSize:12,color:C.textLight,marginTop:1}}>Scan → automatische Tischerkennung</p>
@@ -562,6 +563,9 @@ function QRScreen(){
           <p style={{color:C.textLight,fontSize:13,marginTop:4}}>Scan → Tisch automatisch erkannt</p>
           <div style={{marginTop:12,background:C.surface2,borderRadius:DS.radius.sm,padding:"9px 14px",display:"inline-block"}}>
             <code style={{fontSize:11,color:C.textMid}}>{(typeof window!=="undefined"?window.location.host+window.location.pathname.replace(/\/$/,""):"zeitraum.app")}?table={t}</code>
+          </div>
+          <div style={{marginTop:14,display:"flex",gap:8,justifyContent:"center"}}>
+            <a href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent((typeof window!=="undefined"?window.location.href.split("?")[0]:"https://c474m2mhhj-dev.github.io/bestellapp")+"?table="+encodeURIComponent(t))}&margin=4&color=004D40`} target="_blank" rel="noopener noreferrer" style={{padding:"10px 20px",background:C.primary,color:"#fff",borderRadius:DS.radius.md,fontWeight:700,fontSize:13,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:6}}>⬇ Bild öffnen</a>
           </div>
         </div>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.sm(dk)}}>
@@ -791,7 +795,7 @@ function CartItem({item,onChQty,onRemove}){
    CART SCREEN
 ══════════════════════════════════════════════ */
 function CartScreen(){
-  const{go,cart,chQty,removeItem,selTable,setSelTable,submitOrder,submitting,darkMode:dk}=useApp();const C=useC();
+  const{go,prevScreen,cart,chQty,removeItem,selTable,setSelTable,submitOrder,submitting,darkMode:dk}=useApp();const C=useC();
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
   useEffect(()=>{LS.set("zr_note",note);},[note]);
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
@@ -801,7 +805,7 @@ function CartScreen(){
     <Screen>
       <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
         <div style={{display:"flex",alignItems:"center",gap:11}}>
-          <BackBtn onPress={()=>go("menu")}/>
+          <BackBtn onPress={()=>go(prevScreen||"menu")}/>
           <div>
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Warenkorb</p>
             <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>{selTable?`📍 Tisch ${selTable}`:"⚠️ Kein Tisch"}</p>
@@ -886,7 +890,7 @@ function OrderCard({o}){
   const step=STEPS[si];
   const pct=(si/(STEPS.length-1))*100;
   return(
-    <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk)}}>
+    <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk),animation:o.status==="ready"?"pulse 1.8s ease-in-out infinite":undefined}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
         <div style={{flex:1}}>
           <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung #{String(o.createdAt).slice(-4)}</p>
@@ -1124,7 +1128,8 @@ function App(){
   },[]);
 
   const go=useCallback((sc,param=null)=>{
-    if(sc==="detail"){setDetailProduct(param);setPrevScreen(screen);}
+    if(sc==="detail"||sc==="cart"){setPrevScreen(screen);}
+    if(sc==="detail")setDetailProduct(param);
     if(sc==="menu"&&typeof param==="string")setActiveCat(param);
     setScreen(sc);
   },[screen]);
