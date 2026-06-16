@@ -219,7 +219,7 @@ function useToast(){
   },[]);
   return{toasts,push};
 }
-function ToastStack({toasts,dk}){
+function ToastStack({toasts}){
   return(
     <div style={{position:"fixed",top:"max(16px,env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none",width:"min(92vw,360px)"}}>
       {toasts.map(t=>(
@@ -730,7 +730,7 @@ function DetailScreen(){
           <p style={{fontSize:22,fontWeight:900,color:C.primary,flexShrink:0,whiteSpace:"nowrap"}}>{fmt(unitP)}</p>
         </div>
         <div style={{display:"flex",gap:10,marginTop:14}}>
-          {[["⭐","4.9"],["⏱",{Kaltgetränke:"~1 Min",Snacks:"~2 Min",Gebäck:"~3 Min",Sonstiges:"~2 Min","Tee & Matcha":"~4 Min"}[p.cat]||"~5 Min"],["🌿",p.tag||"Frisch"]].map(([ic,v])=>(
+          {[["⭐","4.9"],["⏱",{Kaltgetränke:"~1 Min",Snacks:"~2 Min",Gebäck:"~3 Min",Sonstiges:"~2 Min"}[p.cat]||"~5 Min"],["🌿",p.tag||"Frisch"]].map(([ic,v])=>(
             <div key={v} style={{flex:1,background:C.surface2,borderRadius:DS.radius.sm,padding:"10px 8px",textAlign:"center"}}>
               <div style={{fontSize:16}}>{ic}</div>
               <div style={{fontSize:11,fontWeight:700,color:C.textMid,marginTop:3}}>{v}</div>
@@ -1271,7 +1271,7 @@ function App(){
 
   return(
     <Ctx.Provider value={ctx}>
-      <ToastStack toasts={toasts} dk={darkMode}/>
+      <ToastStack toasts={toasts}/>
       <S/>
     </Ctx.Provider>
   );
