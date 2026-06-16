@@ -1016,7 +1016,10 @@ function AdminScreen(){
   useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
   const markAllReady=useCallback(async()=>{await Promise.all(allOrders.filter(o=>o.status==="ready").map(o=>setOrderStatus(o.id,"done")));},[allOrders,setOrderStatus]);
+  const markAllMaking=useCallback(async()=>{await Promise.all(allOrders.filter(o=>o.status==="new").map(o=>setOrderStatus(o.id,"making")));},[allOrders,setOrderStatus]);
   const clearAllDone=useCallback(()=>{allOrders.filter(o=>o.status==="done").forEach(o=>deleteOrder(o.id));},[allOrders,deleteOrder]);
+  const prevNewRef=useRef(null);
+  useEffect(()=>{const n=allOrders.filter(o=>o.status==="new").length;if(prevNewRef.current!==null&&n>prevNewRef.current)playBell();prevNewRef.current=n;},[allOrders]);
   const stL={new:"Neu",making:"In Zubereitung",ready:"Bereit",done:"Serviert"};
   const stN={new:"making",making:"ready",ready:"done"};
   const stNL={new:"→ Zubereitung",making:"→ Bereit",ready:"→ Serviert"};
@@ -1079,8 +1082,9 @@ function AdminScreen(){
 
       <div style={{display:"flex",gap:2,padding:"14px 16px 0"}}>
         {[["orders","Bestellungen"],["products","Produkte"]].map(([id,label])=>(
-          <button key={id} onClick={()=>{setTab(id);setProdSearch("");setEditId(null);}} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,background:tab===id?C.primary:C.surface2,color:tab===id?"#fff":C.textMid,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s"}}>
+          <button key={id} onClick={()=>{setTab(id);setProdSearch("");setEditId(null);}} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,background:tab===id?C.primary:C.surface2,color:tab===id?"#fff":C.textMid,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s",position:"relative"}}>
             {label}
+            {id==="orders"&&bySt("new")>0&&<span style={{background:"#EF4444",color:"#fff",borderRadius:DS.radius.full,fontSize:10,fontWeight:900,padding:"1px 7px",marginLeft:7,display:"inline-block",verticalAlign:"middle"}}>{bySt("new")}</span>}
           </button>
         ))}
       </div>
@@ -1105,10 +1109,11 @@ function AdminScreen(){
             ))}
           </div>
         )}
-        {tab==="orders"&&(bySt("ready")>0||bySt("done")>0)&&(
-          <div style={{display:"flex",gap:6,marginBottom:10}}>
-            {bySt("ready")>0&&<button onClick={markAllReady} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#D1FAE5",color:"#065F46"}}>✓ Alle Bereit → Serviert ({bySt("ready")})</button>}
-            {bySt("done")>0&&<button onClick={clearAllDone} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid}}>🗑 Erledigte löschen ({bySt("done")})</button>}
+        {tab==="orders"&&(bySt("new")>0||bySt("ready")>0||bySt("done")>0)&&(
+          <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
+            {bySt("new")>0&&<button onClick={markAllMaking} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#DBEAFE",color:"#1E40AF",whiteSpace:"nowrap"}}>🍳 Alle Neu → Zubereitung ({bySt("new")})</button>}
+            {bySt("ready")>0&&<button onClick={markAllReady} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#D1FAE5",color:"#065F46",whiteSpace:"nowrap"}}>✓ Alle Bereit → Serviert ({bySt("ready")})</button>}
+            {bySt("done")>0&&<button onClick={clearAllDone} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>🗑 Erledigte löschen ({bySt("done")})</button>}
           </div>
         )}
         {tab==="orders"?(
