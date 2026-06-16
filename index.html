@@ -931,7 +931,14 @@ const STEPS=[
   {key:"done",   label:"Serviert ✓",    icon:"🎉",color:"#16A34A"},
 ];
 function OrderCard({o}){
-  const C=useC(),{darkMode:dk}=useApp();
+  const C=useC(),{darkMode:dk,addToCart,go,products}=useApp();
+  const reorder=useCallback(()=>{
+    o.items.forEach(it=>{
+      const prod=products.find(p=>p.id===it.id)||products.find(p=>p.name===it.name);
+      if(prod&&prod.available){const sz=prod.sizes.find(s=>s.l===it.size)||prod.sizes[0];for(let i=0;i<it.qty;i++)addToCart(prod,sz);}
+    });
+    go("cart");
+  },[o,products,addToCart,go]);
   const si=Math.max(0,STEPS.findIndex(s=>s.key===o.status));
   const step=STEPS[si];
   const pct=(si/(STEPS.length-1))*100;
@@ -968,9 +975,12 @@ function OrderCard({o}){
           </div>
         ))}
       </div>
-      <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingTop:9,borderTop:`1px solid ${C.border}`,alignItems:"center"}}>
-        {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
-        <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:14}}>{fmt(o.total)}</span>
+      <div style={{paddingTop:9,borderTop:`1px solid ${C.border}`}}>
+        <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center",marginBottom:9}}>
+          {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
+          <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:14}}>{fmt(o.total)}</span>
+        </div>
+        <button onClick={reorder} style={{width:"100%",padding:"9px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${C.border}`,cursor:"pointer"}}>🔁 Nochmal bestellen</button>
       </div>
     </div>
   );
@@ -1153,7 +1163,10 @@ function AdminScreen(){
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 <input value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))} placeholder="Name" style={inp}/>
                 <input value={np.desc} onChange={e=>setNp(p=>({...p,desc:e.target.value}))} placeholder="Beschreibung" style={inp}/>
-                <input value={np.img} onChange={e=>setNp(p=>({...p,img:e.target.value}))} placeholder="Bild-URL (optional)" style={inp}/>
+                <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                  <input value={np.img} onChange={e=>setNp(p=>({...p,img:e.target.value}))} placeholder="Bild-URL (optional)" style={{...inp,flex:1}}/>
+                  {np.img&&<PImg src={np.img} emoji={np.emoji} w={44} h={44} r={8}/>}
+                </div>
                 <div style={{display:"flex",gap:8}}>
                   <input value={np.price} onChange={e=>setNp(p=>({...p,price:e.target.value}))} placeholder="Preis (z.B. 2.50)" type="number" step="0.10" min="0" style={{...inp,flex:1}}/>
                   <input value={np.emoji} onChange={e=>setNp(p=>({...p,emoji:e.target.value}))} placeholder="🍕" style={{...inp,width:60,flex:"none",textAlign:"center",fontSize:20}}/>
@@ -1185,7 +1198,10 @@ function AdminScreen(){
                     <select value={editData.tag} onChange={e=>setEditData(d=>({...d,tag:e.target.value}))} style={{...inp,marginBottom:8}}>
                       {["","Beliebt","Neu","Vegan"].map(t=><option key={t} value={t}>{t||"Kein Tag"}</option>)}
                     </select>
-                    <input value={editData.img||""} onChange={e=>setEditData(d=>({...d,img:e.target.value}))} placeholder="Bild-URL (optional)" style={{...inp,marginBottom:8}}/>
+                    <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:8}}>
+                      <input value={editData.img||""} onChange={e=>setEditData(d=>({...d,img:e.target.value}))} placeholder="Bild-URL (optional)" style={{...inp,flex:1}}/>
+                      {editData.img&&<PImg src={editData.img} emoji={editData.emoji} w={44} h={44} r={8}/>}
+                    </div>
                     <div style={{display:"flex",gap:7}}>
                       <button onClick={()=>{editProduct({id:p.id,...editData});setEditId(null);}} style={{flex:1,padding:"9px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>Speichern</button>
                       <button onClick={()=>setEditId(null)} style={{padding:"9px 13px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>✕</button>
@@ -1294,7 +1310,7 @@ function App(){
         table:selTable,
         time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
         status:"new",
-        items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note})),
+        items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note,id:i.id,emoji:i.emoji,img:i.img,price:i.price,size:i.size})),
         total:Math.round((sub+del)*100)/100,
         note:note.trim(),
       };
