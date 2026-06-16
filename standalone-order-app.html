@@ -934,8 +934,7 @@ function AdminScreen(){
       </div>
       <div style={{padding:"26px 18px"}}>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16}}>
-          <p style={{fontWeight:800,fontSize:16,marginBottom:5,color:C.text}}>🔒 Admin-Zugang</p>
-          <p style={{color:C.textLight,fontSize:13,marginBottom:15}}>PIN: 1234</p>
+          <p style={{fontWeight:800,fontSize:16,marginBottom:15,color:C.text}}>🔒 Admin-Zugang</p>
           <input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e=>{setPin(e.target.value);setErr(false);}} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="••••" style={{...inp,fontSize:28,letterSpacing:12,textAlign:"center",marginBottom:12,padding:13}}/>
           <button onClick={check} style={{width:"100%",padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer"}}>Bestätigen</button>
           {err&&<p style={{textAlign:"center",color:C.red,fontSize:13,fontWeight:700,marginTop:10}}>Falscher PIN</p>}
