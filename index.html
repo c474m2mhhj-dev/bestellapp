@@ -566,6 +566,13 @@ function HomeScreen(){
 function QRScreen(){
   const{go,selTable,darkMode:dk}=useApp();const C=useC();
   const[t,setT]=useState(selTable||"T1");
+  const printAll=()=>{
+    const base=typeof window!=="undefined"?window.location.href.split("?")[0]:"https://c474m2mhhj-dev.github.io/bestellapp";
+    const qSrc=tb=>`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(base+"?table="+encodeURIComponent(tb))}&margin=4&color=004D40`;
+    const w=window.open("","_blank");
+    w.document.write(`<!DOCTYPE html><html><head><title>QR-Codes zeitraum</title><style>*{box-sizing:border-box}body{margin:0;font-family:-apple-system,sans-serif;background:#fff}@media print{@page{margin:10mm;size:A4}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:20px}.card{text-align:center;border:2px solid #E0E0DA;border-radius:14px;padding:18px;break-inside:avoid}.card img{width:180px;height:180px}.card h2{font-size:22px;font-weight:800;color:#004D40;margin:10px 0 4px}.card p{font-size:10px;color:#999;font-family:monospace;word-break:break-all}</style></head><body><div class="grid">${TABLES.map(tb=>`<div class="card"><img src="${qSrc(tb)}" alt="Tisch ${tb}"><h2>Tisch ${tb}</h2><p>${base}?table=${tb}</p></div>`).join("")}</div><script>window.onload=()=>setTimeout(()=>window.print(),900);<\/script></body></html>`);
+    w.document.close();
+  };
   return(
     <Screen>
       <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 28px",borderBottomLeftRadius:32,borderBottomRightRadius:32}}>
@@ -593,8 +600,9 @@ function QRScreen(){
           <div style={{marginTop:12,background:C.surface2,borderRadius:DS.radius.sm,padding:"9px 14px",display:"inline-block"}}>
             <code style={{fontSize:11,color:C.textMid}}>{(typeof window!=="undefined"?window.location.host+window.location.pathname.replace(/\/$/,""):"zeitraum.app")}?table={t}</code>
           </div>
-          <div style={{marginTop:14,display:"flex",gap:8,justifyContent:"center"}}>
+          <div style={{marginTop:14,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
             <a href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent((typeof window!=="undefined"?window.location.href.split("?")[0]:"https://c474m2mhhj-dev.github.io/bestellapp")+"?table="+encodeURIComponent(t))}&margin=4&color=004D40`} target="_blank" rel="noopener noreferrer" style={{padding:"10px 20px",background:C.primary,color:"#fff",borderRadius:DS.radius.md,fontWeight:700,fontSize:13,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:6}}>⬇ Bild öffnen</a>
+            <button onClick={printAll} style={{padding:"10px 20px",background:C.surface2,color:C.text,borderRadius:DS.radius.md,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>📄 Alle Tische</button>
           </div>
         </div>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.sm(dk)}}>
@@ -999,6 +1007,8 @@ function AdminScreen(){
   const[prodSearch,setProdSearch]=useState("");
   const[editId,setEditId]=useState(null);
   const[editData,setEditData]=useState({});
+  const[tableFilter,setTableFilter]=useState("all");
+  const[delConfId,setDelConfId]=useState(null);
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
@@ -1085,6 +1095,16 @@ function AdminScreen(){
             ))}
           </div>
         )}
+        {tab==="orders"&&(
+          <div style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",marginBottom:8,paddingBottom:2,alignItems:"center"}}>
+            <span style={{fontSize:11,color:C.textLight,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>Tisch:</span>
+            {["all",...TABLES].map(tb=>(
+              <button key={tb} onClick={()=>setTableFilter(tb)} style={{padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:tableFilter===tb?C.dark:C.surface2,color:tableFilter===tb?"#fff":C.textMid,transition:"all .15s"}}>
+                {tb==="all"?"Alle":tb}
+              </button>
+            ))}
+          </div>
+        )}
         {tab==="orders"&&(bySt("ready")>0||bySt("done")>0)&&(
           <div style={{display:"flex",gap:6,marginBottom:10}}>
             {bySt("ready")>0&&<button onClick={markAllReady} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#D1FAE5",color:"#065F46"}}>✓ Alle Bereit → Serviert ({bySt("ready")})</button>}
@@ -1092,9 +1112,9 @@ function AdminScreen(){
           </div>
         )}
         {tab==="orders"?(
-          allOrders.filter(o=>stFilter==="all"||o.status===stFilter).length===0
+          allOrders.filter(o=>(stFilter==="all"||o.status===stFilter)&&(tableFilter==="all"||o.table===tableFilter)).length===0
             ?<div style={{textAlign:"center",padding:"44px 16px",color:C.textLight}}><div style={{fontSize:46,marginBottom:12}}>📋</div><p style={{fontSize:15,fontWeight:700,color:C.text}}>{allOrders.length===0?"Noch keine Bestellungen":"Keine Bestellungen mit diesem Status"}</p></div>
-            :allOrders.filter(o=>stFilter==="all"||o.status===stFilter).map(o=>(
+            :allOrders.filter(o=>(stFilter==="all"||o.status===stFilter)&&(tableFilter==="all"||o.table===tableFilter)).map(o=>(
               <div key={o.id} style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:9,boxShadow:DS.shadow.sm(dk)}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
@@ -1166,7 +1186,13 @@ function AdminScreen(){
                     <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
                       <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,price:String(p.sizes[0].p),emoji:p.emoji,tag:p.tag||"",img:p.img||""});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
                       <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>{p.available?"✓ Aktiv":"Pausiert"}</button>
-                      {p.id>100&&<button onClick={()=>deleteProduct(p.id)} aria-label="Produkt löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.red}}>🗑</button>}
+                      {p.id>100&&(delConfId===p.id
+                        ?<div style={{display:"flex",gap:4,alignItems:"center"}}>
+                            <button onClick={()=>{deleteProduct(p.id);setDelConfId(null);}} style={{background:C.red,color:"#fff",borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:"none",cursor:"pointer"}}>Löschen</button>
+                            <button onClick={()=>setDelConfId(null)} style={{background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:"none",cursor:"pointer"}}>Abbrechen</button>
+                          </div>
+                        :<button onClick={()=>setDelConfId(p.id)} aria-label="Produkt löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.red}}>🗑</button>
+                      )}
                     </div>
                   </div>
                 )}
