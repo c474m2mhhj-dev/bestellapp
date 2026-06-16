@@ -957,21 +957,23 @@ function OrdersScreen(){
 ══════════════════════════════════════════════ */
 function AdminScreen(){
   const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,products,addProduct,deleteProduct,setProductAvailable,darkMode:dk}=useApp();const C=useC();
-  const[ok,setOk]=useState(false);
+  const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
   const[tab,setTab]=useState("orders");
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
-  useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},15000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
+  useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
   const stL={new:"Neu",making:"In Zubereitung",ready:"Bereit",done:"Serviert"};
   const stN={new:"making",making:"ready",ready:"done"};
   const stNL={new:"→ Zubereitung",making:"→ Bereit",ready:"→ Serviert"};
-  const stCl={new:{bg:"#DBEAFE",cl:"#1E40AF"},making:{bg:"#FEF3C7",cl:"#92400E"},ready:{bg:"#D1FAE5",cl:"#065F46"},done:{bg:C.border,cl:C.textLight}};
+  const stCl=dk
+    ?{new:{bg:"rgba(59,130,246,.18)",cl:"#93C5FD"},making:{bg:"rgba(245,158,11,.15)",cl:"#FCD34D"},ready:{bg:"rgba(16,185,129,.15)",cl:"#6EE7B7"},done:{bg:C.surface2,cl:C.textLight}}
+    :{new:{bg:"#DBEAFE",cl:"#1E40AF"},making:{bg:"#FEF3C7",cl:"#92400E"},ready:{bg:"#D1FAE5",cl:"#065F46"},done:{bg:C.border,cl:C.textLight}};
   const inp={padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,color:C.text,outline:"none",width:"100%"};
-  const check=()=>{if(pin===ADMIN_PIN){setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}};
+  const check=()=>{if(pin===ADMIN_PIN){sessionStorage.setItem("zr_admin_ok","1");setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}};
   const addProd=()=>{
     if(!np.name||!np.price)return;
     addProduct({...np,id:Date.now(),price:parseFloat(np.price),sizes:[{l:"normal",p:parseFloat(np.price)}],milch:false,sirup:false,pop:false});
@@ -986,7 +988,7 @@ function AdminScreen(){
       <div style={{padding:"26px 18px"}}>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16}}>
           <p style={{fontWeight:800,fontSize:16,marginBottom:15,color:C.text}}>🔒 Admin-Zugang</p>
-          <input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e=>{const v=e.target.value;setPin(v);setErr(false);if(v.length===4){if(v===ADMIN_PIN){setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}}}} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="••••" style={{...inp,fontSize:28,letterSpacing:12,textAlign:"center",marginBottom:12,padding:13}}/>
+          <input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e=>{const v=e.target.value;setPin(v);setErr(false);if(v.length===4)setTimeout(()=>{if(v===ADMIN_PIN){sessionStorage.setItem("zr_admin_ok","1");setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}},0);}} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="••••" style={{...inp,fontSize:28,letterSpacing:12,textAlign:"center",marginBottom:12,padding:13}}/>
           <button onClick={check} style={{width:"100%",padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer"}}>Bestätigen</button>
           {err&&<p style={{textAlign:"center",color:C.red,fontSize:13,fontWeight:700,marginTop:10}}>Falscher PIN</p>}
         </div>
