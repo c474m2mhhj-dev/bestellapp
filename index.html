@@ -417,7 +417,7 @@ function SplashScreen(){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
@@ -427,6 +427,9 @@ function HomeScreen(){
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   const hour=new Date().getHours();
   const greet=hour<5?"Gute Nacht 🌙":hour<12?"Guten Morgen ☀️":hour<17?"Guten Tag 👋":hour<21?"Guten Abend 🌆":"Gute Nacht 🌙";
+  const activeOrds=myOrders.filter(o=>o.status!=="done");
+  const urgentOrd=activeOrds.find(o=>o.status==="ready")||activeOrds.find(o=>o.status==="making")||activeOrds[0];
+  const ordInfo={ready:{icon:"🔔",label:"Bereit – jetzt abholen!",bg:dk?"rgba(59,130,246,.18)":"#DBEAFE",cl:dk?"#93C5FD":"#1E40AF"},making:{icon:"👨‍🍳",label:"In Zubereitung…",bg:dk?"rgba(245,158,11,.15)":"#FEF3C7",cl:dk?"#FCD34D":"#92400E"},new:{icon:"✅",label:"Bestätigt",bg:dk?"rgba(16,185,129,.15)":"#D1FAE5",cl:dk?"#6EE7B7":"#065F46"}};
 
   return(
     <Screen>
@@ -479,6 +482,18 @@ function HomeScreen(){
           </div>
           <span style={{marginLeft:"auto",fontSize:18,color:C.textLight}}>›</span>
         </button>
+
+        {/* Active orders card */}
+        {activeOrds.length>0&&urgentOrd&&(()=>{const{icon,label,bg,cl}=ordInfo[urgentOrd.status]||ordInfo.new;return(
+          <button onClick={()=>go("orders")} style={{width:"100%",marginBottom:14,background:bg,borderRadius:DS.radius.md,padding:"13px 15px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",border:"none",textAlign:"left",boxShadow:DS.shadow.xs(dk)}}>
+            <span style={{fontSize:24,flexShrink:0}}>{icon}</span>
+            <div style={{flex:1,minWidth:0}}>
+              <p style={{fontWeight:800,fontSize:13,color:cl}}>{label}</p>
+              <p style={{fontSize:11,color:cl,opacity:.75,marginTop:1}}>{activeOrds.length} Bestellung{activeOrds.length!==1?"en":""} · Tisch {urgentOrd.table}</p>
+            </div>
+            <span style={{fontSize:18,color:cl,opacity:.6}}>›</span>
+          </button>
+        );})()}
 
         {/* Categories */}
         <p style={{fontWeight:800,fontSize:16,marginBottom:12,color:C.text}}>Kategorien</p>
@@ -612,6 +627,7 @@ function MenuScreen(){
     return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
   },[products,activeCat,search]);
   const catCounts=useMemo(()=>{const m={};products.filter(p=>p.available).forEach(p=>{m[p.cat]=(m[p.cat]||0)+1;});return m;},[products]);
+  const availableCats=useMemo(()=>CATS.filter(c=>c==="Alle"||catCounts[c]>0),[catCounts]);
 
   return(
     <Screen>
@@ -629,7 +645,7 @@ function MenuScreen(){
           {search&&<button onClick={()=>setSearch("")} aria-label="Suche löschen" style={{color:"rgba(255,255,255,.6)",background:"none",border:"none",cursor:"pointer",fontSize:18}}>×</button>}
         </div>
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:13,scrollbarWidth:"none"}}>
-          {CATS.map(c=>(
+          {availableCats.map(c=>(
             <button key={c} onClick={()=>{setActiveCat(c);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),500);}} style={{padding:"8px 14px",borderRadius:DS.radius.full,fontWeight:700,fontSize:12,whiteSpace:"nowrap",background:activeCat===c?"#fff":"rgba(255,255,255,.17)",color:activeCat===c?C.primary:"#fff",border:"none",cursor:"pointer",flexShrink:0,transition:"all .16s"}}>
               {CICO[c]} {c}{c!=="Alle"&&catCounts[c]?<span style={{opacity:.55,fontSize:10,fontWeight:600,marginLeft:2}}>({catCounts[c]})</span>:null}
             </button>
@@ -1214,30 +1230,35 @@ function App(){
   const submitOrder=useCallback(async(note)=>{
     if(!selTable||submitting)return;
     setSubmitting(true);
-    const id=genId();
-    const now=new Date();
-    const sub=Math.round(cart.reduce((s,i)=>s+i.price*i.qty,0)*100)/100;
-    const del=sub>=FREE_ABOVE?0:DEL_FEE;
-    const order={
-      id,createdAt:Date.now(),
-      table:selTable,
-      time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
-      status:"new",
-      items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note})),
-      total:Math.round((sub+del)*100)/100,
-      note:note.trim(),
-    };
-    const myIds=LS.get("zr_my_orders",[]);
-    LS.set("zr_my_orders",[...myIds,id]);
-    LS.set(`zr_order_${id}`,order);
-    LS.set("zr_all_orders",[...LS.get("zr_all_orders",[]),id]);
-    await Db.set(`order_${id}`,order,true);
-    setMyOrders(prev=>[...prev,order]);
-    setCart([]);
-    LS.del("zr_note");
-    setSubmitting(false);
-    push("Bestellung aufgegeben! ✓","success",3000);
-    go("orders");
+    try{
+      const id=genId();
+      const now=new Date();
+      const sub=Math.round(cart.reduce((s,i)=>s+i.price*i.qty,0)*100)/100;
+      const del=sub>=FREE_ABOVE?0:DEL_FEE;
+      const order={
+        id,createdAt:Date.now(),
+        table:selTable,
+        time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
+        status:"new",
+        items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note})),
+        total:Math.round((sub+del)*100)/100,
+        note:note.trim(),
+      };
+      const myIds=LS.get("zr_my_orders",[]);
+      LS.set("zr_my_orders",[...myIds,id]);
+      LS.set(`zr_order_${id}`,order);
+      LS.set("zr_all_orders",[...LS.get("zr_all_orders",[]),id]);
+      await Db.set(`order_${id}`,order,true);
+      setMyOrders(prev=>[...prev,order]);
+      setCart([]);
+      LS.del("zr_note");
+      push("Bestellung aufgegeben! ✓","success",3000);
+      go("orders");
+    }catch(e){
+      push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
+    }finally{
+      setSubmitting(false);
+    }
   },[cart,selTable,submitting,push,go]);
 
   const syncOrders=useCallback(async()=>{
