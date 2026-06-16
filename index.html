@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>zeitraum – Café &amp; Bar</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+    html,body,#root{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+    *::-webkit-scrollbar{display:none}
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    /* Make React hooks available as globals so the JSX file can use them */
+    const { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } = React;
+    window.useState = useState;
+    window.useEffect = useEffect;
+    window.useCallback = useCallback;
+    window.useMemo = useMemo;
+    window.useRef = useRef;
+    window.createContext = createContext;
+    window.useContext = useContext;
+  </script>
+  <script type="text/babel" data-presets="react" src="standalone-order-app.html"></script>
+  <script>
+    /* Wait for Babel to process the JSX file, then mount */
+    window.addEventListener("DOMContentLoaded", () => {
+      const root = ReactDOM.createRoot(document.getElementById("root"));
+      root.render(React.createElement(App));
+    });
+  </script>
+</body>
+</html>
