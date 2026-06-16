@@ -6,6 +6,9 @@
   <meta name="theme-color" content="#004D40"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <script>
+    (function(){const m={name:"zeitraum – Café & Bar",short_name:"zeitraum",start_url:location.pathname,display:"standalone",theme_color:"#004D40",background_color:"#004D40",description:"Bestell-App für das zeitraum Café & Bar"};const l=document.createElement("link");l.rel="manifest";l.href="data:application/manifest+json,"+encodeURIComponent(JSON.stringify(m));document.head.appendChild(l);})();
+  </script>
   <title>zeitraum – Café & Bar</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -966,6 +969,7 @@ function AdminScreen(){
   const[err,setErr]=useState(false);
   const[tab,setTab]=useState("orders");
   const[stFilter,setStFilter]=useState("all");
+  const[prodSearch,setProdSearch]=useState("");
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
@@ -1027,7 +1031,7 @@ function AdminScreen(){
 
       <div style={{display:"flex",gap:2,padding:"14px 16px 0"}}>
         {[["orders","Bestellungen"],["products","Produkte"]].map(([id,label])=>(
-          <button key={id} onClick={()=>setTab(id)} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,background:tab===id?C.primary:C.surface2,color:tab===id?"#fff":C.textMid,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s"}}>
+          <button key={id} onClick={()=>{setTab(id);setProdSearch("");}} style={{flex:1,padding:"10px",borderRadius:DS.radius.sm,background:tab===id?C.primary:C.surface2,color:tab===id?"#fff":C.textMid,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s"}}>
             {label}
           </button>
         ))}
@@ -1073,6 +1077,7 @@ function AdminScreen(){
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
                 <input value={np.name} onChange={e=>setNp(p=>({...p,name:e.target.value}))} placeholder="Name" style={inp}/>
                 <input value={np.desc} onChange={e=>setNp(p=>({...p,desc:e.target.value}))} placeholder="Beschreibung" style={inp}/>
+                <input value={np.img} onChange={e=>setNp(p=>({...p,img:e.target.value}))} placeholder="Bild-URL (optional)" style={inp}/>
                 <div style={{display:"flex",gap:8}}>
                   <input value={np.price} onChange={e=>setNp(p=>({...p,price:e.target.value}))} placeholder="Preis (z.B. 2.50)" type="number" step="0.10" min="0" style={{...inp,flex:1}}/>
                   <input value={np.emoji} onChange={e=>setNp(p=>({...p,emoji:e.target.value}))} placeholder="🍕" style={{...inp,width:60,flex:"none",textAlign:"center",fontSize:20}}/>
@@ -1088,7 +1093,8 @@ function AdminScreen(){
                 </button>
               </div>
             </div>
-            {products.map(p=>(
+            <input value={prodSearch} onChange={e=>setProdSearch(e.target.value)} placeholder="🔍 Produkte durchsuchen…" style={{...inp,marginBottom:10}}/>
+            {products.filter(p=>!prodSearch||p.name.toLowerCase().includes(prodSearch.toLowerCase())||p.cat.toLowerCase().includes(prodSearch.toLowerCase())).map(p=>(
               <div key={p.id} style={{background:C.surface,borderRadius:DS.radius.md,padding:12,marginBottom:8,display:"flex",gap:10,alignItems:"center",boxShadow:DS.shadow.xs(dk),opacity:p.available?1:.5}}>
                 <div style={{fontSize:22,width:36,textAlign:"center",flexShrink:0}}>{p.emoji}</div>
                 <div style={{flex:1,minWidth:0}}>
