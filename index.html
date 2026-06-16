@@ -154,10 +154,10 @@ const PRODUCTS_INITIAL = [
   {id:39,name:"Laugen-Käse-Stange", cat:"Gebäck",         img:IMG.brot,         emoji:"🧀", desc:"Herzhafte Laugenstange mit geriebenem Bergkäse überbacken — goldbraun-kross, würzig und unwiderstehlich",                     pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.20}]},
   {id:40,name:"Fetatasche",         cat:"Gebäck",         img:IMG.brot,  emoji:"🧀", desc:"Knuspriger Blätterteig gefüllt mit cremigem griechischen Feta und frischen Kräutern — herzhafte mediterrane Note",            pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
   {id:41,name:"Spinattasche",       cat:"Gebäck",         img:IMG.brot,  emoji:"🥬", desc:"Zarter Blätterteig mit frischem Spinat, Knoblauch und Ricotta gefüllt — leicht, würzig und vegetarisch vollwertig",            pop:false, tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
-  {id:50,name:"Kinderriegel",       cat:"Snacks",         img:IMG.schoki,       emoji:"🍫", desc:"Klassischer Kinderriegel — zarte Vollmilchschokolade mit heller Milchcreme, der Liebling seit Generationen",                   pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:0.60}]},
-  {id:51,name:"Duplo",              cat:"Snacks",         img:IMG.schoki,       emoji:"🍫", desc:"Knusprige Haselnuss-Waffelschichten ummantelt von cremiger Vollmilchschokolade — leicht und knackig",                          pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:0.60}]},
-  {id:52,name:"Reese's",            cat:"Snacks",         img:IMG.schoki,       emoji:"🥜", desc:"Amerikanischer Kultklassiker — cremige Erdnussbutter eingebettet in Vollmilchschokolade, süß-salzig-nussig",                   pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:1.80}]},
-  {id:53,name:"Doblito Bio",        cat:"Snacks",         img:IMG.schoki,       emoji:"🌿", desc:"Bio-zertifizierter Milch- und Kakaocreme-Riegel — fair gehandelt, nachhaltig produziert und klimafreundlich",                  pop:false, tag:"Neu",     available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:1.80}]},
+  {id:50,name:"Kinderriegel",       cat:"Snacks",         img:"",       emoji:"🍫", desc:"Klassischer Kinderriegel — zarte Vollmilchschokolade mit heller Milchcreme, der Liebling seit Generationen",                   pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:0.60}]},
+  {id:51,name:"Duplo",              cat:"Snacks",         img:"",       emoji:"🧇", desc:"Knusprige Haselnuss-Waffelschichten ummantelt von cremiger Vollmilchschokolade — leicht und knackig",                          pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:0.60}]},
+  {id:52,name:"Reese's",            cat:"Snacks",         img:"",       emoji:"🥜", desc:"Amerikanischer Kultklassiker — cremige Erdnussbutter eingebettet in Vollmilchschokolade, süß-salzig-nussig",                   pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:1.80}]},
+  {id:53,name:"Doblito Bio",        cat:"Snacks",         img:"",       emoji:"🌿", desc:"Bio-zertifizierter Milch- und Kakaocreme-Riegel — fair gehandelt, nachhaltig produziert und klimafreundlich",                  pop:false, tag:"Neu",     available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:1.80}]},
   {id:60,name:"Mate / Mio Mio",    cat:"Kaltgetränke",   img:IMG.mate,         emoji:"🌿", desc:"Natürliches Koffein aus Bio-Yerbablättern — herb-frisch im Geschmack, belebend ohne nervösen Absturz danach",                  pop:true,  tag:"Beliebt", available:true, milch:false, sirup:false, sizes:[{l:"Flasche",p:2.20}]},
   {id:61,name:"Iced Tea",          cat:"Kaltgetränke",   img:IMG.icedtea,      emoji:"🍋", desc:"Kalt aufgebrühter Tee ganz ohne Zusatzstoffe — Zitrone oder Pfirsich, natürlich frisch und ungesüßt erhältlich",                pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Flasche",p:2.80}]},
   {id:62,name:"Paulaner Spezi",    cat:"Kaltgetränke",   img:IMG.cola,         emoji:"🥤", desc:"Münchner Originalrezept seit Jahrzehnten — Cola trifft Orangenlimonade zu einem fruchtig-herben Kultgetränk",                    pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Flasche",p:2.20}]},
@@ -388,7 +388,8 @@ function FloatCart(){
   if(qty===0)return null;
   return(
     <div style={{position:"fixed",bottom:68,left:"50%",transform:"translateX(-50%)",width:"calc(100% - 24px)",maxWidth:402,zIndex:300}}>
-      <button onClick={()=>go("cart")} style={{width:"100%",background:`linear-gradient(135deg,${C.dark},${C.primary})`,borderRadius:18,padding:"13px 20px",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:DS.shadow.green(dk),border:"none",cursor:"pointer"}}>
+      <style>{`@keyframes cartIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}`}</style>
+      <button onClick={()=>go("cart")} style={{width:"100%",background:`linear-gradient(135deg,${C.dark},${C.primary})`,borderRadius:18,padding:"13px 20px",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:DS.shadow.green(dk),border:"none",cursor:"pointer",animation:"cartIn .28s cubic-bezier(.34,1.56,.64,1) both"}}>
         <span style={{background:"rgba(255,255,255,.2)",borderRadius:9,padding:"3px 10px",fontWeight:800,fontSize:14}}>{qty}</span>
         <span style={{fontWeight:800,fontSize:15}}>Warenkorb ansehen</span>
         <span style={{fontWeight:800,fontSize:15}}>{fmt(tot)}</span>
@@ -399,7 +400,8 @@ function FloatCart(){
 function Screen({children,noNav=false}){
   const C=useC();
   return(
-    <div style={{maxWidth:430,margin:"0 auto",background:C.bg,minHeight:"100svh",paddingBottom:noNav?0:82,position:"relative",overflowX:"hidden"}}>
+    <div style={{maxWidth:430,margin:"0 auto",background:C.bg,minHeight:"100svh",paddingBottom:noNav?0:82,position:"relative",overflowX:"hidden",animation:"screenIn .22s ease both"}}>
+      <style>{`@keyframes screenIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}`}</style>
       {children}
     </div>
   );
@@ -791,7 +793,8 @@ function CartItem({item,onChQty,onRemove}){
 ══════════════════════════════════════════════ */
 function CartScreen(){
   const{go,cart,chQty,removeItem,selTable,setSelTable,submitOrder,submitting,darkMode:dk}=useApp();const C=useC();
-  const[note,setNote]=useState("");
+  const[note,setNote]=useState(()=>LS.get("zr_note",""));
+  useEffect(()=>{LS.set("zr_note",note);},[note]);
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const del=sub>=FREE_ABOVE?0:DEL_FEE;
   const tot=sub+del;
@@ -802,7 +805,7 @@ function CartScreen(){
           <BackBtn onPress={()=>go("menu")}/>
           <div>
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Warenkorb</p>
-            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>{selTable?`Tisch ${selTable}`:"—"}</p>
+            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>{selTable?`📍 Tisch ${selTable}`:"⚠️ Kein Tisch"}</p>
           </div>
         </div>
       </div>
@@ -929,11 +932,12 @@ function OrdersScreen(){
   const doSync=useCallback(async(m=false)=>{await syncOrders(m);setLastSync(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));},[syncOrders]);
   useEffect(()=>{doSync();const t=setInterval(doSync,5000);return()=>clearInterval(t);},[]);
   const sorted=useMemo(()=>[...myOrders].sort((a,b)=>b.createdAt-a.createdAt),[myOrders]);
+  const activeCount=myOrders.filter(o=>o.status!=="done").length;
   return(
     <Screen>
       <div style={{padding:"50px 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>{lastSync?"✓ "+lastSync:"Aktualisiert…"}</p></div>
+          <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen{activeCount>0?<span style={{background:C.primary,color:"#fff",fontSize:11,fontWeight:800,borderRadius:DS.radius.full,padding:"2px 8px",marginLeft:8}}>{activeCount} aktiv</span>:null}</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>{lastSync?"✓ "+lastSync:"Aktualisiert…"}</p></div>
           <button onClick={()=>doSync(true)} style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
         </div>
         {sorted.length===0&&<div style={{textAlign:"center",padding:"56px 16px",color:C.textLight}}><div style={{fontSize:50,marginBottom:12}}>📋</div><h3 style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:4}}>Noch keine Bestellungen</h3><p>Bestellungen erscheinen hier live</p></div>}
@@ -1126,6 +1130,7 @@ function App(){
       if(ex)return prev.map(i=>i.ck===item.ck?{...i,qty:i.qty+qty}:i);
       return[...prev,{...item,qty}];
     });
+    if(navigator.vibrate)navigator.vibrate(12);
     push("Hinzugefügt ✓","success");
   },[push]);
 
@@ -1158,6 +1163,7 @@ function App(){
     await Db.set(`order_${id}`,order,true);
     setMyOrders(prev=>[...prev,order]);
     setCart([]);
+    LS.del("zr_note");
     setSubmitting(false);
     push("Bestellung aufgegeben! ✓","success",3000);
     go("orders");
