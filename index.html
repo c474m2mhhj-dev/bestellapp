@@ -114,7 +114,7 @@ const IMG = {
   brot:"https://images.unsplash.com/photo-1549931319-a545dcf3bc7c?w=600&q=80&fit=crop",
   blatterteig:"https://images.unsplash.com/photo-1558961363-fa8fdf82db35?w=600&q=80&fit=crop",
   schoki:"https://images.unsplash.com/photo-1575377427642-087cf684b4ef?w=600&q=80&fit=crop",
-  mate:"https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=600&q=80&fit=crop",
+  mate:"",
   eistee:"https://images.unsplash.com/photo-1499638673689-79a0b5115d87?w=600&q=80&fit=crop",
   wasser:"https://images.unsplash.com/photo-1548839140-29a749e1cf4d?w=600&q=80&fit=crop",
   apfel:"https://images.unsplash.com/photo-1621506289937-a8e4df240d0b?w=600&q=80&fit=crop",
@@ -1147,7 +1147,7 @@ function App(){
   useEffect(()=>{
     const p=new URLSearchParams(window.location.search);
     const t=p.get("table");
-    if(t&&TABLES.includes(t)){setSelTable(t);push(`Tisch ${t} erkannt ✓`,"success");}
+    if(t&&TABLES.includes(t)){setSelTable(t);setTimeout(()=>push(`Tisch ${t} erkannt ✓`,"success"),1600);}
   },[]);
 
   const go=useCallback((sc,param=null)=>{
