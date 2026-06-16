@@ -1026,6 +1026,7 @@ function AdminScreen(){
   const[editData,setEditData]=useState({});
   const[tableFilter,setTableFilter]=useState("all");
   const[delConfId,setDelConfId]=useState(null);
+  const[sortOldest,setSortOldest]=useState(true);
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
@@ -1124,6 +1125,9 @@ function AdminScreen(){
                 {tb==="all"?"Alle":tb}
               </button>
             ))}
+            <button onClick={()=>setSortOldest(s=>!s)} title={sortOldest?"Älteste zuerst (aktiv)":"Neueste zuerst (aktiv)"} style={{marginLeft:"auto",flexShrink:0,padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>
+              {sortOldest?"⬆ Alt":"⬇ Neu"}
+            </button>
           </div>
         )}
         {tab==="orders"&&(bySt("new")>0||bySt("ready")>0||bySt("done")>0)&&(
@@ -1134,9 +1138,9 @@ function AdminScreen(){
           </div>
         )}
         {tab==="orders"?(
-          allOrders.filter(o=>(stFilter==="all"||o.status===stFilter)&&(tableFilter==="all"||o.table===tableFilter)).length===0
+          ((filtered)=>filtered.length===0
             ?<div style={{textAlign:"center",padding:"44px 16px",color:C.textLight}}><div style={{fontSize:46,marginBottom:12}}>📋</div><p style={{fontSize:15,fontWeight:700,color:C.text}}>{allOrders.length===0?"Noch keine Bestellungen":"Keine Bestellungen mit diesem Status"}</p></div>
-            :allOrders.filter(o=>(stFilter==="all"||o.status===stFilter)&&(tableFilter==="all"||o.table===tableFilter)).map(o=>(
+            :filtered.map(o=>(
               <div key={o.id} style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:9,boxShadow:DS.shadow.sm(dk)}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
@@ -1156,6 +1160,7 @@ function AdminScreen(){
                 </div>
               </div>
             ))
+          )([...allOrders].filter(o=>(stFilter==="all"||o.status===stFilter)&&(tableFilter==="all"||o.table===tableFilter)).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
         ):(
           <>
             <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:14,boxShadow:DS.shadow.sm(dk)}}>
