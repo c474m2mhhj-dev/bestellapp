@@ -138,12 +138,12 @@ const PRODUCTS_INITIAL = [
   {id:33,name:"Apfeltasche",        cat:"Gebäck",         img:IMG.blatterteig,  emoji:"🍎", desc:"Knuspriger Blätterteig mit gewürzten Zimtäpfeln und einem Hauch Kardamom gefüllt — täglich frisch aus dem Ofen",              pop:false, tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
   {id:34,name:"Vanille-Kirsch",     cat:"Gebäck",         img:IMG.blatterteig,  emoji:"🍒", desc:"Zarter Blätterteig mit hausgemachter Vanillecreme und Sauerkirschen — süß, fruchtig und buttrig zugleich",                    pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
   {id:35,name:"Croissant",          cat:"Gebäck",         img:IMG.croissant,    emoji:"🥐", desc:"Butterreiches Croissant aus mehrfach laminiertem Hefeteig — täglich morgens frisch gebacken, außen flockig innen zart",         pop:true,  tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.00}]},
-  {id:36,name:"Schoko-Croissant",   cat:"Gebäck",         img:IMG.croissant,    emoji:"🥐", desc:"Buttrig-blättriges Croissant gefüllt mit zwei Stangen Zartbitterschokolade — der perfekte süße Start in den Tag",              pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
-  {id:37,name:"Laugencroissant",    cat:"Gebäck",         img:IMG.croissant,    emoji:"🥐", desc:"Herzhaftes Croissant mit Laugengeschmack und goldbrauner Kruste — ideal zum herzhaften Frühstück mit Kaffee",                  pop:false, tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.20}]},
+  {id:36,name:"Schoko-Croissant",   cat:"Gebäck",         img:IMG.schoki,    emoji:"🥐", desc:"Buttrig-blättriges Croissant gefüllt mit zwei Stangen Zartbitterschokolade — der perfekte süße Start in den Tag",              pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
+  {id:37,name:"Laugencroissant",    cat:"Gebäck",         img:IMG.brot,    emoji:"🥐", desc:"Herzhaftes Croissant mit Laugengeschmack und goldbrauner Kruste — ideal zum herzhaften Frühstück mit Kaffee",                  pop:false, tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.20}]},
   {id:38,name:"Dinkel-Nuss-Stange", cat:"Gebäck",         img:IMG.brot,         emoji:"🥖", desc:"Knusprige Dinkelstange mit Walnüssen und Sonnenblumenkernen — herzhaft, nussig und vollwertig gebacken",                       pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
   {id:39,name:"Laugen-Käse-Stange", cat:"Gebäck",         img:IMG.brot,         emoji:"🧀", desc:"Herzhafte Laugenstange mit geriebenem Bergkäse überbacken — goldbraun-kross, würzig und unwiderstehlich",                     pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.20}]},
-  {id:40,name:"Fetatasche",         cat:"Gebäck",         img:IMG.blatterteig,  emoji:"🧀", desc:"Knuspriger Blätterteig gefüllt mit cremigem griechischen Feta und frischen Kräutern — herzhafte mediterrane Note",            pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
-  {id:41,name:"Spinattasche",       cat:"Gebäck",         img:IMG.blatterteig,  emoji:"🥬", desc:"Zarter Blätterteig mit frischem Spinat, Knoblauch und Ricotta gefüllt — leicht, würzig und vegetarisch vollwertig",            pop:false, tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
+  {id:40,name:"Fetatasche",         cat:"Gebäck",         img:IMG.brot,  emoji:"🧀", desc:"Knuspriger Blätterteig gefüllt mit cremigem griechischen Feta und frischen Kräutern — herzhafte mediterrane Note",            pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
+  {id:41,name:"Spinattasche",       cat:"Gebäck",         img:IMG.brot,  emoji:"🥬", desc:"Zarter Blätterteig mit frischem Spinat, Knoblauch und Ricotta gefüllt — leicht, würzig und vegetarisch vollwertig",            pop:false, tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:2.50}]},
   {id:50,name:"Kinderriegel",       cat:"Snacks",         img:IMG.schoki,       emoji:"🍫", desc:"Klassischer Kinderriegel — zarte Vollmilchschokolade mit heller Milchcreme, der Liebling seit Generationen",                   pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:0.60}]},
   {id:51,name:"Duplo",              cat:"Snacks",         img:IMG.schoki,       emoji:"🍫", desc:"Knusprige Haselnuss-Waffelschichten ummantelt von cremiger Vollmilchschokolade — leicht und knackig",                          pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:0.60}]},
   {id:52,name:"Reese's",            cat:"Snacks",         img:IMG.schoki,       emoji:"🥜", desc:"Amerikanischer Kultklassiker — cremige Erdnussbutter eingebettet in Vollmilchschokolade, süß-salzig-nussig",                   pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Stück",p:1.80}]},
@@ -675,7 +675,7 @@ function DetailScreen(){
         <div style={{position:"absolute",top:"max(44px,env(safe-area-inset-top))",left:14}}><BackBtn onPress={()=>go("menu")}/></div>
         <div style={{position:"absolute",bottom:14,left:16}}><Tag label={p.tag}/></div>
       </div>
-      <div style={{padding:"17px 18px 110px"}}>
+      <div style={{padding:"17px 18px 40px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
           <div style={{flex:1}}>
             <h2 style={{fontSize:22,fontWeight:900,lineHeight:1.25,color:C.text}}>{p.name}</h2>
@@ -731,9 +731,7 @@ function DetailScreen(){
             <QtyBtn op="+" onPress={()=>setQty(q=>q+1)}/>
           </div>
         </div>
-      </div>
-      <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,padding:"12px 18px max(14px,env(safe-area-inset-bottom))",background:C.surfaceGlass,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:`1px solid ${C.borderGlass}`,zIndex:300}}>
-        <button onClick={handleAdd} style={{width:"100%",padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>
+        <button onClick={handleAdd} style={{width:"100%",marginTop:22,padding:"18px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk),letterSpacing:"0.01em"}}>
           {iq>0?`Weitere hinzufügen · ${fmt(totP)}`:`In den Warenkorb · ${fmt(totP)}`}
         </button>
       </div>
