@@ -193,6 +193,7 @@ const DEL_FEE    = 0.99;
 const fmt    = n=>typeof n==="number"?n.toFixed(2).replace(".",",")+"\u00a0€":"0,00\u00a0€";
 const tagSty = t=>({Beliebt:{bg:"#FEF3C7",cl:"#92400E"},Neu:{bg:"#DBEAFE",cl:"#1E40AF"},Vegan:{bg:"#D1FAE5",cl:"#065F46"}}[t]);
 const genId  = ()=>`${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+const playBell=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(t=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;o.type="sine";g.gain.setValueAtTime(.35,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.45);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.45);});}catch(e){}};
 
 /* ══════════════════════════════════════════════
    CONTEXT
@@ -904,7 +905,7 @@ const STEPS=[
   {key:"new",    label:"Bestätigt",      icon:"✅",color:"#00695C"},
   {key:"making", label:"In Zubereitung", icon:"👨‍🍳",color:"#F59E0B"},
   {key:"ready",  label:"Bereit",         icon:"🔔",color:"#2563EB"},
-  {key:"done",   label:"Geliefert ✓",    icon:"🎉",color:"#16A34A"},
+  {key:"done",   label:"Serviert ✓",    icon:"🎉",color:"#16A34A"},
 ];
 function OrderCard({o}){
   const C=useC(),{darkMode:dk}=useApp();
@@ -988,9 +989,9 @@ function AdminScreen(){
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},15000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
-  const stL={new:"Neu",making:"In Zubereitung",ready:"Bereit",done:"Geliefert"};
+  const stL={new:"Neu",making:"In Zubereitung",ready:"Bereit",done:"Serviert"};
   const stN={new:"making",making:"ready",ready:"done"};
-  const stNL={new:"→ Zubereitung",making:"→ Bereit",ready:"→ Geliefert"};
+  const stNL={new:"→ Zubereitung",making:"→ Bereit",ready:"→ Serviert"};
   const stCl={new:{bg:"#DBEAFE",cl:"#1E40AF"},making:{bg:"#FEF3C7",cl:"#92400E"},ready:{bg:"#D1FAE5",cl:"#065F46"},done:{bg:C.border,cl:C.textLight}};
   const inp={padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,color:C.text,outline:"none",width:"100%"};
   const check=()=>{if(pin===ADMIN_PIN){setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}};
@@ -1220,7 +1221,13 @@ function App(){
       const allIds=LS.get("zr_all_orders",[]);
       orders=allIds.map(id=>LS.get(`zr_order_${id}`,null));
     }
-    setAllOrders(orders.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt));
+    const sorted=orders.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt);
+    setAllOrders(prev=>{
+      const newNow=sorted.filter(o=>o.status==="new").length;
+      const newPrev=prev.filter(o=>o.status==="new").length;
+      if(newNow>newPrev)playBell();
+      return sorted;
+    });
   },[]);
 
   const setOrderStatus=useCallback(async(id,status)=>{
