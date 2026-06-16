@@ -803,27 +803,34 @@ function DetailScreen(){
 /* ══════════════════════════════════════════════
    CART ITEM with swipe-to-remove
 ══════════════════════════════════════════════ */
-function CartItem({item,onChQty,onRemove}){
+function CartItem({item,onChQty,onRemove,onSetNote}){
   const C=useC(),{darkMode:dk}=useApp();
   const{dx,onTStart,onTMove,onTEnd}=useSwipe(onRemove);
+  const[noteOpen,setNoteOpen]=useState(!!item.note);
   return(
     <div style={{position:"relative",marginBottom:9,overflow:"hidden",borderRadius:DS.radius.md}}>
-      {/* Delete reveal */}
       <div style={{position:"absolute",right:0,top:0,bottom:0,width:80,background:C.red,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:22,borderRadius:DS.radius.md}}>🗑</div>
-      {/* Swipeable content */}
       <div onTouchStart={onTStart} onTouchMove={onTMove} onTouchEnd={onTEnd}
-        style={{background:C.surface,borderRadius:DS.radius.md,padding:12,display:"flex",gap:11,alignItems:"center",boxShadow:DS.shadow.sm(dk),transform:`translateX(${dx}px)`,transition:dx===0?"transform .25s":undefined,position:"relative",zIndex:1}}>
-        <PImg src={item.img} alt={item.name} emoji={item.emoji} w={58} h={58} r={11}/>
-        <div style={{flex:1,minWidth:0}}>
-          <p style={{fontWeight:700,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:C.text}}>{item.name}</p>
-          {item.note&&<p style={{fontSize:11,color:C.textLight,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginTop:1}}>{item.note}</p>}
-          <p style={{color:C.primary,fontWeight:800,fontSize:13,marginTop:3}}>{fmt(item.price*item.qty)}</p>
+        style={{background:C.surface,borderRadius:DS.radius.md,padding:12,boxShadow:DS.shadow.sm(dk),transform:`translateX(${dx}px)`,transition:dx===0?"transform .25s":undefined,position:"relative",zIndex:1}}>
+        <div style={{display:"flex",gap:11,alignItems:"center"}}>
+          <PImg src={item.img} alt={item.name} emoji={item.emoji} w={58} h={58} r={11}/>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontWeight:700,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:C.text}}>{item.name}</p>
+            <p style={{color:C.primary,fontWeight:800,fontSize:13,marginTop:3}}>{fmt(item.price*item.qty)}</p>
+          </div>
+          <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+            <QtyBtn op="−" onPress={()=>onChQty(-1)} sz={32}/>
+            <span style={{fontWeight:800,minWidth:16,textAlign:"center",fontSize:15,color:C.text}}>{item.qty}</span>
+            <QtyBtn op="+" onPress={()=>onChQty(1)} sz={32}/>
+          </div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-          <QtyBtn op="−" onPress={()=>onChQty(-1)} sz={32}/>
-          <span style={{fontWeight:800,minWidth:16,textAlign:"center",fontSize:15,color:C.text}}>{item.qty}</span>
-          <QtyBtn op="+" onPress={()=>onChQty(1)} sz={32}/>
-        </div>
+        {onSetNote&&((item.note||noteOpen)
+          ?<div style={{display:"flex",gap:6,alignItems:"center",marginTop:8}}>
+              <input value={item.note||""} onChange={e=>onSetNote(e.target.value)} placeholder="z.B. ohne Milch, extra Zucker…" autoFocus style={{flex:1,padding:"6px 10px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:12,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"}}/>
+              <button onClick={()=>{onSetNote("");setNoteOpen(false);}} style={{background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:16,padding:"2px 4px",lineHeight:1}}>✕</button>
+            </div>
+          :<button onClick={()=>setNoteOpen(true)} style={{marginTop:7,padding:"3px 10px",border:`1px solid ${C.border}`,borderRadius:DS.radius.full,fontSize:11,background:"none",cursor:"pointer",color:C.textLight,fontFamily:"inherit"}}>+ Notiz</button>
+        )}
       </div>
     </div>
   );
@@ -833,7 +840,7 @@ function CartItem({item,onChQty,onRemove}){
    CART SCREEN
 ══════════════════════════════════════════════ */
 function CartScreen(){
-  const{go,prevScreen,cart,chQty,removeItem,clearCart,selTable,setSelTable,submitOrder,submitting,darkMode:dk}=useApp();const C=useC();
+  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,darkMode:dk}=useApp();const C=useC();
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
   useEffect(()=>{LS.set("zr_note",note);},[note]);
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
@@ -860,7 +867,7 @@ function CartScreen(){
           </div>
         )}
         {cart.map(item=>(
-          <CartItem key={item.ck} item={item} onChQty={d=>chQty(item.ck,d)} onRemove={()=>removeItem(item.ck)}/>
+          <CartItem key={item.ck} item={item} onChQty={d=>chQty(item.ck,d)} onRemove={()=>removeItem(item.ck)} onSetNote={n=>setItemNote(item.ck,n)}/>
         ))}
         {cart.length>0&&(
           <>
@@ -1269,6 +1276,7 @@ function App(){
   },[]);
 
   const removeItem=useCallback((ck)=>setCart(prev=>prev.filter(i=>i.ck!==ck)),[]);
+  const setItemNote=useCallback((ck,note)=>setCart(prev=>prev.map(i=>i.ck===ck?{...i,note}:i)),[]);
 
   const submitOrder=useCallback(async(note)=>{
     if(!selTable||submitting)return;
@@ -1385,7 +1393,7 @@ function App(){
 
   const ctx={
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
-    darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,clearCart,
+    darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,addProduct,deleteProduct,setProductAvailable,editProduct,
   };
