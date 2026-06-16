@@ -1204,13 +1204,20 @@ function App(){
   const syncOrders=useCallback(async()=>{
     const myIds=LS.get("zr_my_orders",[]);
     if(!myIds.length)return;
+    let next;
     if(hasSt){
       const updated=await Promise.all(myIds.map(id=>Db.get(`order_${id}`,true)));
-      setMyOrders(updated.filter(Boolean));
+      next=updated.filter(Boolean);
     } else {
-      setMyOrders(myIds.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean));
+      next=myIds.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);
     }
-  },[]);
+    setMyOrders(prev=>{
+      const prevReadyIds=new Set(prev.filter(o=>o.status==="ready").map(o=>o.id));
+      const newlyReady=next.filter(o=>o.status==="ready"&&!prevReadyIds.has(o.id));
+      if(newlyReady.length>0){playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(`🔔 Deine Bestellung ist bereit!`,"success",5000);}
+      return next;
+    });
+  },[push]);
 
   const loadAdminOrders=useCallback(async()=>{
     let orders;
