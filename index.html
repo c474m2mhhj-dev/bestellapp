@@ -10,6 +10,10 @@
     (function(){const m={name:"zeitraum – Café & Bar",short_name:"zeitraum",start_url:location.pathname,display:"standalone",theme_color:"#004D40",background_color:"#004D40",description:"Bestell-App für das zeitraum Café & Bar"};const l=document.createElement("link");l.rel="manifest";l.href="data:application/manifest+json,"+encodeURIComponent(JSON.stringify(m));document.head.appendChild(l);})();
   </script>
   <title>zeitraum – Café & Bar</title>
+  <meta property="og:title" content="zeitraum – Café & Bar"/>
+  <meta property="og:description" content="Einfach per QR-Code bestellen – direkt an deinen Tisch"/>
+  <meta property="og:type" content="website"/>
+  <meta name="description" content="Café & Bar Bestellapp – scanne den QR-Code am Tisch und bestell direkt ohne Warten"/>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
@@ -1134,7 +1138,7 @@ function AdminScreen(){
               </div>
             </div>
             <input value={prodSearch} onChange={e=>setProdSearch(e.target.value)} placeholder="🔍 Produkte durchsuchen…" style={{...inp,marginBottom:10}}/>
-            {products.filter(p=>!prodSearch||p.name.toLowerCase().includes(prodSearch.toLowerCase())||p.cat.toLowerCase().includes(prodSearch.toLowerCase())).map(p=>(
+            {products.filter(p=>!prodSearch||p.name.toLowerCase().includes(prodSearch.toLowerCase())||p.cat.toLowerCase().includes(prodSearch.toLowerCase())).flatMap((p,i,arr)=>[...(!prodSearch&&(i===0||arr[i-1].cat!==p.cat)?[<p key={`hd-${p.cat}`} style={{fontWeight:800,fontSize:11,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",marginTop:i>0?14:4,marginBottom:6}}>{CICO[p.cat]} {p.cat} · {products.filter(x=>x.cat===p.cat).length}</p>]:[]),
               <div key={p.id} style={{marginBottom:8}}>
                 {editId===p.id?(
                   <div style={{background:C.surface,borderRadius:DS.radius.md,padding:12,boxShadow:DS.shadow.sm(dk)}}>
@@ -1167,7 +1171,7 @@ function AdminScreen(){
                   </div>
                 )}
               </div>
-            ))}
+            ])}
           </>
         )}
       </div>
