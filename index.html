@@ -137,8 +137,8 @@ const PRODUCTS_INITIAL = [
   {id:12,name:"Matcha Latte",       cat:"Heiße Getränke", img:IMG.matcha,       emoji:"🍵", desc:"Japanischer Zeremonial-Matcha kalt aufgeschlagen, mit cremig aufgeschäumter Milch serviert — reich an Antioxidantien",         pop:true,  tag:"Vegan",   available:true, milch:true,  sirup:false, sizes:[{l:"groß",p:3.50}]},
   {id:13,name:"Tee",                cat:"Heiße Getränke", img:IMG.tee,          emoji:"🍵", desc:"Handverlesene Teesorten täglich frisch gezogen — Schwarz, Grün, Kräuter oder Früchtetee nach Wahl der Saison",                  pop:false, tag:"Vegan",   available:true, milch:false, sirup:false, sizes:[{l:"groß",p:1.00}]},
   {id:20,name:"Iced Latte",         cat:"Iced Drinks",    img:IMG.icedlatte,    emoji:"🧊", desc:"Doppelter Espresso über crushed Eis, cremig mit kalter Milch aufgefüllt — erfrischend und intensiv für heiße Tage",             pop:true,  tag:"Neu",     available:true, milch:true,  sirup:true,  sizes:[{l:"normal",p:3.40}]},
-  {id:21,name:"Iced Americano",     cat:"Iced Drinks",    img:IMG.icedlatte,    emoji:"🧊", desc:"Frisch gezogener Espresso mit kaltem Wasser über Eis aufgegossen — klar, leicht und sehr belebend",                            pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"normal",p:2.20}]},
-  {id:22,name:"Iced Espresso",      cat:"Iced Drinks",    img:IMG.icedlatte,    emoji:"🧊", desc:"Doppelter Espresso direkt auf crushed Eis — konzentriert, eiskalt, sofort belebend",                                            pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"normal",p:2.20}]},
+  {id:21,name:"Iced Americano",     cat:"Iced Drinks",    img:IMG.filterkaffee,    emoji:"🧊", desc:"Frisch gezogener Espresso mit kaltem Wasser über Eis aufgegossen — klar, leicht und sehr belebend",                            pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"normal",p:2.20}]},
+  {id:22,name:"Iced Espresso",      cat:"Iced Drinks",    img:IMG.espresso,    emoji:"🧊", desc:"Doppelter Espresso direkt auf crushed Eis — konzentriert, eiskalt, sofort belebend",                                            pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"normal",p:2.20}]},
   {id:23,name:"Iced Choc",          cat:"Iced Drinks",    img:IMG.schoko,       emoji:"🍫", desc:"Dunkle Schokolade kalt aufgelöst und mit Eiswürfeln serviert — süß, cremig und erfrischend zugleich",                         pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"normal",p:2.70}]},
   {id:24,name:"Iced Chai",          cat:"Iced Drinks",    img:IMG.chai,         emoji:"🧊", desc:"Würziger Chai-Tee kalt aufgebrüht mit Zimt und Ingwer, über Eiswürfeln serviert — fernöstliche Frische im Glas",               pop:false, tag:"",        available:true, milch:true,  sirup:false, sizes:[{l:"normal",p:3.40}]},
   {id:25,name:"Iced Matcha",        cat:"Iced Drinks",    img:IMG.icedmatcha,   emoji:"🍵", desc:"Zeremonial-Matcha kalt geshaked mit Milch über Eis — intensiv grün, cremig und lang anhaltend belebend",                       pop:true,  tag:"Vegan",   available:true, milch:true,  sirup:false, sizes:[{l:"normal",p:3.70}]},
@@ -320,7 +320,8 @@ function Chip({children}){
 ══════════════════════════════════════════════ */
 function QRCode({table,size=200}){
   const hash=(s,seed=0x811c9dc5)=>{let h=seed;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=(h*0x01000193)>>>0;}return h;};
-  const url=`https://zeitraum.app/order?table=${table}`;
+  const base=typeof window!=="undefined"?window.location.origin+window.location.pathname.replace(/\/$/,""):"https://c474m2mhhj-dev.github.io/bestellapp";
+  const url=`${base}?table=${table}`;
   const GRID=21,cells=[];
   const finderCell=(r,c)=>{
     for(const[pr,pc]of[[0,0],[0,14],[14,0]]){
@@ -586,7 +587,7 @@ function QRScreen(){
           <p style={{marginTop:16,fontWeight:800,fontSize:18,color:C.text}}>Tisch {t}</p>
           <p style={{color:C.textLight,fontSize:13,marginTop:4}}>Scan → Tisch automatisch erkannt</p>
           <div style={{marginTop:12,background:C.surface2,borderRadius:DS.radius.sm,padding:"9px 14px",display:"inline-block"}}>
-            <code style={{fontSize:11,color:C.textMid}}>zeitraum.app/order?table={t}</code>
+            <code style={{fontSize:11,color:C.textMid}}>{(typeof window!=="undefined"?window.location.host:"zeitraum.app")}?table={t}</code>
           </div>
         </div>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.sm(dk)}}>
@@ -1141,6 +1142,12 @@ function App(){
   },[]);
 
   useEffect(()=>{const t=setTimeout(()=>setSplash(false),1400);return()=>clearTimeout(t);},[]);
+
+  useEffect(()=>{
+    const p=new URLSearchParams(window.location.search);
+    const t=p.get("table");
+    if(t&&TABLES.includes(t)){setSelTable(t);push(`Tisch ${t} erkannt ✓`,"success");}
+  },[]);
 
   const go=useCallback((sc,param=null)=>{
     if(sc==="detail"){setDetailProduct(param);setPrevScreen(screen);}
