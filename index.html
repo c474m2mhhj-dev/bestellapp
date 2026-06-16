@@ -1126,7 +1126,7 @@ function App(){
   const[activeCat,setActiveCat]=useState("Alle");
   const[darkMode,setDarkMode]=useState(()=>LS.get("zr_dark",false));
   const[detailProduct,setDetailProduct]=useState(null);
-  const[myOrders,setMyOrders]=useState([]);
+  const[myOrders,setMyOrders]=useState(()=>{const ids=LS.get("zr_my_orders",[]);return ids.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);});
   const[allOrders,setAllOrders]=useState([]);
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
