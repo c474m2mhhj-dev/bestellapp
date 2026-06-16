@@ -931,7 +931,7 @@ function OrderCard({o}){
   );
 }
 function OrdersScreen(){
-  const{myOrders,syncOrders,darkMode:dk}=useApp();const C=useC();
+  const{myOrders,syncOrders,clearDoneOrders,darkMode:dk}=useApp();const C=useC();
   const[lastSync,setLastSync]=useState("");
   const doSync=useCallback(async(m=false)=>{await syncOrders(m);setLastSync(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));},[syncOrders]);
   useEffect(()=>{doSync();const t=setInterval(doSync,5000);return()=>clearInterval(t);},[]);
@@ -942,7 +942,10 @@ function OrdersScreen(){
       <div style={{padding:"50px 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen{activeCount>0?<span style={{background:C.primary,color:"#fff",fontSize:11,fontWeight:800,borderRadius:DS.radius.full,padding:"2px 8px",marginLeft:8}}>{activeCount} aktiv</span>:null}</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>{lastSync?"✓ "+lastSync:"Aktualisiert…"}</p></div>
-          <button onClick={()=>doSync(true)} aria-label="Aktualisieren" style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
+          <div style={{display:"flex",gap:7}}>
+            {myOrders.some(o=>o.status==="done")&&<button onClick={clearDoneOrders} style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"8px 12px",color:C.textMid,fontWeight:700,fontSize:11,minHeight:38,border:"none",cursor:"pointer"}}>🗑 Erledigte</button>}
+            <button onClick={()=>doSync(true)} aria-label="Aktualisieren" style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
+          </div>
         </div>
         {sorted.length===0&&<div style={{textAlign:"center",padding:"56px 16px",color:C.textLight}}><div style={{fontSize:50,marginBottom:12}}>📋</div><h3 style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:4}}>Noch keine Bestellungen</h3><p>Bestellungen erscheinen hier live</p></div>}
         {sorted.map(o=><OrderCard key={o.id} o={o}/>)}
@@ -989,7 +992,7 @@ function AdminScreen(){
       <div style={{padding:"26px 18px"}}>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16}}>
           <p style={{fontWeight:800,fontSize:16,marginBottom:15,color:C.text}}>🔒 Admin-Zugang</p>
-          <input type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e=>{const v=e.target.value;setPin(v);setErr(false);if(v.length===4)setTimeout(()=>{if(v===ADMIN_PIN){sessionStorage.setItem("zr_admin_ok","1");setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}},0);}} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="••••" style={{...inp,fontSize:28,letterSpacing:12,textAlign:"center",marginBottom:12,padding:13}}/>
+          <input autoFocus type="password" inputMode="numeric" maxLength={4} value={pin} onChange={e=>{const v=e.target.value;setPin(v);setErr(false);if(v.length===4)setTimeout(()=>{if(v===ADMIN_PIN){sessionStorage.setItem("zr_admin_ok","1");setOk(true);loadAdminOrders();}else{setErr(true);setPin("");}},0);}} onKeyDown={e=>e.key==="Enter"&&check()} placeholder="••••" style={{...inp,fontSize:28,letterSpacing:12,textAlign:"center",marginBottom:12,padding:13}}/>
           <button onClick={check} style={{width:"100%",padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer"}}>Bestätigen</button>
           {err&&<p style={{textAlign:"center",color:C.red,fontSize:13,fontWeight:700,marginTop:10}}>Falscher PIN</p>}
         </div>
@@ -1249,10 +1252,20 @@ function App(){
     setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
+  const clearDoneOrders=useCallback(()=>{
+    setMyOrders(prev=>{
+      const done=prev.filter(o=>o.status==="done");
+      done.forEach(o=>LS.del(`zr_order_${o.id}`));
+      const next=prev.filter(o=>o.status!=="done");
+      LS.set("zr_my_orders",next.map(o=>o.id));
+      return next;
+    });
+  },[]);
+
   const ctx={
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,
-    submitOrder,submitting,myOrders,syncOrders,allOrders,loadAdminOrders,
+    submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,addProduct,deleteProduct,setProductAvailable,
   };
 
@@ -1264,13 +1277,39 @@ function App(){
   return(
     <Ctx.Provider value={ctx}>
       <ToastStack toasts={toasts}/>
+      <OfflineBanner/>
       <S/>
     </Ctx.Provider>
   );
 }
 
+function OfflineBanner(){
+  const[online,setOnline]=useState(typeof navigator!=="undefined"?navigator.onLine:true);
+  useEffect(()=>{
+    const on=()=>setOnline(true);const off=()=>setOnline(false);
+    window.addEventListener("online",on);window.addEventListener("offline",off);
+    return()=>{window.removeEventListener("online",on);window.removeEventListener("offline",off);};
+  },[]);
+  if(online)return null;
+  return<div style={{position:"fixed",bottom:90,left:"50%",transform:"translateX(-50%)",zIndex:500,background:"#E53935",color:"#fff",padding:"8px 20px",borderRadius:10,fontWeight:700,fontSize:13,boxShadow:"0 4px 16px rgba(0,0,0,.35)",whiteSpace:"nowrap"}}>📵 Keine Internetverbindung</div>;
+}
 
-    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+class ErrorBoundary extends React.Component{
+  constructor(p){super(p);this.state={e:null};}
+  static getDerivedStateFromError(e){return{e};}
+  render(){
+    if(this.state.e)return(
+      <div style={{minHeight:"100svh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,gap:16,background:"#F0FDF4",fontFamily:"-apple-system,sans-serif"}}>
+        <div style={{fontSize:52}}>⚠️</div>
+        <h2 style={{fontWeight:800,fontSize:18,color:"#1A1A1A",textAlign:"center"}}>Ups, etwas ist schief gelaufen</h2>
+        <button onClick={()=>window.location.reload()} style={{padding:"12px 28px",background:"#00695C",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer"}}>Neu laden</button>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<ErrorBoundary><App/></ErrorBoundary>);
   </script>
 </body>
 </html>
