@@ -434,7 +434,10 @@ function HomeScreen(){
   const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
+  const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
+  useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
+  const favProds=useMemo(()=>favs.map(id=>products.find(p=>p.id===id)).filter(Boolean),[favs,products]);
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   const hour=new Date().getHours();
   const greet=hour<5?"Gute Nacht 🌙":hour<12?"Guten Morgen ☀️":hour<17?"Guten Tag 👋":hour<21?"Guten Abend 🌆":"Gute Nacht 🌙";
@@ -501,6 +504,27 @@ function HomeScreen(){
             </div>
           ))}
         </div>
+
+        {/* Favoriten */}
+        {favProds.length>0&&(
+          <div style={{marginBottom:18}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+              <p style={{fontWeight:800,fontSize:16,color:C.text}}>♥ Deine Favoriten</p>
+              <button onClick={()=>go("menu")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer"}}>Alle →</button>
+            </div>
+            <div style={{display:"flex",gap:11,overflowX:"auto",scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16,paddingBottom:4}}>
+              {favProds.map(p=>(
+                <div key={p.id} onClick={()=>go("detail",p)} style={{minWidth:126,flexShrink:0,background:C.surface,borderRadius:DS.radius.lg,overflow:"hidden",boxShadow:DS.shadow.sm(dk),cursor:"pointer"}}>
+                  <PImg src={p.img} emoji={p.emoji} w={126} h={78}/>
+                  <div style={{padding:"7px 9px 9px"}}>
+                    <p style={{fontWeight:700,fontSize:12,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
+                    <p style={{fontSize:12,color:C.primary,fontWeight:700,marginTop:2}}>ab {fmt(Math.min(...p.sizes.map(s=>s.p)))}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Popular */}
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
