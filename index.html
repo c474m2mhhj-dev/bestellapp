@@ -997,6 +997,7 @@ function AdminScreen(){
   const[editData,setEditData]=useState({});
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
+  const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
@@ -1039,9 +1040,15 @@ function AdminScreen(){
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
           <div><p style={{color:"#fff",fontWeight:900,fontSize:20}}>Admin Panel</p><p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:3}}>{allOrders.length} Bestellung{allOrders.length!==1?"en":""} · {allOrders.filter(o=>o.status==="new").length} neu</p></div>
           <div style={{display:"flex",gap:7,alignItems:"center"}}>
-            <div style={{background:"rgba(255,255,255,.18)",borderRadius:DS.radius.sm,padding:"7px 14px",cursor:"default"}}>
-              <p style={{color:"#fff",fontWeight:900,fontSize:17,lineHeight:1}}>{fmt(revenue)}</p>
-              <p style={{color:"rgba(255,255,255,.6)",fontSize:10,fontWeight:700,marginTop:2}}>Umsatz gesamt</p>
+            <div style={{background:"rgba(255,255,255,.18)",borderRadius:DS.radius.sm,padding:"7px 14px",cursor:"default",display:"flex",gap:12}}>
+              <div>
+                <p style={{color:"#fff",fontWeight:900,fontSize:15,lineHeight:1}}>{fmt(revenueDone)}</p>
+                <p style={{color:"rgba(255,255,255,.6)",fontSize:9,fontWeight:700,marginTop:2}}>Kassiert</p>
+              </div>
+              <div style={{borderLeft:"1px solid rgba(255,255,255,.25)",paddingLeft:12}}>
+                <p style={{color:"rgba(255,255,255,.7)",fontWeight:700,fontSize:15,lineHeight:1}}>{fmt(revenue)}</p>
+                <p style={{color:"rgba(255,255,255,.45)",fontSize:9,fontWeight:700,marginTop:2}}>Gesamt</p>
+              </div>
             </div>
             <button onClick={()=>{sessionStorage.removeItem("zr_admin_ok");setOk(false);}} aria-label="Abmelden" style={{width:36,height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}} title="Abmelden">🔒</button>
           </div>
@@ -1088,7 +1095,7 @@ function AdminScreen(){
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
                     <p style={{fontWeight:800,fontSize:14,color:C.text}}>Tisch {o.table} · #{String(o.createdAt).slice(-4)}</p>
-                    <p style={{fontSize:12,color:C.textLight,marginTop:1}}>{relTime(o.createdAt)} · {o.time}</p>
+                    {((age=><p style={{fontSize:12,color:o.status==="new"&&age>=3?C.red:C.textLight,fontWeight:o.status==="new"&&age>=3?700:400,marginTop:1}}>{o.status==="new"&&age>=3?`⚠️ ${age} min warten · `:""}  {relTime(o.createdAt)} · {o.time}</p>)(Math.floor((Date.now()-o.createdAt)/60000)))}
                     {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:6,padding:"2px 7px",marginTop:4,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
                   </div>
                   <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
@@ -1139,6 +1146,7 @@ function AdminScreen(){
                     <select value={editData.tag} onChange={e=>setEditData(d=>({...d,tag:e.target.value}))} style={{...inp,marginBottom:8}}>
                       {["","Beliebt","Neu","Vegan"].map(t=><option key={t} value={t}>{t||"Kein Tag"}</option>)}
                     </select>
+                    <input value={editData.img||""} onChange={e=>setEditData(d=>({...d,img:e.target.value}))} placeholder="Bild-URL (optional)" style={{...inp,marginBottom:8}}/>
                     <div style={{display:"flex",gap:7}}>
                       <button onClick={()=>{editProduct({id:p.id,...editData});setEditId(null);}} style={{flex:1,padding:"9px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>Speichern</button>
                       <button onClick={()=>setEditId(null)} style={{padding:"9px 13px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>✕</button>
@@ -1152,7 +1160,7 @@ function AdminScreen(){
                       <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{p.cat} · {p.sizes.map(s=>`${s.l} ${fmt(s.p)}`).join(", ")}</p>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-                      <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,price:String(p.sizes[0].p),emoji:p.emoji,tag:p.tag||""});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
+                      <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,price:String(p.sizes[0].p),emoji:p.emoji,tag:p.tag||"",img:p.img||""});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
                       <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>{p.available?"✓ Aktiv":"Pausiert"}</button>
                       {p.id>100&&<button onClick={()=>deleteProduct(p.id)} aria-label="Produkt löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.red}}>🗑</button>}
                     </div>
@@ -1324,8 +1332,8 @@ function App(){
     setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
-  const editProduct=useCallback(({id,name,price,emoji,tag})=>{
-    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,name:name||p.name,emoji:emoji||p.emoji,tag:tag!==undefined?tag:p.tag,sizes:p.sizes.map((s,i)=>i===0?{...s,p:parseFloat(price)||s.p}:s)}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
+  const editProduct=useCallback(({id,name,price,emoji,tag,img})=>{
+    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,name:name||p.name,emoji:emoji||p.emoji,tag:tag!==undefined?tag:p.tag,img:img!==undefined?img:p.img,sizes:p.sizes.map((s,i)=>i===0?{...s,p:parseFloat(price)||s.p}:s)}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
   const clearCart=useCallback(()=>setCart([]),[]);
