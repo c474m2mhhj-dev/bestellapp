@@ -965,6 +965,7 @@ function AdminScreen(){
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
   const[tab,setTab]=useState("orders");
+  const[stFilter,setStFilter]=useState("all");
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
@@ -1033,10 +1034,19 @@ function AdminScreen(){
       </div>
 
       <div style={{padding:"12px 16px 100px"}}>
+        {tab==="orders"&&(
+          <div style={{display:"flex",gap:6,overflowX:"auto",scrollbarWidth:"none",marginBottom:10,paddingBottom:2}}>
+            {[["all","Alle"],["new","Neu"],["making","Zubereitung"],["ready","Bereit"],["done","Serviert"]].map(([k,l])=>(
+              <button key={k} onClick={()=>setStFilter(k)} style={{padding:"6px 13px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:stFilter===k?C.primary:C.surface2,color:stFilter===k?"#fff":C.textMid,transition:"all .15s"}}>
+                {l}{k!=="all"?" ("+bySt(k)+")":""}
+              </button>
+            ))}
+          </div>
+        )}
         {tab==="orders"?(
-          allOrders.length===0
-            ?<div style={{textAlign:"center",padding:"44px 16px",color:C.textLight}}><div style={{fontSize:46,marginBottom:12}}>📋</div><p style={{fontSize:15,fontWeight:700,color:C.text}}>Noch keine Bestellungen</p></div>
-            :allOrders.map(o=>(
+          allOrders.filter(o=>stFilter==="all"||o.status===stFilter).length===0
+            ?<div style={{textAlign:"center",padding:"44px 16px",color:C.textLight}}><div style={{fontSize:46,marginBottom:12}}>📋</div><p style={{fontSize:15,fontWeight:700,color:C.text}}>{allOrders.length===0?"Noch keine Bestellungen":"Keine Bestellungen mit diesem Status"}</p></div>
+            :allOrders.filter(o=>stFilter==="all"||o.status===stFilter).map(o=>(
               <div key={o.id} style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:9,boxShadow:DS.shadow.sm(dk)}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
