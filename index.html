@@ -3,14 +3,24 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="theme-color" content="#004D40"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
   <title>zeitraum – Café & Bar</title>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
+  <script>
+    // Force classic JSX runtime (React.createElement) for UMD compat
+    Babel.registerPreset('react-umd', {
+      presets: [[Babel.availablePresets.react, {runtime:'classic',pragma:'React.createElement',pragmaFrag:'React.Fragment'}]]
+    });
+  </script>
   <style>
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-    html,body,#root{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}
+    html,body,#root{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;overscroll-behavior:contain}
     *::-webkit-scrollbar{display:none}
+    input,textarea,button{-webkit-appearance:none}
   </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
@@ -21,7 +31,7 @@
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel" data-presets="react">
+  <script type="text/babel" data-presets="react-umd">
 
 /* ══════════════════════════════════════════════
    DESIGN SYSTEM — Light + Dark tokens
@@ -403,7 +413,7 @@ function SplashScreen(){
         <p style={{marginTop:4,opacity:.6,fontSize:12,letterSpacing:".07em",textTransform:"uppercase"}}>Café &amp; Bar</p>
       </div>
       <div style={{width:52,height:3,background:"rgba(255,255,255,.22)",borderRadius:2,overflow:"hidden"}}>
-        <div style={{height:"100%",background:"#fff",borderRadius:2,animation:"ldbar 2.4s ease forwards"}}/>
+        <div style={{height:"100%",background:"#fff",borderRadius:2,animation:"ldbar 1.2s ease forwards"}}/>
       </div>
       <style>{`@keyframes ldbar{from{width:0}to{width:100%}}`}</style>
     </div>
@@ -419,6 +429,8 @@ function HomeScreen(){
   const[loading,setLoading]=useState(true);
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
+  const hour=new Date().getHours();
+  const greet=hour<5?"Gute Nacht 🌙":hour<12?"Guten Morgen ☀️":hour<17?"Guten Tag 👋":hour<21?"Guten Abend 🌆":"Gute Nacht 🌙";
 
   return(
     <Screen>
@@ -427,7 +439,7 @@ function HomeScreen(){
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.04)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{color:"#fff"}}>
-            <p style={{fontSize:11,opacity:.6,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>Guten Tag 👋</p>
+            <p style={{fontSize:11,opacity:.6,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>{greet}</p>
             <h1 style={{margin:"5px 0 4px",fontSize:27,fontWeight:900,letterSpacing:"-.03em"}}>zeitraum</h1>
             <p style={{opacity:.65,fontSize:13}}>Direkt an deinen Tisch bestellen</p>
           </div>
@@ -647,7 +659,7 @@ function MenuScreen(){
    DETAIL
 ══════════════════════════════════════════════ */
 function DetailScreen(){
-  const{go,addToCart,cart,detailProduct:p,darkMode:dk}=useApp();const C=useC();
+  const{go,prevScreen,addToCart,cart,detailProduct:p,darkMode:dk}=useApp();const C=useC();
   const[qty,setQty]=useState(1);
   const[sIdx,setSIdx]=useState(0);
   const[milk,setMilk]=useState("Vollmilch");
@@ -666,13 +678,14 @@ function DetailScreen(){
     const parts=[sz,mk,sp,note.trim()].filter(Boolean).join(", ");
     const ck=`${p.id}|${parts}|${unitP.toFixed(2)}`;
     addToCart({id:p.id,name:p.name,price:unitP,img:p.img,emoji:p.emoji,note:parts,ck},qty);
+    go(prevScreen);
   };
   return(
     <Screen noNav>
       <div style={{position:"relative"}}>
         <PImg src={p.img} alt={p.name} emoji={p.emoji} w="100%" h={240} style={{display:"block"}}/>
         <div style={{position:"absolute",inset:0,background:"linear-gradient(to bottom,transparent 50%,rgba(0,0,0,.45) 100%)",pointerEvents:"none"}}/>
-        <div style={{position:"absolute",top:"max(44px,env(safe-area-inset-top))",left:14}}><BackBtn onPress={()=>go("menu")}/></div>
+        <div style={{position:"absolute",top:"max(44px,env(safe-area-inset-top))",left:14}}><BackBtn onPress={()=>go(prevScreen)}/></div>
         <div style={{position:"absolute",bottom:14,left:16}}><Tag label={p.tag}/></div>
       </div>
       <div style={{padding:"17px 18px 40px"}}>
@@ -909,13 +922,16 @@ function OrderCard({o}){
 }
 function OrdersScreen(){
   const{myOrders,syncOrders,darkMode:dk}=useApp();const C=useC();
+  const[lastSync,setLastSync]=useState("");
+  const doSync=useCallback(async(m=false)=>{await syncOrders(m);setLastSync(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));},[syncOrders]);
+  useEffect(()=>{doSync();const t=setInterval(doSync,5000);return()=>clearInterval(t);},[]);
   const sorted=useMemo(()=>[...myOrders].sort((a,b)=>b.createdAt-a.createdAt),[myOrders]);
   return(
     <Screen>
       <div style={{padding:"50px 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>Live · alle 5 Sek.</p></div>
-          <button onClick={()=>syncOrders(true)} style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
+          <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>{lastSync?"✓ "+lastSync:"Aktualisiert…"}</p></div>
+          <button onClick={()=>doSync(true)} style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
         </div>
         {sorted.length===0&&<div style={{textAlign:"center",padding:"56px 16px",color:C.textLight}}><div style={{fontSize:50,marginBottom:12}}>📋</div><h3 style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:4}}>Noch keine Bestellungen</h3><p>Bestellungen erscheinen hier live</p></div>}
         {sorted.map(o=><OrderCard key={o.id} o={o}/>)}
@@ -937,6 +953,8 @@ function AdminScreen(){
   const[tab,setTab]=useState("orders");
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
+  useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},15000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
+  useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
   const stL={new:"Neu",making:"In Zubereitung",ready:"Bereit",done:"Geliefert"};
   const stN={new:"making",making:"ready",ready:"done"};
@@ -1069,8 +1087,8 @@ function AdminScreen(){
 ══════════════════════════════════════════════ */
 function App(){
   const[screen,setScreen]=useState("home");
-  const[cart,setCart]=useState([]);
-  const[selTable,setSelTable]=useState(null);
+  const[cart,setCart]=useState(()=>LS.get("zr_cart",[]));
+  const[selTable,setSelTable]=useState(()=>LS.get("zr_table",null));
   const[products,setProducts]=useState(PRODUCTS_INITIAL);
   const[activeCat,setActiveCat]=useState("Alle");
   const[darkMode,setDarkMode]=useState(()=>LS.get("zr_dark",false));
@@ -1078,27 +1096,26 @@ function App(){
   const[myOrders,setMyOrders]=useState([]);
   const[allOrders,setAllOrders]=useState([]);
   const[submitting,setSubmitting]=useState(false);
+  const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
   const{toasts,push}=useToast();
 
   useEffect(()=>{LS.set("zr_dark",darkMode);},[darkMode]);
+  useEffect(()=>{LS.set("zr_cart",cart);},[cart]);
+  useEffect(()=>{selTable?LS.set("zr_table",selTable):LS.del("zr_table");},[selTable]);
   useEffect(()=>{
     const local=LS.get("zr_products");
     if(local&&local.length)setProducts(local);
     Db.get("zr_products").then(p=>{if(p&&p.length)setProducts(p);});
   },[]);
-  useEffect(()=>{
-    syncOrders();
-    const t=setInterval(syncOrders,5000);
-    return()=>clearInterval(t);
-  },[]);
-  useEffect(()=>{const t=setTimeout(()=>setSplash(false),2600);return()=>clearTimeout(t);},[]);
+
+  useEffect(()=>{const t=setTimeout(()=>setSplash(false),1400);return()=>clearTimeout(t);},[]);
 
   const go=useCallback((sc,param=null)=>{
-    if(sc==="detail")setDetailProduct(param);
+    if(sc==="detail"){setDetailProduct(param);setPrevScreen(screen);}
     if(sc==="menu"&&typeof param==="string")setActiveCat(param);
     setScreen(sc);
-  },[]);
+  },[screen]);
 
   const addToCart=useCallback((item,qty)=>{
     setCart(prev=>{
@@ -1194,7 +1211,7 @@ function App(){
   },[]);
 
   const ctx={
-    screen,go,cart,selTable,setSelTable,products,activeCat,setActiveCat,
+    screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,
     submitOrder,submitting,myOrders,syncOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,addProduct,deleteProduct,setProductAvailable,
