@@ -361,16 +361,21 @@ const NAV=[
   {id:"admin", label:"Admin", icon:on=><svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={on?2.2:1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>},
 ];
 function BottomNav(){
-  const{screen,go,cart,darkMode:dk}=useApp();const C=useC();
+  const{screen,go,cart,myOrders,allOrders,darkMode:dk}=useApp();const C=useC();
   const qty=cart.reduce((s,i)=>s+i.qty,0);
+  const activeOrds=myOrders.filter(o=>o.status!=="done").length;
+  const newAdminOrds=allOrders.filter(o=>o.status==="new").length;
   const active=s=>["cart","detail","qr"].includes(screen)?s==="menu":screen===s;
+  const badge=(n,right="calc(50% - 22px)")=>n>0?<span style={{position:"absolute",top:2,right,background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:DS.radius.full,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{n}</span>:null;
   return(
     <nav style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.navBg,backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderTop:`1px solid ${C.border}`,display:"flex",zIndex:400,paddingTop:5,paddingBottom:"max(8px,env(safe-area-inset-bottom))"}}>
       {NAV.map(({id,label,icon})=>{const on=active(id);return(
         <button key={id} onClick={()=>go(id)} aria-label={label} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px 2px",minHeight:48,justifyContent:"center",position:"relative",border:"none",background:"none",cursor:"pointer",color:on?C.primary:C.textLight,fontSize:10,fontWeight:on?700:500,transition:"color .15s"}}>
           {icon(on)}
           <span>{label}</span>
-          {id==="menu"&&qty>0&&<span style={{position:"absolute",top:2,right:"calc(50% - 22px)",background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:DS.radius.full,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{qty}</span>}
+          {id==="menu"&&badge(qty)}
+          {id==="orders"&&badge(activeOrds)}
+          {id==="admin"&&badge(newAdminOrds)}
         </button>
       );})}
     </nav>
@@ -486,11 +491,11 @@ function HomeScreen(){
 
         {/* Categories */}
         <p style={{fontWeight:800,fontSize:16,marginBottom:12,color:C.text}}>Kategorien</p>
-        <div style={{display:"flex",gap:10,overflowX:"auto",paddingBottom:4,scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16,marginBottom:18}}>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:9,marginBottom:18}}>
           {CATS.filter(c=>c!=="Alle").map(c=>(
-            <div key={c} onClick={()=>go("menu",c)} style={{minWidth:90,background:C.surface,borderRadius:DS.radius.md,padding:"12px 9px",textAlign:"center",boxShadow:DS.shadow.sm(dk),cursor:"pointer",flexShrink:0,userSelect:"none",transition:"transform .12s"}}>
-              <div style={{fontSize:22,marginBottom:5}}>{CICO[c]}</div>
-              <p style={{fontSize:11,fontWeight:700,lineHeight:1.3,color:C.text}}>{c}</p>
+            <div key={c} onClick={()=>go("menu",c)} style={{background:C.surface,borderRadius:DS.radius.md,padding:"11px 8px",textAlign:"center",boxShadow:DS.shadow.sm(dk),cursor:"pointer",userSelect:"none",transition:"transform .12s"}}>
+              <div style={{fontSize:22,marginBottom:4}}>{CICO[c]}</div>
+              <p style={{fontSize:10,fontWeight:700,lineHeight:1.3,color:C.text}}>{c}</p>
             </div>
           ))}
         </div>
@@ -737,7 +742,7 @@ function DetailScreen(){
           <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, Extra-Wünsche…" style={{width:"100%",padding:"10px 13px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,color:C.text,height:50,resize:"none",fontFamily:"inherit",outline:"none"}}/>
         </div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:18,background:C.surface2,borderRadius:DS.radius.md,padding:"13px 16px"}}>
-          <p style={{fontWeight:700,fontSize:15,color:C.text}}>Menge</p>
+          <p style={{fontWeight:700,fontSize:15,color:C.text}}>Menge <span style={{fontWeight:400,fontSize:13,color:C.textLight}}>(gesamt {fmt(totP)})</span></p>
           <div style={{display:"flex",alignItems:"center",gap:16}}>
             <QtyBtn op="−" onPress={()=>setQty(q=>Math.max(1,q-1))}/>
             <span style={{fontWeight:900,fontSize:20,minWidth:24,textAlign:"center",color:C.text}}>{qty}</span>
@@ -824,13 +829,13 @@ function CartScreen(){
             )}
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
               <p style={{fontWeight:700,fontSize:13,marginBottom:7,color:C.text}}>📝 Bestellnotiz</p>
-              <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, besondere Wünsche…" style={{width:"100%",padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,height:46,resize:"none",fontFamily:"inherit",outline:"none",color:C.text}}/>
+              <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, besondere Wünsche…" style={{width:"100%",padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,height:64,resize:"none",fontFamily:"inherit",outline:"none",color:C.text}}/>
             </div>
             {/* Free delivery progress */}
             {sub<FREE_ABOVE&&(
               <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.xs(dk),padding:13,marginBottom:9}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
-                  <p style={{fontSize:12,fontWeight:700,color:C.textMid}}>🎁 Noch {fmt(FREE_ABOVE-sub)} bis kostenlose Lieferung</p>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textMid}}>🎁 Noch {fmt(FREE_ABOVE-sub)} bis Servicegebühr entfällt</p>
                 </div>
                 <div style={{height:5,background:C.surface2,borderRadius:3,overflow:"hidden"}}>
                   <div style={{height:"100%",width:`${(sub/FREE_ABOVE)*100}%`,background:`linear-gradient(90deg,${C.primary},${C.accent})`,borderRadius:3,transition:"width .4s ease"}}/>
@@ -838,26 +843,24 @@ function CartScreen(){
               </div>
             )}
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
-              {[["Zwischensumme",fmt(sub)],["Liefergebühr",del===0?"Kostenlos 🎉":fmt(del)]].map(([l,v])=>(
+              {[["Zwischensumme",fmt(sub)],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del)]].map(([l,v])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.textMid,marginBottom:7}}>
                   <span>{l}</span>
-                  <span style={{fontWeight:600,color:l==="Liefergebühr"&&del===0?C.primary:C.text}}>{v}</span>
+                  <span style={{fontWeight:600,color:l==="Servicegebühr"&&del===0?C.primary:C.text}}>{v}</span>
                 </div>
               ))}
               <div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,display:"flex",justifyContent:"space-between",fontWeight:800,fontSize:17}}>
                 <span style={{color:C.text}}>Gesamt</span><span style={{color:C.primary}}>{fmt(tot)}</span>
               </div>
             </div>
-            <div style={{background:C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:120,display:"flex",alignItems:"center",gap:9}}>
+            <div style={{background:C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:9}}>
               <span>⏱</span>
-              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>~8 Min Lieferzeit</p><p style={{fontSize:11,color:C.textMid}}>Nach Bestätigung</p></div>
+              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>~8 Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Nach Bestätigung</p></div>
             </div>
-            <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,padding:"12px 18px max(14px,env(safe-area-inset-bottom))",background:C.surfaceGlass,backdropFilter:"blur(20px)",WebkitBackdropFilter:"blur(20px)",borderTop:`1px solid ${C.borderGlass}`,zIndex:300}}>
-              <button onClick={()=>submitOrder(note)} disabled={!selTable||submitting} style={{width:"100%",padding:15,background:!selTable||submitting?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!selTable||submitting?C.textLight:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:!selTable||submitting?"default":"pointer",boxShadow:selTable&&!submitting?DS.shadow.green(dk):"none",transition:"all .2s"}}>
-                {submitting?"Wird gesendet…":selTable?`Jetzt bestellen · ${fmt(tot)}`:"Bitte zuerst Tisch wählen"}
-              </button>
-              <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginTop:7}}>Bezahlung am Tisch · Keine Vorauszahlung</p>
-            </div>
+            <button onClick={()=>submitOrder(note)} disabled={!selTable||submitting} style={{width:"100%",padding:"18px",background:!selTable||submitting?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!selTable||submitting?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:!selTable||submitting?"default":"pointer",boxShadow:selTable&&!submitting?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
+              {submitting?"Wird gesendet…":selTable?`Jetzt bestellen · ${fmt(tot)}`:"Bitte zuerst Tisch wählen"}
+            </button>
+            <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginBottom:32}}>Bezahlung am Tisch · Keine Vorauszahlung</p>
           </>
         )}
       </div>
@@ -989,7 +992,7 @@ function AdminScreen(){
     <Screen>
       <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 18px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-          <div><p style={{color:"#fff",fontWeight:900,fontSize:20}}>Admin Panel</p><p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:3}}>{allOrders.length} Bestellung{allOrders.length!==1?"en":""}</p></div>
+          <div><p style={{color:"#fff",fontWeight:900,fontSize:20}}>Admin Panel</p><p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:3}}>{allOrders.length} Bestellung{allOrders.length!==1?"en":""} · {allOrders.filter(o=>o.status==="new").length} neu</p></div>
           <div style={{background:"rgba(255,255,255,.18)",borderRadius:DS.radius.sm,padding:"7px 14px",cursor:"default"}}>
             <p style={{color:"#fff",fontWeight:900,fontSize:17,lineHeight:1}}>{fmt(revenue)}</p>
             <p style={{color:"rgba(255,255,255,.6)",fontSize:10,fontWeight:700,marginTop:2}}>Umsatz gesamt</p>
