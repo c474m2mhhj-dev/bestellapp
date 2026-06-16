@@ -24,6 +24,8 @@
     @keyframes screenIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
     @keyframes cartIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
     @keyframes ldbar{from{width:0}to{width:100%}}
+    @keyframes tIn{from{opacity:0;transform:translateY(-18px) scale(.92)}to{opacity:1;transform:none}}
+    @keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
   </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
@@ -225,7 +227,6 @@ function ToastStack({toasts,dk}){
           {t.msg}
         </div>
       ))}
-      <style>{`@keyframes tIn{from{opacity:0;transform:translateY(-18px) scale(.92)}to{opacity:1;transform:none}}`}</style>
     </div>
   );
 }
@@ -238,7 +239,6 @@ function Skeleton({w="100%",h=16,r=8,mb=0}){
   return(
     <div style={{width:w,height:h,borderRadius:r,marginBottom:mb,background:C.surface2,overflow:"hidden",position:"relative"}}>
       <div style={{position:"absolute",inset:0,background:`linear-gradient(90deg,transparent,${C.border},transparent)`,animation:"shimmer 1.4s infinite"}}/>
-      <style>{`@keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}`}</style>
     </div>
   );
 }
@@ -481,7 +481,7 @@ function HomeScreen(){
           {selTable&&(
             <div style={{marginTop:11,background:C.light,borderRadius:DS.radius.sm,padding:"9px 13px",display:"flex",alignItems:"center"}}>
               <span style={{color:C.primary,fontWeight:800,fontSize:13}}>✓ Tisch {selTable} ausgewählt</span>
-              <button onClick={()=>setSelTable(null)} style={{marginLeft:"auto",color:C.textLight,fontSize:20,padding:"2px 8px",background:"none",border:"none",cursor:"pointer"}}>×</button>
+              <button onClick={()=>setSelTable(null)} aria-label="Tisch abwählen" style={{marginLeft:"auto",color:C.textLight,fontSize:20,padding:"2px 8px",background:"none",border:"none",cursor:"pointer"}}>×</button>
             </div>
           )}
         </div>
@@ -635,7 +635,7 @@ function MenuScreen(){
         <div style={{background:"rgba(255,255,255,.13)",borderRadius:13,padding:"9px 13px",display:"flex",alignItems:"center",gap:7,marginBottom:10,border:"1px solid rgba(255,255,255,.16)"}}>
           <span style={{opacity:.55}}>🔍</span>
           <input value={search} onChange={e=>{setSearch(e.target.value);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),400);}} placeholder="Produkt suchen…" style={{background:"none",border:"none",color:"#fff",fontSize:14,flex:1,outline:"none"}}/>
-          {search&&<button onClick={()=>setSearch("")} style={{color:"rgba(255,255,255,.6)",background:"none",border:"none",cursor:"pointer",fontSize:18}}>×</button>}
+          {search&&<button onClick={()=>setSearch("")} aria-label="Suche löschen" style={{color:"rgba(255,255,255,.6)",background:"none",border:"none",cursor:"pointer",fontSize:18}}>×</button>}
         </div>
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:13,scrollbarWidth:"none"}}>
           {CATS.map(c=>(
@@ -658,7 +658,7 @@ function MenuScreen(){
                 <div key={p.id} onClick={()=>go("detail",p)} style={{background:C.surface,borderRadius:DS.radius.md,padding:12,marginBottom:9,display:"flex",gap:12,alignItems:"center",boxShadow:DS.shadow.sm(dk),cursor:"pointer",userSelect:"none",transition:"transform .1s"}}>
                   <div style={{position:"relative",flexShrink:0}}>
                     <PImg src={p.img} alt={p.name} emoji={p.emoji} w={78} h={78} r={14}/>
-                    <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} style={{position:"absolute",top:-4,right:-4,width:24,height:24,borderRadius:"50%",background:C.surface,border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:DS.shadow.xs(dk),color:isFav?C.red:C.textLight}}>♥</button>
+                    <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} aria-label={isFav?"Aus Favoriten entfernen":"Zu Favoriten hinzufügen"} style={{position:"absolute",top:-4,right:-4,width:24,height:24,borderRadius:"50%",background:C.surface,border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:DS.shadow.xs(dk),color:isFav?C.red:C.textLight}}>♥</button>
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",gap:5,marginBottom:4}}><Tag label={p.tag}/></div>
@@ -964,7 +964,7 @@ function OrdersScreen(){
       <div style={{padding:"50px 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen{activeCount>0?<span style={{background:C.primary,color:"#fff",fontSize:11,fontWeight:800,borderRadius:DS.radius.full,padding:"2px 8px",marginLeft:8}}>{activeCount} aktiv</span>:null}</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>{lastSync?"✓ "+lastSync:"Aktualisiert…"}</p></div>
-          <button onClick={()=>doSync(true)} style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
+          <button onClick={()=>doSync(true)} aria-label="Aktualisieren" style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
         </div>
         {sorted.length===0&&<div style={{textAlign:"center",padding:"56px 16px",color:C.textLight}}><div style={{fontSize:50,marginBottom:12}}>📋</div><h3 style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:4}}>Noch keine Bestellungen</h3><p>Bestellungen erscheinen hier live</p></div>}
         {sorted.map(o=><OrderCard key={o.id} o={o}/>)}
@@ -1061,7 +1061,7 @@ function AdminScreen(){
                   <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
                     <span style={{background:stCl[o.status].bg,color:stCl[o.status].cl,borderRadius:DS.radius.full,fontSize:10,fontWeight:800,padding:"3px 9px"}}>{stL[o.status]}</span>
                     {o.status!=="done"&&<button onClick={()=>setOrderStatus(o.id,stN[o.status])} style={{background:C.primary,color:"#fff",borderRadius:DS.radius.sm,padding:"5px 10px",fontSize:11,fontWeight:800,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{stNL[o.status]}</button>}
-                    <button onClick={()=>deleteOrder(o.id)} style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:14,border:"none",cursor:"pointer",color:C.red}}>🗑</button>
+                    <button onClick={()=>deleteOrder(o.id)} aria-label="Bestellung löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:14,border:"none",cursor:"pointer",color:C.red}}>🗑</button>
                   </div>
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingTop:9,borderTop:`1px solid ${C.border}`,alignItems:"center"}}>
@@ -1103,7 +1103,7 @@ function AdminScreen(){
                   <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>
                     {p.available?"✓ Aktiv":"Pausiert"}
                   </button>
-                  {p.id>100&&<button onClick={()=>deleteProduct(p.id)} style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.red}}>🗑</button>}
+                  {p.id>100&&<button onClick={()=>deleteProduct(p.id)} aria-label="Produkt löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.red}}>🗑</button>}
                 </div>
               </div>
             ))}
