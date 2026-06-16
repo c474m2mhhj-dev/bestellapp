@@ -21,6 +21,9 @@
     html,body,#root{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;overscroll-behavior:contain}
     *::-webkit-scrollbar{display:none}
     input,textarea,button{-webkit-appearance:none}
+    @keyframes screenIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+    @keyframes cartIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
+    @keyframes ldbar{from{width:0}to{width:100%}}
   </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
@@ -390,7 +393,6 @@ function FloatCart(){
   if(qty===0)return null;
   return(
     <div style={{position:"fixed",bottom:68,left:"50%",transform:"translateX(-50%)",width:"calc(100% - 24px)",maxWidth:402,zIndex:300}}>
-      <style>{`@keyframes cartIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}`}</style>
       <button onClick={()=>go("cart")} style={{width:"100%",background:`linear-gradient(135deg,${C.dark},${C.primary})`,borderRadius:18,padding:"13px 20px",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:DS.shadow.green(dk),border:"none",cursor:"pointer",animation:"cartIn .28s cubic-bezier(.34,1.56,.64,1) both"}}>
         <span style={{background:"rgba(255,255,255,.2)",borderRadius:9,padding:"3px 10px",fontWeight:800,fontSize:14}}>{qty}</span>
         <span style={{fontWeight:800,fontSize:15}}>Warenkorb ansehen</span>
@@ -403,7 +405,6 @@ function Screen({children,noNav=false}){
   const C=useC();
   return(
     <div style={{maxWidth:430,margin:"0 auto",background:C.bg,minHeight:"100svh",paddingBottom:noNav?0:82,position:"relative",overflowX:"hidden",animation:"screenIn .22s ease both"}}>
-      <style>{`@keyframes screenIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}`}</style>
       {children}
     </div>
   );
@@ -424,7 +425,6 @@ function SplashScreen(){
       <div style={{width:52,height:3,background:"rgba(255,255,255,.22)",borderRadius:2,overflow:"hidden"}}>
         <div style={{height:"100%",background:"#fff",borderRadius:2,animation:"ldbar 1.2s ease forwards"}}/>
       </div>
-      <style>{`@keyframes ldbar{from{width:0}to{width:100%}}`}</style>
     </div>
   );
 }
@@ -463,7 +463,7 @@ function HomeScreen(){
           </div>
         </div>
         <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
-          <Chip>⏱ ~8 Min</Chip><Chip>🌿 Bio</Chip><Chip>♻️ Mehrweg</Chip>
+          <Chip>⏱ ~3–8 Min</Chip><Chip>🌿 Bio</Chip><Chip>♻️ Mehrweg</Chip>
         </div>
       </div>
 
@@ -588,7 +588,7 @@ function QRScreen(){
           <p style={{marginTop:16,fontWeight:800,fontSize:18,color:C.text}}>Tisch {t}</p>
           <p style={{color:C.textLight,fontSize:13,marginTop:4}}>Scan → Tisch automatisch erkannt</p>
           <div style={{marginTop:12,background:C.surface2,borderRadius:DS.radius.sm,padding:"9px 14px",display:"inline-block"}}>
-            <code style={{fontSize:11,color:C.textMid}}>{(typeof window!=="undefined"?window.location.host:"zeitraum.app")}?table={t}</code>
+            <code style={{fontSize:11,color:C.textMid}}>{(typeof window!=="undefined"?window.location.host+window.location.pathname.replace(/\/$/,""):"zeitraum.app")}?table={t}</code>
           </div>
         </div>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.sm(dk)}}>
@@ -730,7 +730,7 @@ function DetailScreen(){
           <p style={{fontSize:22,fontWeight:900,color:C.primary,flexShrink:0,whiteSpace:"nowrap"}}>{fmt(unitP)}</p>
         </div>
         <div style={{display:"flex",gap:10,marginTop:14}}>
-          {[["⭐","4.9"],["⏱","~8 Min"],["🌿",p.tag||"Frisch"]].map(([ic,v])=>(
+          {[["⭐","4.9"],["⏱",{Kaltgetränke:"~1 Min",Snacks:"~2 Min",Gebäck:"~3 Min",Sonstiges:"~2 Min","Tee & Matcha":"~4 Min"}[p.cat]||"~5 Min"],["🌿",p.tag||"Frisch"]].map(([ic,v])=>(
             <div key={v} style={{flex:1,background:C.surface2,borderRadius:DS.radius.sm,padding:"10px 8px",textAlign:"center"}}>
               <div style={{fontSize:16}}>{ic}</div>
               <div style={{fontSize:11,fontWeight:700,color:C.textMid,marginTop:3}}>{v}</div>
@@ -884,7 +884,7 @@ function CartScreen(){
             </div>
             <div style={{background:C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:9}}>
               <span>⏱</span>
-              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>~8 Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Nach Bestätigung</p></div>
+              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>~3–8 Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Nach Bestätigung</p></div>
             </div>
             <button onClick={()=>submitOrder(note)} disabled={!selTable||submitting} style={{width:"100%",padding:"18px",background:!selTable||submitting?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!selTable||submitting?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:!selTable||submitting?"default":"pointer",boxShadow:selTable&&!submitting?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
               {submitting?"Wird gesendet…":selTable?`Jetzt bestellen · ${fmt(tot)}`:"Bitte zuerst Tisch wählen"}
@@ -1271,7 +1271,6 @@ function App(){
 
   return(
     <Ctx.Provider value={ctx}>
-      <style>{`*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}body,html{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif}*::-webkit-scrollbar{display:none}`}</style>
       <ToastStack toasts={toasts} dk={darkMode}/>
       <S/>
     </Ctx.Provider>
