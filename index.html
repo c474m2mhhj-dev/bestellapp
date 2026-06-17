@@ -1200,6 +1200,7 @@ function AdminScreen(){
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
+  const soldCounts=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{m[it.id]=(m[it.id]||0)+it.qty;}));return m;},[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
   const[copied,setCopied]=useState(false);
@@ -1455,7 +1456,10 @@ function AdminScreen(){
                   <div style={{background:C.surface,borderRadius:DS.radius.md,padding:12,display:"flex",gap:10,alignItems:"center",boxShadow:DS.shadow.xs(dk),opacity:p.available?1:.5}}>
                     <PImg src={p.img} emoji={p.emoji} w={36} h={36} r={8}/>
                     <div style={{flex:1,minWidth:0}}>
-                      <p style={{fontWeight:700,fontSize:13,color:C.text}}>{p.name}</p>
+                      <div style={{display:"flex",alignItems:"center",gap:6}}>
+                        <p style={{fontWeight:700,fontSize:13,color:C.text}}>{p.name}</p>
+                        {soldCounts[p.id]>0&&<span style={{fontSize:9,fontWeight:800,background:C.light,color:C.primary,borderRadius:DS.radius.full,padding:"1px 6px",whiteSpace:"nowrap"}}>{soldCounts[p.id]}× heute</span>}
+                      </div>
                       <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{p.cat} · {p.sizes.map(s=>`${s.l} ${fmt(s.p)}`).join(", ")}</p>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
