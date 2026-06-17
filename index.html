@@ -435,10 +435,11 @@ function HomeScreen(){
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
-  const[svcTs,setSvcTs]=useState(()=>selTable?LS.get("zr_svc_last_"+selTable,null):null);
+  const[svcTs,setSvcTs]=useState(()=>selTable?LS.get(`zr_svc_last_service_${selTable}`,null):null);
+  const[billTs,setBillTs]=useState(()=>selTable?LS.get(`zr_svc_last_zahlen_${selTable}`,null):null);
   const quickAdd=(p,e)=>{e.stopPropagation();if(p.sizes.length===1&&!p.milch&&!p.sirup){const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:"",ck:`${p.id}||${pr.toFixed(2)}`},1);}else{go("detail",p);}};
   const[annDismissed,setAnnDismissed]=useState(()=>sessionStorage.getItem("zr_ann_dismissed")||"");
-  useEffect(()=>{setSvcTs(selTable?LS.get("zr_svc_last_"+selTable,null):null);},[selTable]);
+  useEffect(()=>{setSvcTs(selTable?LS.get(`zr_svc_last_service_${selTable}`,null):null);setBillTs(selTable?LS.get(`zr_svc_last_zahlen_${selTable}`,null):null);},[selTable]);
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
@@ -530,16 +531,24 @@ function HomeScreen(){
           </button>
         );})()}
 
-        {/* Service call */}
-        {selTable&&(()=>{const cooldown=svcTs&&(Date.now()-svcTs)<5*60*1000;const minLeft=cooldown?Math.ceil((5*60*1000-(Date.now()-svcTs))/60000):0;return(
-          <button onClick={()=>{if(cooldown)return;requestService();setSvcTs(Date.now());}} disabled={!!cooldown} style={{width:"100%",marginBottom:14,padding:"11px 16px",background:cooldown?(dk?"rgba(245,158,11,.1)":"#FFF7ED"):C.surface,borderRadius:DS.radius.md,display:"flex",alignItems:"center",gap:12,cursor:cooldown?"default":"pointer",border:`1.5px solid ${cooldown?(dk?C.amber+"44":"#FED7AA"):C.border}`,boxShadow:DS.shadow.xs(dk),textAlign:"left"}}>
-            <span style={{fontSize:22,flexShrink:0}}>{cooldown?"✓":"🔔"}</span>
-            <div style={{flex:1}}>
-              <p style={{fontWeight:700,fontSize:13,color:cooldown?(dk?C.amber:"#C2410C"):C.text}}>{cooldown?`Bedienung gerufen · noch ${minLeft} Min`:"Bedienung rufen"}</p>
-              <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{cooldown?"Wird gleich bei dir sein":"Personal an deinen Tisch holen"}</p>
+        {/* Service calls */}
+        {selTable&&(()=>{
+          const COOL=5*60*1000;
+          const svcCool=svcTs&&(Date.now()-svcTs)<COOL;const svcMin=svcCool?Math.ceil((COOL-(Date.now()-svcTs))/60000):0;
+          const billCool=billTs&&(Date.now()-billTs)<COOL;const billMin=billCool?Math.ceil((COOL-(Date.now()-billTs))/60000):0;
+          return(
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>
+              <button onClick={()=>{if(svcCool)return;requestService("service");setSvcTs(Date.now());}} disabled={!!svcCool} style={{padding:"11px 10px",background:svcCool?(dk?"rgba(245,158,11,.1)":"#FFF7ED"):C.surface,borderRadius:DS.radius.md,display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:svcCool?"default":"pointer",border:`1.5px solid ${svcCool?(dk?C.amber+"44":"#FED7AA"):C.border}`,boxShadow:DS.shadow.xs(dk),textAlign:"center"}}>
+                <span style={{fontSize:22}}>{svcCool?"✓":"🔔"}</span>
+                <p style={{fontWeight:700,fontSize:12,color:svcCool?(dk?C.amber:"#C2410C"):C.text,lineHeight:1.3}}>{svcCool?`Gerufen · ${svcMin} Min`:"Bedienung rufen"}</p>
+              </button>
+              <button onClick={()=>{if(billCool)return;requestService("zahlen");setBillTs(Date.now());}} disabled={!!billCool} style={{padding:"11px 10px",background:billCool?(dk?"rgba(16,185,129,.1)":"#ECFDF5"):C.surface,borderRadius:DS.radius.md,display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:billCool?"default":"pointer",border:`1.5px solid ${billCool?(dk?"rgba(16,185,129,.4)":"#6EE7B7"):C.border}`,boxShadow:DS.shadow.xs(dk),textAlign:"center"}}>
+                <span style={{fontSize:22}}>{billCool?"✓":"💳"}</span>
+                <p style={{fontWeight:700,fontSize:12,color:billCool?(dk?"#6EE7B7":"#065F46"):C.text,lineHeight:1.3}}>{billCool?`Angefordert · ${billMin} Min`:"Zahlen bitte"}</p>
+              </button>
             </div>
-          </button>
-        );})()}
+          );
+        })()}
         {/* Categories */}
         <p style={{fontWeight:800,fontSize:16,marginBottom:12,color:C.text}}>Kategorien</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:9,marginBottom:18}}>
@@ -1501,16 +1510,16 @@ function AdminScreen(){
         )}
         {tab==="orders"&&serviceCalls.length>0&&(
           <div style={{marginBottom:10}}>
-            {serviceCalls.sort((a,b)=>b.ts-a.ts).map(c=>(
-              <div key={c.key} style={{background:dk?"rgba(245,158,11,.12)":"#FEF3C7",border:`1.5px solid ${dk?"rgba(245,158,11,.3)":"#FDE68A"}`,borderRadius:DS.radius.md,padding:"10px 13px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:20,flexShrink:0}}>🔔</span>
+            {serviceCalls.sort((a,b)=>b.ts-a.ts).map(c=>{const isPay=c.type==="zahlen";return(
+              <div key={c.key} style={{background:isPay?(dk?"rgba(16,185,129,.12)":"#ECFDF5"):(dk?"rgba(245,158,11,.12)":"#FEF3C7"),border:`1.5px solid ${isPay?(dk?"rgba(16,185,129,.35)":"#6EE7B7"):(dk?"rgba(245,158,11,.3)":"#FDE68A")}`,borderRadius:DS.radius.md,padding:"10px 13px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20,flexShrink:0}}>{isPay?"💳":"🔔"}</span>
                 <div style={{flex:1}}>
-                  <p style={{fontWeight:800,fontSize:13,color:dk?C.amber:"#92400E"}}>Tisch {c.table} ruft nach Bedienung</p>
+                  <p style={{fontWeight:800,fontSize:13,color:isPay?(dk?"#6EE7B7":"#065F46"):(dk?C.amber:"#92400E")}}>{isPay?`Tisch ${c.table} möchte zahlen`:`Tisch ${c.table} ruft nach Bedienung`}</p>
                   <p style={{fontSize:11,color:C.textMid,marginTop:1}}>{c.time}</p>
                 </div>
-                <button onClick={()=>dismissServiceCall(c.key)} style={{background:dk?"rgba(245,158,11,.2)":"#FEF08A",border:"none",borderRadius:DS.radius.sm,padding:"5px 11px",fontWeight:700,fontSize:11,cursor:"pointer",color:dk?C.amber:"#78350F",flexShrink:0,whiteSpace:"nowrap"}}>✓ Erledigt</button>
+                <button onClick={()=>dismissServiceCall(c.key)} style={{background:isPay?(dk?"rgba(16,185,129,.2)":"#D1FAE5"):(dk?"rgba(245,158,11,.2)":"#FEF08A"),border:"none",borderRadius:DS.radius.sm,padding:"5px 11px",fontWeight:700,fontSize:11,cursor:"pointer",color:isPay?(dk?"#6EE7B7":"#065F46"):(dk?C.amber:"#78350F"),flexShrink:0,whiteSpace:"nowrap"}}>✓ Erledigt</button>
               </div>
-            ))}
+            );})}
           </div>
         )}
         {tab==="orders"&&catRevenue.length>1&&revenue>0&&(
@@ -1850,15 +1859,15 @@ function App(){
     });
   },[push]);
 
-  const requestService=useCallback(async()=>{
+  const requestService=useCallback(async(type="service")=>{
     if(!selTable)return;
     const ts=Date.now();
     const key=`svc_${selTable}_${ts}`;
-    const call={key,table:selTable,ts,time:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
+    const call={key,table:selTable,ts,type,time:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
     if(hasSt)await Db.set(key,call,true);
     else{const svcList=LS.get("zr_svc_list",[]);LS.set("zr_svc_list",[...svcList,key]);LS.set(key,call);}
-    LS.set("zr_svc_last_"+selTable,ts);
-    push("Bedienung gerufen ✓","success",4000);
+    LS.set(`zr_svc_last_${type}_${selTable}`,ts);
+    push(type==="zahlen"?"Zahlung angefordert ✓":"Bedienung gerufen ✓","success",4000);
     if(navigator.vibrate)navigator.vibrate([30,15,30]);
   },[selTable,push]);
 
