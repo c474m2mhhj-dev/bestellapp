@@ -1044,7 +1044,7 @@ function OrdersScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,products,addProduct,deleteProduct,setProductAvailable,editProduct,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,editProduct,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
@@ -1056,6 +1056,7 @@ function AdminScreen(){
   const[tableFilter,setTableFilter]=useState("all");
   const[delConfId,setDelConfId]=useState(null);
   const[sortOldest,setSortOldest]=useState(true);
+  const[tagesConf,setTagesConf]=useState(false);
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",tag:"",available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
@@ -1194,7 +1195,23 @@ function AdminScreen(){
               </div>
             ))
           )([...allOrders].filter(o=>(stFilter==="all"||o.status===stFilter)&&(tableFilter==="all"||o.table===tableFilter)).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
-        ):(
+        ):null}
+        {tab==="orders"&&(
+          <div style={{marginTop:16,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
+            {tagesConf
+              ?<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${C.red}`,borderRadius:DS.radius.md,padding:14}}>
+                  <p style={{fontWeight:800,fontSize:13,color:C.red,marginBottom:4}}>🌙 Tagesabschluss bestätigen</p>
+                  <p style={{fontSize:12,color:C.textMid,marginBottom:10}}>Alle {allOrders.length} Bestellung{allOrders.length!==1?"en":""} werden unwiderruflich gelöscht.</p>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={async()=>{await clearAllOrders();setTagesConf(false);}} style={{flex:1,padding:"9px",background:C.red,color:"#fff",borderRadius:DS.radius.sm,fontWeight:800,fontSize:13,border:"none",cursor:"pointer"}}>Jetzt leeren</button>
+                    <button onClick={()=>setTagesConf(false)} style={{padding:"9px 14px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>Abbrechen</button>
+                  </div>
+                </div>
+              :<button onClick={()=>setTagesConf(true)} style={{width:"100%",padding:"10px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${C.border}`,cursor:"pointer"}}>🌙 Tagesabschluss – alle Bestellungen leeren</button>
+            }
+          </div>
+        )}
+        {tab!=="orders"&&(
           <>
             <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:14,boxShadow:DS.shadow.sm(dk)}}>
               <p style={{fontWeight:700,fontSize:14,marginBottom:12,color:C.text}}>Produkt hinzufügen</p>
@@ -1431,6 +1448,14 @@ function App(){
     setAllOrders(prev=>prev.filter(o=>o.id!==id));
   },[]);
 
+  const clearAllOrders=useCallback(async()=>{
+    const ids=LS.get("zr_all_orders",[]);
+    ids.forEach(id=>LS.del(`zr_order_${id}`));
+    LS.del("zr_all_orders");
+    if(hasSt){const keys=await Db.list("order_",true);await Promise.all(keys.map(k=>Db.del(k,true)));}
+    setAllOrders([]);
+  },[]);
+
   const addProduct=useCallback((product)=>{
     setProducts(prev=>{const next=[...prev,product];LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
@@ -1464,7 +1489,7 @@ function App(){
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
-    setOrderStatus,deleteOrder,addProduct,deleteProduct,setProductAvailable,editProduct,
+    setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,editProduct,
   };
 
   const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen};
