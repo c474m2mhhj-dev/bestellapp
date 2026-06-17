@@ -654,6 +654,7 @@ function MenuScreen(){
   const loadRef=useRef(null);
 
   useEffect(()=>{clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),600);return()=>clearTimeout(loadRef.current);},[activeCat]);
+  useEffect(()=>{window.scrollTo(0,0);},[activeCat]);
 
   const toggleFav=id=>{setFavs(prev=>{const n=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];LS.set("zr_favs",n);return n;});};
   const filtered=useMemo(()=>{
