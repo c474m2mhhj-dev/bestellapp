@@ -431,12 +431,13 @@ function SplashScreen(){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService,addToCart}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService,addToCart,announcement}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const[svcTs,setSvcTs]=useState(()=>selTable?LS.get("zr_svc_last_"+selTable,null):null);
   const quickAdd=(p,e)=>{e.stopPropagation();if(p.sizes.length===1&&!p.milch&&!p.sirup){const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:"",ck:`${p.id}||${pr.toFixed(2)}`},1);}else{go("detail",p);}};
+  const[annDismissed,setAnnDismissed]=useState(()=>sessionStorage.getItem("zr_ann_dismissed")||"");
   useEffect(()=>{setSvcTs(selTable?LS.get("zr_svc_last_"+selTable,null):null);},[selTable]);
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
@@ -472,6 +473,14 @@ function HomeScreen(){
           <Chip>⏱ ~3–8 Min</Chip><Chip>🌿 Bio</Chip><Chip>♻️ Mehrweg</Chip>
         </div>
       </div>
+
+      {announcement&&annDismissed!==announcement&&(
+        <div style={{background:dk?"rgba(245,158,11,.12)":"#FEF3C7",borderBottom:`1px solid ${dk?"rgba(245,158,11,.3)":"#FDE68A"}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:16,flexShrink:0}}>📢</span>
+          <p style={{flex:1,fontSize:13,fontWeight:600,color:dk?"#FCD34D":"#92400E"}}>{announcement}</p>
+          <button onClick={()=>{setAnnDismissed(announcement);sessionStorage.setItem("zr_ann_dismissed",announcement);}} style={{background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:18,flexShrink:0,lineHeight:1}}>×</button>
+        </div>
+      )}
 
       <div style={{padding:"16px 16px 0"}}>
         {/* Table picker */}
@@ -1255,11 +1264,12 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,announcement,saveAnnouncement,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
   const[tab,setTab]=useState("orders");
+  const[annInput,setAnnInput]=useState(()=>announcement||"");
   const[stFilter,setStFilter]=useState("all");
   const[prodSearch,setProdSearch]=useState("");
   const[prodSort,setProdSort]=useState("cat");
@@ -1410,6 +1420,14 @@ function AdminScreen(){
             {bySt("new")>0&&<button onClick={markAllMaking} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#DBEAFE",color:"#1E40AF",whiteSpace:"nowrap"}}>🍳 Alle Neu → Zubereitung ({bySt("new")})</button>}
             {bySt("ready")>0&&<button onClick={markAllReady} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#D1FAE5",color:"#065F46",whiteSpace:"nowrap"}}>✓ Alle Bereit → Serviert ({bySt("ready")})</button>}
             {bySt("done")>0&&<button onClick={clearAllDone} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>🗑 Erledigte löschen ({bySt("done")})</button>}
+          </div>
+        )}
+        {tab==="orders"&&(
+          <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"10px 12px",marginBottom:10,display:"flex",gap:7,alignItems:"center"}}>
+            <span style={{fontSize:14,flexShrink:0}}>📢</span>
+            <input value={annInput} onChange={e=>setAnnInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){saveAnnouncement(annInput);}if(e.key==="Escape")setAnnInput(announcement||"");}} placeholder="Ankündigung für alle Tische…" style={{flex:1,padding:"7px 10px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:12,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"}}/>
+            <button onClick={()=>{saveAnnouncement(annInput);}} style={{flexShrink:0,padding:"7px 12px",borderRadius:DS.radius.sm,background:C.primary,color:"#fff",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>✓</button>
+            {announcement&&<button onClick={()=>{saveAnnouncement("");setAnnInput("");}} style={{flexShrink:0,padding:"7px 10px",borderRadius:DS.radius.sm,background:C.surface2,color:C.textMid,fontWeight:700,fontSize:11,border:"none",cursor:"pointer"}}>✕</button>}
           </div>
         )}
         {tab==="orders"&&serviceCalls.length>0&&(
@@ -1647,6 +1665,7 @@ function App(){
   const[myOrders,setMyOrders]=useState(()=>{const ids=LS.get("zr_my_orders",[]);return ids.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);});
   const[allOrders,setAllOrders]=useState([]);
   const[serviceCalls,setServiceCalls]=useState([]);
+  const[announcement,setAnnouncement]=useState(()=>LS.get("zr_announce",""));
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
@@ -1660,6 +1679,7 @@ function App(){
     const local=LS.get("zr_products");
     if(local&&local.length)setProducts(local);
     Db.get("zr_products").then(p=>{if(p&&p.length)setProducts(p);});
+    Db.get("zr_announce",true).then(v=>{if(v!=null){setAnnouncement(v);LS.set("zr_announce",v);}});
   },[]);
 
   useEffect(()=>{const t=setTimeout(()=>setSplash(false),1400);return()=>clearTimeout(t);},[]);
@@ -1832,6 +1852,7 @@ function App(){
   },[]);
 
   const clearCart=useCallback(()=>setCart([]),[]);
+  const saveAnnouncement=useCallback((text)=>{const v=text.trim();setAnnouncement(v);LS.set("zr_announce",v);Db.set("zr_announce",v,true);},[]);
 
   const clearDoneOrders=useCallback(()=>{
     setMyOrders(prev=>{
@@ -1849,6 +1870,7 @@ function App(){
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,
     serviceCalls,requestService,dismissServiceCall,
+    announcement,saveAnnouncement,
   };
 
   const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
