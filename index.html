@@ -1644,6 +1644,7 @@ function App(){
   const[splash,setSplash]=useState(true);
   const{toasts,push}=useToast();
 
+  useEffect(()=>{const ready=myOrders.filter(o=>o.status==="ready").length;const newOrd=allOrders.filter(o=>o.status==="new").length;const svc=serviceCalls.length;if(ready>0)document.title=`🔔 Bereit! – zeitraum`;else if(newOrd>0||svc>0){const p=[];if(newOrd>0)p.push(`${newOrd} neu`);if(svc>0)p.push(`${svc} 🔔`);document.title=`(${p.join(", ")}) Admin – zeitraum`;}else document.title="zeitraum – Café & Bar";},[myOrders,allOrders,serviceCalls]);
   useEffect(()=>{LS.set("zr_dark",darkMode);},[darkMode]);
   useEffect(()=>{LS.set("zr_cart",cart);},[cart]);
   useEffect(()=>{selTable?LS.set("zr_table",selTable):LS.del("zr_table");},[selTable]);
