@@ -942,6 +942,15 @@ function CartScreen(){
     const cartCats=new Set(cart.map(i=>products.find(p=>p.id===i.id)?.cat).filter(Boolean));
     return products.filter(p=>p.available&&p.pop&&!inCart.has(p.id)&&!cartCats.has(p.cat)).slice(0,3);
   },[cart,products]);
+  const estWait=useMemo(()=>{
+    const CAT_MIN={Kaltgetränke:1,Snacks:2,Gebäck:3,Sonstiges:2};
+    const times=cart.map(it=>{const p=products.find(x=>x.id===it.id);return CAT_MIN[p?.cat]??5;});
+    if(!times.length)return null;
+    const base=Math.max(...times);
+    const totalQty=cart.reduce((s,i)=>s+i.qty,0);
+    const extra=totalQty>3?2:totalQty>1?1:0;
+    return base+extra;
+  },[cart,products]);
   return(
     <Screen>
       <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
@@ -1022,7 +1031,7 @@ function CartScreen(){
             </div>
             <div style={{background:C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:9}}>
               <span>⏱</span>
-              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>~3–8 Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Nach Bestätigung</p></div>
+              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>ca. {estWait} Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Geschätzt · nach Bestätigung</p></div>
             </div>
             <button onClick={()=>submitOrder(note)} disabled={!selTable||submitting} style={{width:"100%",padding:"18px",background:!selTable||submitting?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!selTable||submitting?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:!selTable||submitting?"default":"pointer",boxShadow:selTable&&!submitting?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
               {submitting?"Wird gesendet…":selTable?`Jetzt bestellen · ${fmt(tot)}`:"Bitte zuerst Tisch wählen"}
