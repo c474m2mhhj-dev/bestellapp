@@ -1205,6 +1205,7 @@ function AdminScreen(){
   const[delConfId,setDelConfId]=useState(null);
   const[sortOldest,setSortOldest]=useState(true);
   const[tagesConf,setTagesConf]=useState(false);
+  const[orderSearch,setOrderSearch]=useState("");
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,pop:false,available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
@@ -1326,6 +1327,12 @@ function AdminScreen(){
             </button>
           </div>
         )}
+        {tab==="orders"&&allOrders.length>3&&(
+          <div style={{position:"relative",marginBottom:8}}>
+            <input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setOrderSearch("");}} placeholder="🔍 Tisch, #Nr oder Produkt…" style={{...inp,paddingRight:orderSearch?34:12}}/>
+            {orderSearch&&<button onClick={()=>setOrderSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:16,lineHeight:1}}>×</button>}
+          </div>
+        )}
         {tab==="orders"&&(bySt("new")>0||bySt("ready")>0||bySt("done")>0)&&(
           <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
             {bySt("new")>0&&<button onClick={markAllMaking} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#DBEAFE",color:"#1E40AF",whiteSpace:"nowrap"}}>🍳 Alle Neu → Zubereitung ({bySt("new")})</button>}
@@ -1372,7 +1379,7 @@ function AdminScreen(){
                 </div>
               </div>
             ))}<div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:11,color:C.textMid}}>{filtered.length} Bestellung{filtered.length!==1?"en":""}</span><span style={{fontWeight:800,fontSize:13,color:C.primary}}>{fmt(filtered.reduce((s,o)=>s+o.total,0))}</span></div></>{/*end fragment*/}
-          )([...allOrders].filter(o=>(stFilter==="all"||o.status===stFilter)&&(tableFilter==="all"||o.table===tableFilter)).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
+          )([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim();return String(o.table).toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
         ):null}
         {tab==="orders"&&(
           <div style={{marginTop:16,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
