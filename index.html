@@ -600,9 +600,11 @@ function HomeScreen(){
           }
         </div>
 
-        <button onClick={()=>go("menu")} style={{width:"100%",marginTop:18,padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>
-          Jetzt bestellen →
-        </button>
+        {(()=>{const qty=cart.reduce((s,i)=>s+i.qty,0);return(
+          <button onClick={()=>go(qty>0?"cart":"menu")} style={{width:"100%",marginTop:18,padding:15,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:15,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>
+            {qty>0?`🛒 Warenkorb ansehen · ${qty} Artikel →`:"Jetzt bestellen →"}
+          </button>
+        );})()}
       </div>
       <FloatCart/><BottomNav/>
     </Screen>
