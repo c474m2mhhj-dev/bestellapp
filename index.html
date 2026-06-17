@@ -438,6 +438,7 @@ function HomeScreen(){
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
   const favProds=useMemo(()=>favs.map(id=>products.find(p=>p.id===id&&p.available)).filter(Boolean),[favs,products]);
+  const recentProds=useMemo(()=>{const seen=new Set(),res=[];[...myOrders].sort((a,b)=>b.createdAt-a.createdAt).forEach(o=>o.items.forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);const p=products.find(pr=>pr.id===it.id&&pr.available);if(p)res.push(p);}}));return res.slice(0,5);},[myOrders,products]);
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   const hour=new Date().getHours();
   const greet=hour<5?"Gute Nacht 🌙":hour<12?"Guten Morgen ☀️":hour<17?"Guten Tag 👋":hour<21?"Guten Abend 🌆":"Gute Nacht 🌙";
@@ -534,6 +535,24 @@ function HomeScreen(){
                   <div style={{padding:"7px 9px 9px"}}>
                     <p style={{fontWeight:700,fontSize:12,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
                     <p style={{fontSize:12,color:C.primary,fontWeight:700,marginTop:2}}>ab {fmt(Math.min(...p.sizes.map(s=>s.p)))}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Zuletzt bestellt */}
+        {recentProds.length>0&&(
+          <div style={{marginBottom:18}}>
+            <p style={{fontWeight:800,fontSize:16,color:C.text,marginBottom:10}}>🕐 Zuletzt bestellt</p>
+            <div style={{display:"flex",gap:11,overflowX:"auto",scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16,paddingBottom:4}}>
+              {recentProds.map(p=>(
+                <div key={p.id} onClick={()=>go("detail",p)} style={{minWidth:126,flexShrink:0,background:C.surface,borderRadius:DS.radius.lg,overflow:"hidden",boxShadow:DS.shadow.sm(dk),cursor:"pointer"}}>
+                  <PImg src={p.img} emoji={p.emoji} w={126} h={78}/>
+                  <div style={{padding:"7px 9px 9px"}}>
+                    <p style={{fontWeight:700,fontSize:12,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
+                    <p style={{fontSize:12,color:C.primary,fontWeight:700,marginTop:2}}>{fmt(Math.min(...p.sizes.map(s=>s.p)))}</p>
                   </div>
                 </div>
               ))}
