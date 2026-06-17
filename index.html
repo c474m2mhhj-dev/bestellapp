@@ -649,6 +649,7 @@ function MenuScreen(){
   const[search,setSearch]=useState("");
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const[loading,setLoading]=useState(true);
+  const[tagFilter,setTagFilter]=useState("Alle");
   const qty=cart.reduce((s,i)=>s+i.qty,0);
   const loadRef=useRef(null);
 
@@ -657,8 +658,8 @@ function MenuScreen(){
   const toggleFav=id=>{setFavs(prev=>{const n=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];LS.set("zr_favs",n);return n;});};
   const filtered=useMemo(()=>{
     const q=search.toLowerCase().trim();
-    return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
-  },[products,activeCat,search]);
+    return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(tagFilter==="Alle"||p.tag===tagFilter)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
+  },[products,activeCat,tagFilter,search]);
   const catCounts=useMemo(()=>{const m={};products.filter(p=>p.available).forEach(p=>{m[p.cat]=(m[p.cat]||0)+1;});return m;},[products]);
   const availableCats=useMemo(()=>CATS.filter(c=>c==="Alle"||catCounts[c]>0),[catCounts]);
 
@@ -686,7 +687,14 @@ function MenuScreen(){
         </div>
       </div>
 
-      <div style={{padding:"10px 16px 0"}}>
+      <div style={{display:"flex",gap:6,padding:"10px 16px 4px",overflowX:"auto",scrollbarWidth:"none"}}>
+        {["Alle","Vegan","Beliebt","Neu"].map(t=>(
+          <button key={t} onClick={()=>setTagFilter(t)} style={{padding:"5px 12px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:`1.5px solid ${tagFilter===t?C.primary:C.border}`,cursor:"pointer",flexShrink:0,background:tagFilter===t?C.light:C.surface,color:tagFilter===t?C.primary:C.textMid,transition:"all .15s"}}>
+            {t==="Vegan"?"🌿 ":t==="Beliebt"?"⭐ ":t==="Neu"?"🆕 ":""}{t}
+          </button>
+        ))}
+      </div>
+      <div style={{padding:"6px 16px 0"}}>
         {!loading&&search&&<p style={{fontSize:12,color:C.textLight,marginBottom:8}}>{filtered.length} Produkt{filtered.length!==1?"e":""} gefunden</p>}
         {loading
           ?[...Array(5)].map((_,i)=><ProductRowSkeleton key={i}/>)
