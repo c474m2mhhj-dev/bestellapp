@@ -1202,7 +1202,7 @@ function AdminScreen(){
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
   const soldCounts=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{m[it.id]=(m[it.id]||0)+it.qty;}));return m;},[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
-  useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
+  useEffect(()=>{if(ok)loadAdminOrders();},[ok]);
   const[copied,setCopied]=useState(false);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
   const copyStats=useCallback(()=>{
