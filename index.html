@@ -1377,6 +1377,14 @@ function AdminScreen(){
         )}
         {tab!=="orders"&&(
           <>
+            <div style={{display:"flex",gap:7,marginBottom:12}}>
+              {[["📦 Gesamt",products.length,C.textMid,C.surface2],[`✓ Aktiv`,products.filter(p=>p.available).length,C.primary,C.light],[`⏸ Pausiert`,products.filter(p=>!p.available).length,products.some(p=>!p.available)?C.red:C.textLight,C.surface2]].map(([l,v,cl,bg])=>(
+                <div key={l} style={{flex:1,background:bg,borderRadius:DS.radius.sm,padding:"8px 10px",textAlign:"center"}}>
+                  <p style={{fontSize:16,fontWeight:900,color:cl}}>{v}</p>
+                  <p style={{fontSize:9,fontWeight:700,color:cl,opacity:.7,textTransform:"uppercase",letterSpacing:".04em",marginTop:2}}>{l}</p>
+                </div>
+              ))}
+            </div>
             <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:14,boxShadow:DS.shadow.sm(dk)}}>
               <p style={{fontWeight:700,fontSize:14,marginBottom:12,color:C.text}}>Produkt hinzufügen</p>
               <div style={{display:"flex",flexDirection:"column",gap:8}}>
