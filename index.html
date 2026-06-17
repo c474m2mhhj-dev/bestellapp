@@ -1209,6 +1209,7 @@ function AdminScreen(){
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
   const soldCounts=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{m[it.id]=(m[it.id]||0)+it.qty;}));return m;},[allOrders]);
   const topProds=useMemo(()=>products.map(p=>({...p,sold:soldCounts[p.id]||0})).filter(p=>p.sold>0).sort((a,b)=>b.sold-a.sold).slice(0,5),[products,soldCounts]);
+  const catRevenue=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{const pr=products.find(x=>x.id===it.id);const c=pr?.cat||"Sonstiges";m[c]=(m[c]||0)+it.price*it.qty;}));return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[allOrders,products]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok)loadAdminOrders();},[ok]);
   const[copied,setCopied]=useState(false);
@@ -1329,6 +1330,22 @@ function AdminScreen(){
             {bySt("new")>0&&<button onClick={markAllMaking} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#DBEAFE",color:"#1E40AF",whiteSpace:"nowrap"}}>🍳 Alle Neu → Zubereitung ({bySt("new")})</button>}
             {bySt("ready")>0&&<button onClick={markAllReady} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#D1FAE5",color:"#065F46",whiteSpace:"nowrap"}}>✓ Alle Bereit → Serviert ({bySt("ready")})</button>}
             {bySt("done")>0&&<button onClick={clearAllDone} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>🗑 Erledigte löschen ({bySt("done")})</button>}
+          </div>
+        )}
+        {tab==="orders"&&catRevenue.length>1&&revenue>0&&(
+          <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"10px 12px",marginBottom:10,boxShadow:DS.shadow.sm(dk)}}>
+            <p style={{fontWeight:800,fontSize:10,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",marginBottom:7}}>💰 Umsatz nach Kategorie</p>
+            {catRevenue.map(([cat,rev])=>(
+              <div key={cat} style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
+                <span style={{fontSize:14,flexShrink:0,width:20,textAlign:"center"}}>{CICO[cat]||"📦"}</span>
+                <span style={{flex:1,fontSize:12,color:C.text,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{cat}</span>
+                <div style={{width:52,height:4,background:C.surface2,borderRadius:2,overflow:"hidden",flexShrink:0}}>
+                  <div style={{height:"100%",width:`${(rev/catRevenue[0][1])*100}%`,background:C.primary,borderRadius:2}}/>
+                </div>
+                <span style={{fontSize:12,fontWeight:800,color:C.primary,flexShrink:0,minWidth:48,textAlign:"right"}}>{fmt(rev)}</span>
+                <span style={{fontSize:10,color:C.textLight,flexShrink:0,minWidth:30,textAlign:"right"}}>{Math.round(rev/revenue*100)}%</span>
+              </div>
+            ))}
           </div>
         )}
         {tab==="orders"?(
