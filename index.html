@@ -1007,7 +1007,7 @@ function OrderCard({o}){
       </div>
       <div style={{paddingTop:9,borderTop:`1px solid ${C.border}`}}>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center",marginBottom:9}}>
-          {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
+          {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>{it.emoji?it.emoji+" ":""}{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
           <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:14}}>{fmt(o.total)}</span>
         </div>
         <button onClick={reorder} style={{width:"100%",padding:"9px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${C.border}`,cursor:"pointer"}}>🔁 Nochmal bestellen</button>
@@ -1256,7 +1256,7 @@ function AdminScreen(){
                   </div>
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingTop:9,borderTop:`1px solid ${C.border}`,alignItems:"center"}}>
-                  {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"3px 8px",color:C.textMid}}>{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
+                  {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"3px 8px",color:C.textMid}}>{it.emoji?it.emoji+" ":""}{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
                   <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:13}}>{fmt(o.total)}</span>
                 </div>
               </div>
