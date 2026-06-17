@@ -1042,6 +1042,58 @@ function OrdersScreen(){
 }
 
 /* ══════════════════════════════════════════════
+   KITCHEN DISPLAY
+══════════════════════════════════════════════ */
+function KitchenScreen(){
+  const{go,allOrders,loadAdminOrders,setOrderStatus}=useApp();
+  const[tick,setTick]=useState(0);
+  useEffect(()=>{loadAdminOrders();const t=setInterval(()=>{loadAdminOrders();setTick(n=>n+1);},4000);return()=>clearInterval(t);},[]);
+  const active=useMemo(()=>[...allOrders].filter(o=>o.status==="new"||o.status==="making").sort((a,b)=>a.createdAt-b.createdAt),[allOrders,tick]);
+  const stCfg={new:{label:"Neu",bg:"#1E3A5F",btn:"Annehmen",btnBg:"#2563EB"},making:{label:"In Zubereitung",bg:"#3B2A00",btn:"Bereit",btnBg:"#D97706"}};
+  return(
+    <div style={{background:"#111",minHeight:"100svh",padding:"0 0 20px"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid #222"}}>
+        <p style={{color:"#fff",fontWeight:900,fontSize:17}}>👨‍🍳 Küche</p>
+        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+          <span style={{color:"#666",fontSize:12}}>{active.length} offen</span>
+          <button onClick={()=>go("admin")} style={{background:"#222",color:"#aaa",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Admin →</button>
+        </div>
+      </div>
+      {active.length===0
+        ?<div style={{textAlign:"center",padding:"80px 20px",color:"#555"}}><div style={{fontSize:60,marginBottom:16}}>✅</div><p style={{fontSize:18,fontWeight:700,color:"#888"}}>Keine offenen Bestellungen</p></div>
+        :<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:12,padding:"14px 12px"}}>
+          {active.map(o=>{
+            const cfg=stCfg[o.status];
+            const age=Math.floor((Date.now()-o.createdAt)/60000);
+            return(
+              <div key={o.id} style={{background:cfg.bg,borderRadius:14,padding:16,display:"flex",flexDirection:"column",gap:10}}>
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                  <p style={{color:"#fff",fontWeight:900,fontSize:22}}>Tisch {o.table}</p>
+                  <span style={{fontSize:12,fontWeight:700,color:age>=5?"#F87171":"#888",background:"rgba(0,0,0,.3)",borderRadius:20,padding:"3px 9px"}}>{age} min</span>
+                </div>
+                <div style={{flex:1}}>
+                  {o.items.map((it,i)=>(
+                    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:5}}>
+                      <span style={{color:"#aaa",fontWeight:700,fontSize:13,minWidth:22,flexShrink:0}}>{it.qty}×</span>
+                      <div>
+                        <p style={{color:"#fff",fontWeight:700,fontSize:14,lineHeight:1.2}}>{it.name}{it.size?` (${it.size})`:""}</p>
+                        {it.note&&<p style={{color:"#aaa",fontSize:11,marginTop:1}}>{it.note}</p>}
+                      </div>
+                    </div>
+                  ))}
+                  {o.note&&<p style={{fontSize:11,color:"#888",marginTop:4,fontStyle:"italic"}}>📝 {o.note}</p>}
+                </div>
+                <button onClick={()=>{setOrderStatus(o.id,o.status==="new"?"making":"ready");if(navigator.vibrate)navigator.vibrate([20,10,20]);}} style={{width:"100%",padding:"12px",background:cfg.btnBg,color:"#fff",borderRadius:10,fontWeight:800,fontSize:15,border:"none",cursor:"pointer"}}>{cfg.btn}</button>
+              </div>
+            );
+          })}
+        </div>
+      }
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
@@ -1122,6 +1174,7 @@ function AdminScreen(){
                 <p style={{color:"rgba(255,255,255,.35)",fontSize:9,fontWeight:700,marginTop:2}}>Ø Bon</p>
               </div>
             </div>
+            <button onClick={()=>go("kitchen")} aria-label="Küchenansicht" style={{height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,padding:"0 10px",display:"flex",alignItems:"center",gap:5}} title="Küchenansicht">👨‍🍳 Küche</button>
             <button onClick={()=>{sessionStorage.removeItem("zr_admin_ok");setOk(false);}} aria-label="Abmelden" style={{width:36,height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}} title="Abmelden">🔒</button>
           </div>
         </div>
@@ -1522,7 +1575,7 @@ function App(){
     setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,editProduct,
   };
 
-  const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen};
+  const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
   const S=screens[screen]||HomeScreen;
 
   if(splash)return<Ctx.Provider value={ctx}><SplashScreen/></Ctx.Provider>;
