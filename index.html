@@ -692,6 +692,7 @@ function MenuScreen(){
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const[loading,setLoading]=useState(true);
   const[tagFilter,setTagFilter]=useState("Alle");
+  const[gridView,setGridView]=useState(()=>LS.get("zr_menu_grid",false));
   const qty=cart.reduce((s,i)=>s+i.qty,0);
   const loadRef=useRef(null);
   const[sizePickId,setSizePickId]=useState(null);
@@ -715,6 +716,7 @@ function MenuScreen(){
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Speisekarte</p>
             {selTable&&<p style={{color:"rgba(255,255,255,.6)",fontSize:11,marginTop:2}}>📍 Tisch {selTable}</p>}
           </div>
+          <button onClick={()=>{const v=!gridView;setGridView(v);LS.set("zr_menu_grid",v);}} aria-label={gridView?"Listenansicht":"Gitteransicht"} style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,.18)",border:"none",cursor:"pointer",color:"#fff",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gridView?"☰":"⊞"}</button>
           {qty>0&&<button onClick={()=>go("cart")} style={{background:"rgba(255,255,255,.18)",borderRadius:13,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>🛒 {qty}</button>}
         </div>
         <div style={{background:"rgba(255,255,255,.13)",borderRadius:13,padding:"9px 13px",display:"flex",alignItems:"center",gap:7,marginBottom:10,border:"1px solid rgba(255,255,255,.16)"}}>
@@ -741,39 +743,65 @@ function MenuScreen(){
       <div style={{padding:"6px 16px 0"}}>
         {!loading&&search&&<p style={{fontSize:12,color:C.textLight,marginBottom:8}}>{filtered.length} Produkt{filtered.length!==1?"e":""} gefunden</p>}
         {loading
-          ?[...Array(5)].map((_,i)=><ProductRowSkeleton key={i}/>)
+          ?[...Array(gridView?6:5)].map((_,i)=>gridView
+              ?<div key={i} style={{background:C.surface,borderRadius:DS.radius.md,overflow:"hidden",display:"inline-block",width:"100%"}}><Skeleton w="100%" h={110} r={0}/><div style={{padding:"8px 9px 10px"}}><Skeleton w="70%" h={11} r={4} mb={5}/><Skeleton w="40%" h={11} r={4}/></div></div>
+              :<ProductRowSkeleton key={i}/>)
           :filtered.length===0
             ?<div style={{textAlign:"center",padding:"60px 16px",color:C.textLight}}><div style={{fontSize:48,marginBottom:12}}>🔍</div><h3 style={{fontSize:16,fontWeight:700,color:C.text}}>Nichts gefunden</h3></div>
-            :filtered.map(p=>{
-              const iq=cart.filter(i=>i.id===p.id).reduce((s,i)=>s+i.qty,0);
-              const isFav=favs.includes(p.id);
-              return(
-                <div key={p.id} onClick={()=>go("detail",p)} style={{background:C.surface,borderRadius:DS.radius.md,padding:12,marginBottom:9,display:"flex",gap:12,alignItems:"center",boxShadow:DS.shadow.sm(dk),cursor:"pointer",userSelect:"none",transition:"transform .1s"}}>
-                  <div style={{position:"relative",flexShrink:0}}>
-                    <PImg src={p.img} alt={p.name} emoji={p.emoji} w={78} h={78} r={14}/>
-                    <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} aria-label={isFav?"Aus Favoriten entfernen":"Zu Favoriten hinzufügen"} style={{position:"absolute",top:-4,right:-4,width:24,height:24,borderRadius:"50%",background:C.surface,border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:DS.shadow.xs(dk),color:isFav?C.red:C.textLight}}>♥</button>
-                  </div>
-                  <div style={{flex:1,minWidth:0}}>
-                    <div style={{display:"flex",gap:5,marginBottom:4}}><Tag label={p.tag}/></div>
-                    <p style={{fontWeight:700,fontSize:14,lineHeight:1.3,color:C.text}}><Highlight text={p.name} q={search.toLowerCase().trim()}/></p>
-                    <p style={{fontSize:12,color:C.textLight,marginTop:2,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}><Highlight text={p.desc||""} q={search.toLowerCase().trim()}/></p>
-                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}>
-                      <span style={{fontWeight:800,color:C.primary,fontSize:14}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
-                      <div onClick={e=>e.stopPropagation()}>
-                        {iq>0&&<div style={{background:C.light,borderRadius:8,padding:"3px 9px",fontWeight:800,fontSize:12,color:C.primary,display:"inline-block",marginRight:5}}>{iq}×</div>}
-                        {p.sizes.length>1&&sizePickId===p.id
-                          ?<div style={{display:"flex",gap:4}}>
-                              {p.sizes.map(sz=><button key={sz.l} onClick={()=>{const mk=p.milch?"Vollmilch":"";const parts=[sz.l,mk].filter(Boolean).join(", ");addToCart({id:p.id,name:p.name,price:sz.p,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${sz.p.toFixed(2)}`},1);setSizePickId(null);}} style={{padding:"5px 8px",borderRadius:8,background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{sz.l}<br/>{fmt(sz.p)}</button>)}
-                              <button onClick={()=>setSizePickId(null)} style={{width:28,height:34,borderRadius:8,background:C.surface2,color:C.textLight,border:"none",cursor:"pointer",fontSize:14}}>×</button>
-                            </div>
-                          :<button onClick={()=>{if(p.sizes.length>1){setSizePickId(p.id);}else{const mk=p.milch?"Vollmilch":"";const parts=mk?mk:"";const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}}} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
-                        }
+            :gridView
+              ?<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:8}}>
+                {filtered.map(p=>{
+                  const iq=cart.filter(i=>i.id===p.id).reduce((s,i)=>s+i.qty,0);
+                  const isFav=favs.includes(p.id);
+                  return(
+                    <div key={p.id} onClick={()=>go("detail",p)} style={{background:C.surface,borderRadius:DS.radius.md,overflow:"hidden",boxShadow:DS.shadow.sm(dk),cursor:"pointer",position:"relative",userSelect:"none"}}>
+                      <PImg src={p.img} alt={p.name} emoji={p.emoji} w="100%" h={110}/>
+                      {iq>0&&<div style={{position:"absolute",top:6,left:6,background:C.primary,color:"#fff",borderRadius:DS.radius.full,fontSize:10,fontWeight:800,padding:"2px 7px",lineHeight:1.4}}>{iq}×</div>}
+                      <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} aria-label={isFav?"Favorit entfernen":"Als Favorit"} style={{position:"absolute",top:5,right:5,width:26,height:26,borderRadius:"50%",background:"rgba(0,0,0,.32)",border:"none",cursor:"pointer",fontSize:13,display:"flex",alignItems:"center",justifyContent:"center",color:isFav?"#F87171":"rgba(255,255,255,.8)"}}>♥</button>
+                      <div style={{padding:"7px 9px 9px"}}>
+                        <Tag label={p.tag}/>
+                        <p style={{fontWeight:700,fontSize:12,lineHeight:1.3,color:C.text,marginTop:2,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{p.name}</p>
+                        <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:5}}>
+                          <span style={{fontWeight:800,color:C.primary,fontSize:12}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
+                          <div onClick={e=>e.stopPropagation()}>
+                            <button onClick={()=>{if(p.sizes.length>1){setSizePickId(p.id);}else{const mk=p.milch?"Vollmilch":"";const parts=mk?mk:"";const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}}} style={{width:28,height:28,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:16,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              :filtered.map(p=>{
+                const iq=cart.filter(i=>i.id===p.id).reduce((s,i)=>s+i.qty,0);
+                const isFav=favs.includes(p.id);
+                return(
+                  <div key={p.id} onClick={()=>go("detail",p)} style={{background:C.surface,borderRadius:DS.radius.md,padding:12,marginBottom:9,display:"flex",gap:12,alignItems:"center",boxShadow:DS.shadow.sm(dk),cursor:"pointer",userSelect:"none",transition:"transform .1s"}}>
+                    <div style={{position:"relative",flexShrink:0}}>
+                      <PImg src={p.img} alt={p.name} emoji={p.emoji} w={78} h={78} r={14}/>
+                      <button onClick={e=>{e.stopPropagation();toggleFav(p.id);}} aria-label={isFav?"Aus Favoriten entfernen":"Zu Favoriten hinzufügen"} style={{position:"absolute",top:-4,right:-4,width:24,height:24,borderRadius:"50%",background:C.surface,border:"none",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",boxShadow:DS.shadow.xs(dk),color:isFav?C.red:C.textLight}}>♥</button>
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:"flex",gap:5,marginBottom:4}}><Tag label={p.tag}/></div>
+                      <p style={{fontWeight:700,fontSize:14,lineHeight:1.3,color:C.text}}><Highlight text={p.name} q={search.toLowerCase().trim()}/></p>
+                      <p style={{fontSize:12,color:C.textLight,marginTop:2,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}><Highlight text={p.desc||""} q={search.toLowerCase().trim()}/></p>
+                      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}>
+                        <span style={{fontWeight:800,color:C.primary,fontSize:14}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
+                        <div onClick={e=>e.stopPropagation()}>
+                          {iq>0&&<div style={{background:C.light,borderRadius:8,padding:"3px 9px",fontWeight:800,fontSize:12,color:C.primary,display:"inline-block",marginRight:5}}>{iq}×</div>}
+                          {p.sizes.length>1&&sizePickId===p.id
+                            ?<div style={{display:"flex",gap:4}}>
+                                {p.sizes.map(sz=><button key={sz.l} onClick={()=>{const mk=p.milch?"Vollmilch":"";const parts=[sz.l,mk].filter(Boolean).join(", ");addToCart({id:p.id,name:p.name,price:sz.p,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${sz.p.toFixed(2)}`},1);setSizePickId(null);}} style={{padding:"5px 8px",borderRadius:8,background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{sz.l}<br/>{fmt(sz.p)}</button>)}
+                                <button onClick={()=>setSizePickId(null)} style={{width:28,height:34,borderRadius:8,background:C.surface2,color:C.textLight,border:"none",cursor:"pointer",fontSize:14}}>×</button>
+                              </div>
+                            :<button onClick={()=>{if(p.sizes.length>1){setSizePickId(p.id);}else{const mk=p.milch?"Vollmilch":"";const parts=mk?mk:"";const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}}} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                          }
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })
+                );
+              })
         }
         <div style={{height:80}}/>
       </div>
