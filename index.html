@@ -1204,7 +1204,7 @@ function AdminScreen(){
   const[delConfId,setDelConfId]=useState(null);
   const[sortOldest,setSortOldest]=useState(true);
   const[tagesConf,setTagesConf]=useState(false);
-  const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,available:true});
+  const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,pop:false,available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
   const soldCounts=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{m[it.id]=(m[it.id]||0)+it.qty;}));return m;},[allOrders]);
@@ -1236,8 +1236,8 @@ function AdminScreen(){
     if(!np.name||!np.price)return;
     const sizes=[{l:np.sizeLabel||"normal",p:parseFloat(np.price)}];
     if(np.price2&&parseFloat(np.price2)>0)sizes.push({l:np.sizeLabel2||"groß",p:parseFloat(np.price2)});
-    addProduct({...np,id:Date.now(),sizes,pop:false});
-    setNp({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,available:true});
+    addProduct({...np,id:Date.now(),sizes});
+    setNp({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,pop:false,available:true});
   };
 
   if(!ok)return(
@@ -1418,7 +1418,7 @@ function AdminScreen(){
                   {["","Beliebt","Neu","Vegan"].map(t=><option key={t} value={t}>{t||"Kein Tag"}</option>)}
                 </select>
                 <div style={{display:"flex",gap:8}}>
-                  {[["milch","🥛 Milchoptionen"],["sirup","🍯 Sirup-Optionen"]].map(([k,l])=>(
+                  {[["milch","🥛 Milchoptionen"],["sirup","🍯 Sirup-Optionen"],["pop","⭐ Beliebt"]].map(([k,l])=>(
                     <button key={k} onClick={()=>setNp(p=>({...p,[k]:!p[k]}))} style={{flex:1,padding:"8px",borderRadius:DS.radius.sm,fontSize:12,fontWeight:700,border:`1.5px solid ${np[k]?C.primary:C.border}`,background:np[k]?C.light:C.surface2,color:np[k]?C.primary:C.textMid,cursor:"pointer"}}>{l} {np[k]?"✓":"–"}</button>
                   ))}
                 </div>
