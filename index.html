@@ -1286,6 +1286,13 @@ function AdminScreen(){
     const lines=[`zeitraum – ${d} ${t}`,`Kassiert:    ${fmt(revenueDone)}`,`Gesamt:      ${fmt(revenue)}`,`Bestellungen: ${allOrders.length}`,`  Neu:         ${bySt("new")}`,`  Zubereitung: ${bySt("making")}`,`  Bereit:      ${bySt("ready")}`,`  Serviert:    ${bySt("done")}`];
     navigator.clipboard.writeText(lines.join("\n")).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
   },[allOrders,revenue,revenueDone]);
+  const downloadCSV=useCallback(()=>{
+    const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
+    const rows=[["Nr","Uhrzeit","Tisch","Status","Artikel","Gesamt"],...[...allOrders].sort((a,b)=>a.createdAt-b.createdAt).map(o=>[String(o.createdAt).slice(-4),o.time,o.table,o.status,o.items.map(it=>`${it.qty}x ${it.name}`).join("; "),o.total.toFixed(2)])];
+    const csv=rows.map(r=>r.map(esc).join(",")).join("\r\n");
+    const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}));
+    a.download=`zeitraum_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  },[allOrders]);
   const markAllReady=useCallback(async()=>{await Promise.all(allOrders.filter(o=>o.status==="ready").map(o=>setOrderStatus(o.id,"done")));},[allOrders,setOrderStatus]);
   const markAllMaking=useCallback(async()=>{await Promise.all(allOrders.filter(o=>o.status==="new").map(o=>setOrderStatus(o.id,"making")));},[allOrders,setOrderStatus]);
   const clearAllDone=useCallback(()=>{allOrders.filter(o=>o.status==="done").forEach(o=>deleteOrder(o.id));},[allOrders,deleteOrder]);
@@ -1345,6 +1352,7 @@ function AdminScreen(){
               </div>
             </div>
             <button onClick={copyStats} aria-label="Zusammenfassung kopieren" style={{height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,padding:"0 10px",display:"flex",alignItems:"center",gap:5}} title="Zusammenfassung kopieren">{copied?"✓ Kopiert":"📋 Export"}</button>
+            <button onClick={downloadCSV} aria-label="CSV herunterladen" disabled={allOrders.length===0} style={{height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:allOrders.length===0?"default":"pointer",fontSize:11,fontWeight:700,padding:"0 10px",display:"flex",alignItems:"center",gap:5,opacity:allOrders.length===0?.5:1}} title="CSV herunterladen">⬇ CSV</button>
             <button onClick={()=>go("kitchen")} aria-label="Küchenansicht" style={{height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,padding:"0 10px",display:"flex",alignItems:"center",gap:5}} title="Küchenansicht">👨‍🍳 Küche</button>
             <button onClick={()=>{sessionStorage.removeItem("zr_admin_ok");setOk(false);}} aria-label="Abmelden" style={{width:36,height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}} title="Abmelden">🔒</button>
           </div>
