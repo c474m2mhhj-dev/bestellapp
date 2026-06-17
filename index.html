@@ -431,7 +431,7 @@ function SplashScreen(){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService,addToCart,announcement,ordersPaused}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService,addToCart,announcement,ordersPaused,specialId}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
@@ -442,6 +442,7 @@ function HomeScreen(){
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
+  const special=useMemo(()=>specialId?products.find(p=>p.id===specialId&&p.available)||null:null,[specialId,products]);
   const favProds=useMemo(()=>favs.map(id=>products.find(p=>p.id===id&&p.available)).filter(Boolean),[favs,products]);
   const recentProds=useMemo(()=>{const seen=new Set(),res=[];[...myOrders].sort((a,b)=>b.createdAt-a.createdAt).forEach(o=>o.items.forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);const p=products.find(pr=>pr.id===it.id&&pr.available);if(p)res.push(p);}}));return res.slice(0,5);},[myOrders,products]);
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
@@ -549,6 +550,26 @@ function HomeScreen(){
             </div>
           ))}
         </div>
+
+        {/* Tagesspecial */}
+        {special&&(
+          <div onClick={()=>go("detail",special)} style={{background:dk?"rgba(245,158,11,.1)":"#FFFBEB",border:`1.5px solid ${dk?"rgba(245,158,11,.35)":"#FDE68A"}`,borderRadius:DS.radius.lg,marginBottom:18,overflow:"hidden",cursor:"pointer",display:"flex",alignItems:"stretch",boxShadow:DS.shadow.md(dk)}}>
+            <div style={{flex:1,padding:"13px 14px"}}>
+              <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+                <span style={{fontSize:13}}>🌟</span>
+                <p style={{fontSize:10,fontWeight:800,letterSpacing:.8,textTransform:"uppercase",color:dk?"#FCD34D":"#B45309"}}>Tagesspecial</p>
+              </div>
+              <p style={{fontWeight:800,fontSize:15,color:C.text,lineHeight:1.3,marginBottom:4}}>{special.name}</p>
+              {special.desc&&<p style={{fontSize:11,color:C.textMid,lineHeight:1.4,marginBottom:6}}>{special.desc}</p>}
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <p style={{fontWeight:800,fontSize:15,color:dk?"#FCD34D":"#B45309"}}>{special.sizes.length>1?"ab ":""}{fmt(special.sizes[0].p)}</p>
+                <button onClick={e=>{e.stopPropagation();quickAdd(special,e);}} style={{padding:"5px 14px",borderRadius:DS.radius.full,background:dk?"rgba(245,158,11,.25)":"#FEF3C7",color:dk?"#FCD34D":"#92400E",fontSize:12,fontWeight:700,border:`1px solid ${dk?"rgba(245,158,11,.4)":"#FDE68A"}`,cursor:"pointer"}}>+ Hinzufügen</button>
+              </div>
+            </div>
+            {special.img&&<div style={{width:110,flexShrink:0,position:"relative"}}><PImg src={special.img} alt={special.name} emoji={special.emoji} w={110} h="100%" style={{objectFit:"cover",height:"100%"}}/></div>}
+            {!special.img&&<div style={{width:80,flexShrink:0,display:"flex",alignItems:"center",justifyContent:"center",fontSize:44}}>{special.emoji||"⭐"}</div>}
+          </div>
+        )}
 
         {/* Favoriten */}
         {favProds.length>0&&(
@@ -1306,7 +1327,7 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,announcement,saveAnnouncement,ordersPaused,togglePause,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,announcement,saveAnnouncement,ordersPaused,togglePause,specialId,setSpecial,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
@@ -1676,6 +1697,7 @@ function AdminScreen(){
                       <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{p.cat} · {p.sizes.map(s=>`${s.l} ${fmt(s.p)}`).join(", ")}</p>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
+                      <button onClick={()=>setSpecial(specialId===p.id?null:p.id)} title={specialId===p.id?"Tagesspecial entfernen":"Als Tagesspecial setzen"} style={{background:specialId===p.id?"#FFF7ED":C.surface2,color:specialId===p.id?"#C2410C":C.textLight,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:14,border:`1.5px solid ${specialId===p.id?"#FED7AA":C.border}`,cursor:"pointer"}}>🌟</button>
                       <button onClick={()=>setProductPop(p.id,!p.pop)} aria-label={p.pop?"Beliebt entfernen":"Als Beliebt markieren"} title={p.pop?"Beliebt entfernen":"Als Beliebt markieren"} style={{background:p.pop?"#FEF3C7":C.surface2,color:p.pop?"#D97706":C.textLight,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:14,border:`1.5px solid ${p.pop?"#FDE68A":C.border}`,cursor:"pointer"}}>⭐</button>
                       <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,prices:p.sizes.map(s=>String(s.p)),emoji:p.emoji,tag:p.tag||"",img:p.img||"",cat:p.cat,desc:p.desc||"",milch:!!p.milch,sirup:!!p.sirup,pop:!!p.pop});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
                       <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>{p.available?"✓ Aktiv":"Pausiert"}</button>
@@ -1716,6 +1738,7 @@ function App(){
   const[announcement,setAnnouncement]=useState(()=>LS.get("zr_announce",""));
   const[ordersPaused,setOrdersPaused]=useState(()=>LS.get("zr_paused",false));
   const[confData,setConfData]=useState(null);
+  const[specialId,setSpecialIdState]=useState(()=>LS.get("zr_special",null));
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
@@ -1731,6 +1754,7 @@ function App(){
     Db.get("zr_products").then(p=>{if(p&&p.length)setProducts(p);});
     Db.get("zr_announce",true).then(v=>{if(v!=null){setAnnouncement(v);LS.set("zr_announce",v);}});
     Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
+    Db.get("zr_special",true).then(v=>{if(v){setSpecialIdState(v);LS.set("zr_special",v);}});
   },[]);
 
   useEffect(()=>{const t=setTimeout(()=>setSplash(false),1400);return()=>clearTimeout(t);},[]);
@@ -1911,6 +1935,7 @@ function App(){
   const clearCart=useCallback(()=>setCart([]),[]);
   const saveAnnouncement=useCallback((text)=>{const v=text.trim();setAnnouncement(v);LS.set("zr_announce",v);Db.set("zr_announce",v,true);},[]);
   const togglePause=useCallback(async()=>{const next=!ordersPaused;setOrdersPaused(next);if(next){LS.set("zr_paused",true);await Db.set("zr_paused",true,true);}else{LS.del("zr_paused");await Db.del("zr_paused",true);}},[ordersPaused]);
+  const setSpecial=useCallback(async(id)=>{setSpecialIdState(id);if(id){LS.set("zr_special",id);await Db.set("zr_special",id,true);}else{LS.del("zr_special");await Db.del("zr_special",true);}},[]);
 
   const clearDoneOrders=useCallback(()=>{
     setMyOrders(prev=>{
@@ -1931,6 +1956,7 @@ function App(){
     announcement,saveAnnouncement,
     ordersPaused,togglePause,
     confData,
+    specialId,setSpecial,
   };
 
   const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,conf:OrderConfScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
