@@ -1560,6 +1560,7 @@ function App(){
       setCart([]);
       LS.del("zr_note");
       push("Bestellung aufgegeben! ✓","success",3000);
+      if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
       go("orders");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
@@ -1581,7 +1582,8 @@ function App(){
     setMyOrders(prev=>{
       const prevReadyIds=new Set(prev.filter(o=>o.status==="ready").map(o=>o.id));
       const newlyReady=next.filter(o=>o.status==="ready"&&!prevReadyIds.has(o.id));
-      if(newlyReady.length>0){playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(`🔔 Deine Bestellung ist bereit!`,"success",5000);}
+      if(newlyReady.length>0){playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(`🔔 Deine Bestellung ist bereit!`,"success",5000);if("Notification" in window&&Notification.permission==="granted"){try{new Notification("🔔 Deine Bestellung ist bereit!",{body:`Tisch ${newlyReady[0].table} – jetzt abholen!`,icon:"/favicon.ico"});}catch(e){}}}
+
       return next;
     });
   },[push]);
