@@ -870,12 +870,17 @@ function CartItem({item,onChQty,onRemove,onSetNote}){
    CART SCREEN
 ══════════════════════════════════════════════ */
 function CartScreen(){
-  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,darkMode:dk}=useApp();const C=useC();
+  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,darkMode:dk}=useApp();const C=useC();
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
   useEffect(()=>{LS.set("zr_note",note);},[note]);
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const del=sub>=FREE_ABOVE?0:DEL_FEE;
   const tot=sub+del;
+  const upsell=useMemo(()=>{
+    const inCart=new Set(cart.map(i=>i.id));
+    const cartCats=new Set(cart.map(i=>products.find(p=>p.id===i.id)?.cat).filter(Boolean));
+    return products.filter(p=>p.available&&p.pop&&!inCart.has(p.id)&&!cartCats.has(p.cat)).slice(0,3);
+  },[cart,products]);
   return(
     <Screen>
       <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
@@ -899,6 +904,25 @@ function CartScreen(){
         {cart.map(item=>(
           <CartItem key={item.ck} item={item} onChQty={d=>chQty(item.ck,d)} onRemove={()=>removeItem(item.ck)} onSetNote={n=>setItemNote(item.ck,n)}/>
         ))}
+        {cart.length>0&&upsell.length>0&&(
+          <div style={{marginBottom:9}}>
+            <p style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:8}}>✨ Das passt dazu</p>
+            <div style={{display:"flex",gap:9,overflowX:"auto",scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16,paddingBottom:4}}>
+              {upsell.map(p=>(
+                <div key={p.id} style={{minWidth:120,flexShrink:0,background:C.surface,borderRadius:DS.radius.md,overflow:"hidden",boxShadow:DS.shadow.sm(dk),cursor:"pointer"}} onClick={()=>go("detail",p)}>
+                  <PImg src={p.img} emoji={p.emoji} w={120} h={72}/>
+                  <div style={{padding:"6px 9px 9px"}}>
+                    <p style={{fontWeight:700,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</p>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:4}}>
+                      <span style={{fontSize:11,fontWeight:800,color:C.primary}}>{fmt(p.sizes[0].p)}</span>
+                      <button onClick={e=>{e.stopPropagation();addToCart({id:p.id,name:p.name,price:p.sizes[0].p,img:p.img,emoji:p.emoji,note:"",ck:`${p.id}||${p.sizes[0].p.toFixed(2)}`},1);}} style={{width:24,height:24,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:14,fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>+</button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         {cart.length>0&&(
           <>
             {!selTable&&(
