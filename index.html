@@ -207,6 +207,7 @@ const fmt    = n=>typeof n==="number"?n.toFixed(2).replace(".",",")+"\u00a0€":
 const tagSty = t=>({Beliebt:{bg:"#FEF3C7",cl:"#92400E"},Neu:{bg:"#DBEAFE",cl:"#1E40AF"},Vegan:{bg:"#D1FAE5",cl:"#065F46"}}[t]);
 const genId  = ()=>`${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 const playBell=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(t=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;o.type="sine";g.gain.setValueAtTime(.35,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.45);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.45);});}catch(e){}};
+const playChime=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.14,.28].forEach((t,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=[1047,1319,1568][i];o.type="sine";g.gain.setValueAtTime(.28,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.4);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.4);});}catch(e){}};
 const relTime=t=>{const d=Math.floor((Date.now()-t)/1000);if(d<60)return"gerade eben";if(d<3600)return"vor "+Math.floor(d/60)+" min";if(d<86400)return"vor "+Math.floor(d/3600)+" Std";return"vor "+Math.floor(d/86400)+" T";};
 
 /* ══════════════════════════════════════════════
@@ -1768,7 +1769,7 @@ function App(){
       orders=allIds.map(id=>LS.get(`zr_order_${id}`,null));
       svcs=LS.get("zr_svc_list",[]).map(k=>LS.get(k,null)).filter(Boolean);
     }
-    setServiceCalls(svcs);
+    setServiceCalls(prev=>{if(svcs.length>prev.length)playChime();return svcs;});
     const sorted=orders.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt);
     setAllOrders(prev=>{
       const newNow=sorted.filter(o=>o.status==="new").length;
