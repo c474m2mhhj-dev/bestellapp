@@ -1049,12 +1049,15 @@ function KitchenScreen(){
   const[tick,setTick]=useState(0);
   useEffect(()=>{loadAdminOrders();const t=setInterval(()=>{loadAdminOrders();setTick(n=>n+1);},4000);return()=>clearInterval(t);},[]);
   const active=useMemo(()=>[...allOrders].filter(o=>o.status==="new"||o.status==="making").sort((a,b)=>a.createdAt-b.createdAt),[allOrders,tick]);
+  const newOrds=useMemo(()=>active.filter(o=>o.status==="new"),[active]);
   const stCfg={new:{label:"Neu",bg:"#1E3A5F",btn:"Annehmen",btnBg:"#2563EB"},making:{label:"In Zubereitung",bg:"#3B2A00",btn:"Bereit",btnBg:"#D97706"}};
+  const acceptAll=useCallback(async()=>{await Promise.all(newOrds.map(o=>setOrderStatus(o.id,"making")));if(navigator.vibrate)navigator.vibrate([15,8,15]);},[newOrds,setOrderStatus]);
   return(
     <div style={{background:"#111",minHeight:"100svh",padding:"0 0 20px"}}>
-      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid #222"}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"14px 18px",borderBottom:"1px solid #222",flexWrap:"wrap",gap:8}}>
         <p style={{color:"#fff",fontWeight:900,fontSize:17}}>👨‍🍳 Küche</p>
-        <div style={{display:"flex",gap:10,alignItems:"center"}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+          {newOrds.length>0&&<button onClick={acceptAll} style={{background:"#2563EB",color:"#fff",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>✓ Alle {newOrds.length} annehmen</button>}
           <span style={{color:"#666",fontSize:12}}>{active.length} offen</span>
           <button onClick={()=>go("admin")} style={{background:"#222",color:"#aaa",border:"none",borderRadius:8,padding:"7px 14px",fontSize:12,fontWeight:700,cursor:"pointer"}}>Admin →</button>
         </div>
