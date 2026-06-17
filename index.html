@@ -1118,7 +1118,14 @@ function AdminScreen(){
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok&&tab==="orders")loadAdminOrders();},[ok,tab]);
+  const[copied,setCopied]=useState(false);
   const bySt=s=>allOrders.filter(o=>o.status===s).length;
+  const copyStats=useCallback(()=>{
+    const d=new Date().toLocaleDateString("de-DE");
+    const t=new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+    const lines=[`zeitraum – ${d} ${t}`,`Kassiert:    ${fmt(revenueDone)}`,`Gesamt:      ${fmt(revenue)}`,`Bestellungen: ${allOrders.length}`,`  Neu:         ${bySt("new")}`,`  Zubereitung: ${bySt("making")}`,`  Bereit:      ${bySt("ready")}`,`  Serviert:    ${bySt("done")}`];
+    navigator.clipboard.writeText(lines.join("\n")).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2000);});
+  },[allOrders,revenue,revenueDone]);
   const markAllReady=useCallback(async()=>{await Promise.all(allOrders.filter(o=>o.status==="ready").map(o=>setOrderStatus(o.id,"done")));},[allOrders,setOrderStatus]);
   const markAllMaking=useCallback(async()=>{await Promise.all(allOrders.filter(o=>o.status==="new").map(o=>setOrderStatus(o.id,"making")));},[allOrders,setOrderStatus]);
   const clearAllDone=useCallback(()=>{allOrders.filter(o=>o.status==="done").forEach(o=>deleteOrder(o.id));},[allOrders,deleteOrder]);
@@ -1177,6 +1184,7 @@ function AdminScreen(){
                 <p style={{color:"rgba(255,255,255,.35)",fontSize:9,fontWeight:700,marginTop:2}}>Ø Bon</p>
               </div>
             </div>
+            <button onClick={copyStats} aria-label="Zusammenfassung kopieren" style={{height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,padding:"0 10px",display:"flex",alignItems:"center",gap:5}} title="Zusammenfassung kopieren">{copied?"✓ Kopiert":"📋 Export"}</button>
             <button onClick={()=>go("kitchen")} aria-label="Küchenansicht" style={{height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:11,fontWeight:700,padding:"0 10px",display:"flex",alignItems:"center",gap:5}} title="Küchenansicht">👨‍🍳 Küche</button>
             <button onClick={()=>{sessionStorage.removeItem("zr_admin_ok");setOk(false);}} aria-label="Abmelden" style={{width:36,height:36,borderRadius:DS.radius.sm,background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",color:"#fff",cursor:"pointer",fontSize:16,display:"flex",alignItems:"center",justifyContent:"center"}} title="Abmelden">🔒</button>
           </div>
