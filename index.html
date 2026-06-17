@@ -307,10 +307,13 @@ function Tag({label}){
   return<span style={{background:s.bg,color:s.cl,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:DS.radius.full,textTransform:"uppercase",letterSpacing:".05em"}}>{label}</span>;
 }
 function Highlight({text,q}){
+  const{darkMode:dk}=useApp();
   if(!q||!text)return<>{text}</>;
   const i=text.toLowerCase().indexOf(q.toLowerCase());
   if(i<0)return<>{text}</>;
-  return<>{text.slice(0,i)}<mark style={{background:"#FEF08A",color:"#713F12",borderRadius:2,padding:"0 1px",fontWeight:800}}>{text.slice(i,i+q.length)}</mark>{text.slice(i+q.length)}</>;
+  const bg=dk?"rgba(253,224,71,.22)":"#FEF08A";
+  const cl=dk?"#FCD34D":"#713F12";
+  return<>{text.slice(0,i)}<mark style={{background:bg,color:cl,borderRadius:2,padding:"0 1px",fontWeight:800}}>{text.slice(i,i+q.length)}</mark>{text.slice(i+q.length)}</>;
 }
 function BackBtn({onPress}){
   const C=useC(),{darkMode:dk}=useApp();
@@ -682,7 +685,7 @@ function MenuScreen(){
         </div>
         <div style={{background:"rgba(255,255,255,.13)",borderRadius:13,padding:"9px 13px",display:"flex",alignItems:"center",gap:7,marginBottom:10,border:"1px solid rgba(255,255,255,.16)"}}>
           <span style={{opacity:.55}}>🔍</span>
-          <input value={search} aria-label="Produkte suchen" onChange={e=>{setSearch(e.target.value);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),400);}} placeholder="Produkt suchen…" style={{background:"none",border:"none",color:"#fff",fontSize:14,flex:1,outline:"none"}}/>
+          <input value={search} aria-label="Produkte suchen" onChange={e=>{setSearch(e.target.value);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),400);}} onKeyDown={e=>{if(e.key==="Escape")setSearch("");}} placeholder="Produkt suchen…" style={{background:"none",border:"none",color:"#fff",fontSize:14,flex:1,outline:"none"}}/>
           {search&&<button onClick={()=>setSearch("")} aria-label="Suche löschen" style={{color:"rgba(255,255,255,.6)",background:"none",border:"none",cursor:"pointer",fontSize:18}}>×</button>}
         </div>
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:13,scrollbarWidth:"none"}}>
