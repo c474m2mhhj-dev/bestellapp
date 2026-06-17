@@ -1188,6 +1188,32 @@ function OrderCard({o}){
     </div>
   );
 }
+function OrderConfScreen(){
+  const{go,confData,darkMode:dk}=useApp();const C=useC();
+  useEffect(()=>{
+    if(!confData){go("orders");return;}
+    const t=setTimeout(()=>go("orders"),3000);
+    return()=>clearTimeout(t);
+  },[confData]);
+  if(!confData)return null;
+  return(
+    <Screen noNav>
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",minHeight:"100svh",padding:"0 28px",textAlign:"center",background:C.bg}}>
+        <div style={{width:96,height:96,borderRadius:"50%",background:`${C.primary}18`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:22,animation:"screenIn .4s ease both"}}>
+          <svg width="52" height="52" viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="26" fill={C.primary} opacity=".12"/><path d="M14 26l9 9 15-15" stroke={C.primary} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+        <p style={{fontSize:26,fontWeight:900,color:C.text,marginBottom:8}}>Bestellung aufgegeben!</p>
+        <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>Tisch {confData.table} · #{String(confData.createdAt).slice(-4)}</p>
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:"14px 22px",marginBottom:28,boxShadow:DS.shadow.md(dk),width:"100%",maxWidth:280}}>
+          <p style={{fontSize:13,color:C.textLight,marginBottom:4}}>{confData.itemCount} Artikel · {fmt(confData.total)}</p>
+          <p style={{fontSize:16,fontWeight:800,color:C.primary}}>⏱ ca. {confData.wait} Min Zubereitung</p>
+        </div>
+        <button onClick={()=>go("orders")} style={{padding:"13px 28px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:15,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>Bestellung verfolgen →</button>
+        <p style={{marginTop:14,fontSize:11,color:C.textLight}}>Weiterleitung in Kürze…</p>
+      </div>
+    </Screen>
+  );
+}
 function OrdersScreen(){
   const{myOrders,syncOrders,clearDoneOrders,darkMode:dk}=useApp();const C=useC();
   const[lastSync,setLastSync]=useState("");
@@ -1689,6 +1715,7 @@ function App(){
   const[serviceCalls,setServiceCalls]=useState([]);
   const[announcement,setAnnouncement]=useState(()=>LS.get("zr_announce",""));
   const[ordersPaused,setOrdersPaused]=useState(()=>LS.get("zr_paused",false));
+  const[confData,setConfData]=useState(null);
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
@@ -1762,17 +1789,22 @@ function App(){
       LS.set("zr_all_orders",[...LS.get("zr_all_orders",[]),id]);
       await Db.set(`order_${id}`,order,true);
       setMyOrders(prev=>[...prev,order]);
+      const CAT_MIN={Kaltgetränke:1,Snacks:2,Gebäck:3,Sonstiges:2};
+      const times=cart.map(it=>{const pr=products.find(x=>x.id===it.id);return CAT_MIN[pr?.cat]??5;});
+      const base=times.length?Math.max(...times):5;
+      const tQty=cart.reduce((s,i)=>s+i.qty,0);
+      const wait=base+(tQty>3?2:tQty>1?1:0);
       setCart([]);
       LS.del("zr_note");
-      push("Bestellung aufgegeben! ✓","success",3000);
       if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
-      go("orders");
+      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,total:order.total,itemCount:tQty,wait});
+      go("conf");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
     }finally{
       setSubmitting(false);
     }
-  },[cart,selTable,submitting,push,go]);
+  },[cart,selTable,submitting,push,go,products]);
 
   const syncOrders=useCallback(async()=>{
     if(hasSt)Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
@@ -1898,9 +1930,10 @@ function App(){
     serviceCalls,requestService,dismissServiceCall,
     announcement,saveAnnouncement,
     ordersPaused,togglePause,
+    confData,
   };
 
-  const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
+  const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,conf:OrderConfScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
   const S=screens[screen]||HomeScreen;
 
   if(splash)return<Ctx.Provider value={ctx}><SplashScreen/></Ctx.Provider>;
