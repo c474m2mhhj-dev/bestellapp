@@ -428,7 +428,7 @@ function HomeScreen(){
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
-  const favProds=useMemo(()=>favs.map(id=>products.find(p=>p.id===id)).filter(Boolean),[favs,products]);
+  const favProds=useMemo(()=>favs.map(id=>products.find(p=>p.id===id&&p.available)).filter(Boolean),[favs,products]);
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   const hour=new Date().getHours();
   const greet=hour<5?"Gute Nacht 🌙":hour<12?"Guten Morgen ☀️":hour<17?"Guten Tag 👋":hour<21?"Guten Abend 🌆":"Gute Nacht 🌙";
