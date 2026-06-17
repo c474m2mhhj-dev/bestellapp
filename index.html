@@ -921,6 +921,15 @@ function DetailScreen(){
         <div style={{marginTop:18}}>
           <p style={{fontWeight:700,fontSize:14,marginBottom:8,color:C.text}}>Besondere Wünsche</p>
           <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, Extra-Wünsche…" style={{width:"100%",padding:"10px 13px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,color:C.text,height:50,resize:"none",fontFamily:"inherit",outline:"none"}}/>
+          {((chips=>[...chips.filter(c=>c.show)].length>0&&<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:7}}>{chips.filter(c=>c.show).map(({label})=><button key={label} onClick={()=>setNote(n=>n?n+(n.endsWith(label)?"":`, ${label}`):label)} style={{padding:"4px 11px",borderRadius:DS.radius.full,border:`1px solid ${C.border}`,background:"none",color:C.textMid,fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"all .12s",flexShrink:0}}>{label}</button>)}</div>))([
+            {label:"Ohne Milch",show:!!p.milch},
+            {label:"Lactosefrei",show:!!p.milch},
+            {label:"Hafermilch",show:!!p.milch},
+            {label:"Wenig Eis",show:p.cat==="Iced Drinks"},
+            {label:"Extra Schuss",show:["Heiße Getränke","Iced Drinks"].includes(p.cat)},
+            {label:"Extra Zucker",show:!["Kaltgetränke","Snacks"].includes(p.cat)},
+            {label:"Vegan",show:!p.milch},
+          ])}
         </div>
         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:18,background:C.surface2,borderRadius:DS.radius.md,padding:"13px 16px"}}>
           <p style={{fontWeight:700,fontSize:15,color:C.text}}>Menge <span style={{fontWeight:400,fontSize:13,color:C.textLight}}>(gesamt {fmt(totP)})</span></p>
