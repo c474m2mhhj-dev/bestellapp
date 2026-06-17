@@ -775,13 +775,14 @@ function DetailScreen(){
   const{go,prevScreen,addToCart,cart,detailProduct:p,darkMode:dk}=useApp();const C=useC();
   const[qty,setQty]=useState(1);
   const[sIdx,setSIdx]=useState(0);
-  const[milk,setMilk]=useState("Vollmilch");
+  const[milk,setMilk]=useState(()=>LS.get("zr_pref_milk","Vollmilch"));
   const[sirup,setSirup]=useState(null);
   const[note,setNote]=useState("");
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const isFav=p&&favs.includes(p.id);
   const toggleFav=()=>{if(!p)return;setFavs(prev=>{const n=prev.includes(p.id)?prev.filter(x=>x!==p.id):[...prev,p.id];LS.set("zr_favs",n);return n;});};
-  useEffect(()=>{setQty(1);setSIdx(0);setMilk("Vollmilch");setSirup(null);setNote("");},[p?.id]);
+  const chooseMilk=m=>{setMilk(m);LS.set("zr_pref_milk",m);};
+  useEffect(()=>{setQty(1);setSIdx(0);setMilk(LS.get("zr_pref_milk","Vollmilch"));setSirup(null);setNote("");},[p?.id]);
   const{products}=useApp();
   const related=useMemo(()=>p?products.filter(r=>r.available&&r.cat===p.cat&&r.id!==p.id).slice(0,6):[],[p?.id,products]);
   if(!p){go("menu");return null;}
@@ -839,7 +840,7 @@ function DetailScreen(){
           <div style={{marginTop:18}}>
             <p style={{fontWeight:700,fontSize:14,marginBottom:9,color:C.text}}>Milch</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-              {MILK_OPT.map(m=><OptionBtn key={m} active={milk===m} onClick={()=>setMilk(m)}>{m}</OptionBtn>)}
+              {MILK_OPT.map(m=><OptionBtn key={m} active={milk===m} onClick={()=>chooseMilk(m)}>{m}</OptionBtn>)}
             </div>
           </div>
         )}
