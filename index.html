@@ -680,6 +680,7 @@ function MenuScreen(){
   const[tagFilter,setTagFilter]=useState("Alle");
   const qty=cart.reduce((s,i)=>s+i.qty,0);
   const loadRef=useRef(null);
+  const[sizePickId,setSizePickId]=useState(null);
 
   useEffect(()=>{clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),600);return()=>clearTimeout(loadRef.current);},[activeCat]);
   useEffect(()=>{window.scrollTo(0,0);},[activeCat]);
@@ -746,7 +747,13 @@ function MenuScreen(){
                       <span style={{fontWeight:800,color:C.primary,fontSize:14}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
                       <div onClick={e=>e.stopPropagation()}>
                         {iq>0&&<div style={{background:C.light,borderRadius:8,padding:"3px 9px",fontWeight:800,fontSize:12,color:C.primary,display:"inline-block",marginRight:5}}>{iq}×</div>}
-                        <button onClick={()=>{const sz=p.sizes.length>1?p.sizes[0].l:"";const mk=p.milch?"Vollmilch":"";const parts=[sz,mk].filter(Boolean).join(", ");const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                        {p.sizes.length>1&&sizePickId===p.id
+                          ?<div style={{display:"flex",gap:4}}>
+                              {p.sizes.map(sz=><button key={sz.l} onClick={()=>{const mk=p.milch?"Vollmilch":"";const parts=[sz.l,mk].filter(Boolean).join(", ");addToCart({id:p.id,name:p.name,price:sz.p,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${sz.p.toFixed(2)}`},1);setSizePickId(null);}} style={{padding:"5px 8px",borderRadius:8,background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:11,fontWeight:700,whiteSpace:"nowrap"}}>{sz.l}<br/>{fmt(sz.p)}</button>)}
+                              <button onClick={()=>setSizePickId(null)} style={{width:28,height:34,borderRadius:8,background:C.surface2,color:C.textLight,border:"none",cursor:"pointer",fontSize:14}}>×</button>
+                            </div>
+                          :<button onClick={()=>{if(p.sizes.length>1){setSizePickId(p.id);}else{const mk=p.milch?"Vollmilch":"";const parts=mk?mk:"";const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}}} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:19,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                        }
                       </div>
                     </div>
                   </div>
