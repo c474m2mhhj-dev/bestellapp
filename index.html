@@ -1220,6 +1220,7 @@ function AdminScreen(){
   const[tab,setTab]=useState("orders");
   const[stFilter,setStFilter]=useState("all");
   const[prodSearch,setProdSearch]=useState("");
+  const[prodSort,setProdSort]=useState("cat");
   const[editId,setEditId]=useState(null);
   const[editData,setEditData]=useState({});
   const[tableFilter,setTableFilter]=useState("all");
@@ -1502,8 +1503,13 @@ function AdminScreen(){
                 ))}
               </div>
             )}
+            <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+              {[["cat","Kategorie"],["name","A–Z"],["sold","Verkäufe"],["price","Preis"]].map(([k,l])=>(
+                <button key={k} onClick={()=>setProdSort(k)} style={{padding:"5px 11px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:prodSort===k?C.primary:C.surface2,color:prodSort===k?"#fff":C.textMid,transition:"all .15s",flexShrink:0}}>{l}</button>
+              ))}
+            </div>
             <input value={prodSearch} onChange={e=>setProdSearch(e.target.value)} placeholder="🔍 Produkte durchsuchen…" style={{...inp,marginBottom:10}}/>
-            {products.filter(p=>!prodSearch||p.name.toLowerCase().includes(prodSearch.toLowerCase())||p.cat.toLowerCase().includes(prodSearch.toLowerCase())).flatMap((p,i,arr)=>[...(!prodSearch&&(i===0||arr[i-1].cat!==p.cat)?[<div key={`hd-${p.cat}`} style={{display:"flex",alignItems:"center",marginTop:i>0?14:4,marginBottom:6}}><p style={{fontWeight:800,fontSize:11,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",flex:1}}>{CICO[p.cat]} {p.cat} · {products.filter(x=>x.cat===p.cat).length}</p>{((catPs,allOn)=><button onClick={()=>catPs.forEach(cp=>setProductAvailable(cp.id,!allOn))} style={{fontSize:10,fontWeight:700,border:`1px solid ${C.border}`,borderRadius:DS.radius.sm,padding:"2px 8px",background:allOn?C.surface2:"rgba(16,185,129,.12)",color:allOn?C.textMid:C.primary,cursor:"pointer",flexShrink:0}}>{allOn?"Alle pausieren":"Alle aktiv"}</button>)(products.filter(x=>x.cat===p.cat),products.filter(x=>x.cat===p.cat).every(x=>x.available))}</div>]:[]),
+            {((sp)=>sp.flatMap((p,i,arr)=>[...(prodSort==="cat"&&!prodSearch&&(i===0||arr[i-1].cat!==p.cat)?[<div key={`hd-${p.cat}`} style={{display:"flex",alignItems:"center",marginTop:i>0?14:4,marginBottom:6}}><p style={{fontWeight:800,fontSize:11,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",flex:1}}>{CICO[p.cat]} {p.cat} · {products.filter(x=>x.cat===p.cat).length}</p>{((catPs,allOn)=><button onClick={()=>catPs.forEach(cp=>setProductAvailable(cp.id,!allOn))} style={{fontSize:10,fontWeight:700,border:`1px solid ${C.border}`,borderRadius:DS.radius.sm,padding:"2px 8px",background:allOn?C.surface2:"rgba(16,185,129,.12)",color:allOn?C.textMid:C.primary,cursor:"pointer",flexShrink:0}}>{allOn?"Alle pausieren":"Alle aktiv"}</button>)(products.filter(x=>x.cat===p.cat),products.filter(x=>x.cat===p.cat).every(x=>x.available))}</div>]:[]),
               <div key={p.id} style={{marginBottom:8}}>
                 {editId===p.id?(
                   <div style={{background:C.surface,borderRadius:DS.radius.md,padding:12,boxShadow:DS.shadow.sm(dk)}}>
@@ -1568,7 +1574,7 @@ function AdminScreen(){
                   </div>
                 )}
               </div>
-            ])}
+            ]))(((base)=>{if(prodSort==="name")return[...base].sort((a,b)=>a.name.localeCompare(b.name,"de"));if(prodSort==="sold")return[...base].sort((a,b)=>(soldCounts[b.id]||0)-(soldCounts[a.id]||0));if(prodSort==="price")return[...base].sort((a,b)=>a.sizes[0].p-b.sizes[0].p);return base;})(products.filter(p=>!prodSearch||p.name.toLowerCase().includes(prodSearch.toLowerCase())||p.cat.toLowerCase().includes(prodSearch.toLowerCase()))))}
           </>
         )}
       </div>
