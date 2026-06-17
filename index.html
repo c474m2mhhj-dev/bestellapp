@@ -306,6 +306,12 @@ function Tag({label}){
   if(!s)return null;
   return<span style={{background:s.bg,color:s.cl,fontSize:10,fontWeight:800,padding:"2px 8px",borderRadius:DS.radius.full,textTransform:"uppercase",letterSpacing:".05em"}}>{label}</span>;
 }
+function Highlight({text,q}){
+  if(!q||!text)return<>{text}</>;
+  const i=text.toLowerCase().indexOf(q.toLowerCase());
+  if(i<0)return<>{text}</>;
+  return<>{text.slice(0,i)}<mark style={{background:"#FEF08A",color:"#713F12",borderRadius:2,padding:"0 1px",fontWeight:800}}>{text.slice(i,i+q.length)}</mark>{text.slice(i+q.length)}</>;
+}
 function BackBtn({onPress}){
   const C=useC(),{darkMode:dk}=useApp();
   return(
@@ -712,8 +718,8 @@ function MenuScreen(){
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{display:"flex",gap:5,marginBottom:4}}><Tag label={p.tag}/></div>
-                    <p style={{fontWeight:700,fontSize:14,lineHeight:1.3,color:C.text}}>{p.name}</p>
-                    <p style={{fontSize:12,color:C.textLight,marginTop:2,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}>{p.desc}</p>
+                    <p style={{fontWeight:700,fontSize:14,lineHeight:1.3,color:C.text}}><Highlight text={p.name} q={search.toLowerCase().trim()}/></p>
+                    <p style={{fontSize:12,color:C.textLight,marginTop:2,overflow:"hidden",display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical"}}><Highlight text={p.desc||""} q={search.toLowerCase().trim()}/></p>
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:8}}>
                       <span style={{fontWeight:800,color:C.primary,fontSize:14}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
                       <div onClick={e=>e.stopPropagation()}>
