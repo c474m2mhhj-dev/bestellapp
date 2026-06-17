@@ -1252,11 +1252,11 @@ function AdminScreen(){
         {tab==="orders"&&(
           <div style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",marginBottom:8,paddingBottom:2,alignItems:"center"}}>
             <span style={{fontSize:11,color:C.textLight,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>Tisch:</span>
-            {["all",...TABLES].map(tb=>(
-              <button key={tb} onClick={()=>setTableFilter(tb)} style={{padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:tableFilter===tb?C.dark:C.surface2,color:tableFilter===tb?"#fff":C.textMid,transition:"all .15s"}}>
-                {tb==="all"?"Alle":tb}
+            {["all",...TABLES].map(tb=>{const n=tb==="all"?allOrders.filter(o=>o.status!=="done").length:allOrders.filter(o=>o.table===tb&&o.status!=="done").length;return(
+              <button key={tb} onClick={()=>setTableFilter(tb)} style={{padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:tableFilter===tb?C.dark:n>0?C.light:C.surface2,color:tableFilter===tb?"#fff":n>0?C.primary:C.textMid,transition:"all .15s"}}>
+                {tb==="all"?"Alle":tb}{n>0?<span style={{marginLeft:4,opacity:.8}}>({n})</span>:null}
               </button>
-            ))}
+            );})}
             <button onClick={()=>setSortOldest(s=>!s)} title={sortOldest?"Älteste zuerst (aktiv)":"Neueste zuerst (aktiv)"} style={{marginLeft:"auto",flexShrink:0,padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>
               {sortOldest?"⬆ Alt":"⬇ Neu"}
             </button>
