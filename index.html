@@ -1530,7 +1530,7 @@ function AdminScreen(){
                   <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:13}}>{fmt(o.total)}</span>
                 </div>
               </div>
-            ))}<div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:11,color:C.textMid}}>{filtered.length} Bestellung{filtered.length!==1?"en":""}</span><span style={{fontWeight:800,fontSize:13,color:C.primary}}>{fmt(filtered.reduce((s,o)=>s+o.total,0))}</span></div></>{/*end fragment*/}
+            ))}<div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:11,color:C.textMid}}>{filtered.length} Bestellung{filtered.length!==1?"en":""}</span><span style={{fontWeight:800,fontSize:13,color:C.primary}}>{fmt(filtered.reduce((s,o)=>s+o.total,0))}</span></div></>
           )([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim();return String(o.table).toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
         ):null}
         {tab==="orders"&&(
