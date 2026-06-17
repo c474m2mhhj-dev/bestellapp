@@ -1201,6 +1201,7 @@ function AdminScreen(){
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
   const soldCounts=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{m[it.id]=(m[it.id]||0)+it.qty;}));return m;},[allOrders]);
+  const topProds=useMemo(()=>products.map(p=>({...p,sold:soldCounts[p.id]||0})).filter(p=>p.sold>0).sort((a,b)=>b.sold-a.sold).slice(0,5),[products,soldCounts]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
   useEffect(()=>{if(ok)loadAdminOrders();},[ok]);
   const[copied,setCopied]=useState(false);
@@ -1411,6 +1412,21 @@ function AdminScreen(){
                 </button>
               </div>
             </div>
+            {topProds.length>0&&(
+              <div style={{background:C.surface,borderRadius:DS.radius.md,padding:13,marginBottom:12,boxShadow:DS.shadow.sm(dk)}}>
+                <p style={{fontWeight:800,fontSize:12,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",marginBottom:9}}>📊 Top heute</p>
+                {topProds.map((p,i)=>(
+                  <div key={p.id} style={{display:"flex",alignItems:"center",gap:9,marginBottom:i<topProds.length-1?7:0}}>
+                    <span style={{fontWeight:900,fontSize:12,color:C.textLight,minWidth:16}}>{i+1}.</span>
+                    <span style={{fontSize:13,color:C.text,flex:1,minWidth:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.emoji} {p.name}</span>
+                    <span style={{fontWeight:800,fontSize:12,color:C.primary,whiteSpace:"nowrap"}}>{p.sold}×</span>
+                    <div style={{width:60,height:5,background:C.surface2,borderRadius:3,overflow:"hidden",flexShrink:0}}>
+                      <div style={{height:"100%",width:`${(p.sold/topProds[0].sold)*100}%`,background:C.primary,borderRadius:3}}/>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <input value={prodSearch} onChange={e=>setProdSearch(e.target.value)} placeholder="🔍 Produkte durchsuchen…" style={{...inp,marginBottom:10}}/>
             {products.filter(p=>!prodSearch||p.name.toLowerCase().includes(prodSearch.toLowerCase())||p.cat.toLowerCase().includes(prodSearch.toLowerCase())).flatMap((p,i,arr)=>[...(!prodSearch&&(i===0||arr[i-1].cat!==p.cat)?[<div key={`hd-${p.cat}`} style={{display:"flex",alignItems:"center",marginTop:i>0?14:4,marginBottom:6}}><p style={{fontWeight:800,fontSize:11,color:C.textMid,textTransform:"uppercase",letterSpacing:".06em",flex:1}}>{CICO[p.cat]} {p.cat} · {products.filter(x=>x.cat===p.cat).length}</p>{((catPs,allOn)=><button onClick={()=>catPs.forEach(cp=>setProductAvailable(cp.id,!allOn))} style={{fontSize:10,fontWeight:700,border:`1px solid ${C.border}`,borderRadius:DS.radius.sm,padding:"2px 8px",background:allOn?C.surface2:"rgba(16,185,129,.12)",color:allOn?C.textMid:C.primary,cursor:"pointer",flexShrink:0}}>{allOn?"Alle pausieren":"Alle aktiv"}</button>)(products.filter(x=>x.cat===p.cat),products.filter(x=>x.cat===p.cat).every(x=>x.available))}</div>]:[]),
               <div key={p.id} style={{marginBottom:8}}>
