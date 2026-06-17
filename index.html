@@ -430,10 +430,12 @@ function SplashScreen(){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
+  const[svcTs,setSvcTs]=useState(()=>selTable?LS.get("zr_svc_last_"+selTable,null):null);
+  useEffect(()=>{setSvcTs(selTable?LS.get("zr_svc_last_"+selTable,null):null);},[selTable]);
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
@@ -510,6 +512,16 @@ function HomeScreen(){
           </button>
         );})()}
 
+        {/* Service call */}
+        {selTable&&(()=>{const cooldown=svcTs&&(Date.now()-svcTs)<5*60*1000;const minLeft=cooldown?Math.ceil((5*60*1000-(Date.now()-svcTs))/60000):0;return(
+          <button onClick={()=>{if(cooldown)return;requestService();setSvcTs(Date.now());}} disabled={!!cooldown} style={{width:"100%",marginBottom:14,padding:"11px 16px",background:cooldown?(dk?"rgba(245,158,11,.1)":"#FFF7ED"):C.surface,borderRadius:DS.radius.md,display:"flex",alignItems:"center",gap:12,cursor:cooldown?"default":"pointer",border:`1.5px solid ${cooldown?(dk?C.amber+"44":"#FED7AA"):C.border}`,boxShadow:DS.shadow.xs(dk),textAlign:"left"}}>
+            <span style={{fontSize:22,flexShrink:0}}>{cooldown?"✓":"🔔"}</span>
+            <div style={{flex:1}}>
+              <p style={{fontWeight:700,fontSize:13,color:cooldown?(dk?C.amber:"#C2410C"):C.text}}>{cooldown?`Bedienung gerufen · noch ${minLeft} Min`:"Bedienung rufen"}</p>
+              <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{cooldown?"Wird gleich bei dir sein":"Personal an deinen Tisch holen"}</p>
+            </div>
+          </button>
+        );})()}
         {/* Categories */}
         <p style={{fontWeight:800,fontSize:16,marginBottom:12,color:C.text}}>Kategorien</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:9,marginBottom:18}}>
@@ -1201,7 +1213,7 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
@@ -1347,6 +1359,20 @@ function AdminScreen(){
             {bySt("new")>0&&<button onClick={markAllMaking} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#DBEAFE",color:"#1E40AF",whiteSpace:"nowrap"}}>🍳 Alle Neu → Zubereitung ({bySt("new")})</button>}
             {bySt("ready")>0&&<button onClick={markAllReady} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:"#D1FAE5",color:"#065F46",whiteSpace:"nowrap"}}>✓ Alle Bereit → Serviert ({bySt("ready")})</button>}
             {bySt("done")>0&&<button onClick={clearAllDone} style={{flex:1,padding:"7px 10px",borderRadius:DS.radius.sm,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>🗑 Erledigte löschen ({bySt("done")})</button>}
+          </div>
+        )}
+        {tab==="orders"&&serviceCalls.length>0&&(
+          <div style={{marginBottom:10}}>
+            {serviceCalls.sort((a,b)=>b.ts-a.ts).map(c=>(
+              <div key={c.key} style={{background:dk?"rgba(245,158,11,.12)":"#FEF3C7",border:`1.5px solid ${dk?"rgba(245,158,11,.3)":"#FDE68A"}`,borderRadius:DS.radius.md,padding:"10px 13px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20,flexShrink:0}}>🔔</span>
+                <div style={{flex:1}}>
+                  <p style={{fontWeight:800,fontSize:13,color:dk?C.amber:"#92400E"}}>Tisch {c.table} ruft nach Bedienung</p>
+                  <p style={{fontSize:11,color:C.textMid,marginTop:1}}>{c.time}</p>
+                </div>
+                <button onClick={()=>dismissServiceCall(c.key)} style={{background:dk?"rgba(245,158,11,.2)":"#FEF08A",border:"none",borderRadius:DS.radius.sm,padding:"5px 11px",fontWeight:700,fontSize:11,cursor:"pointer",color:dk?C.amber:"#78350F",flexShrink:0,whiteSpace:"nowrap"}}>✓ Erledigt</button>
+              </div>
+            ))}
           </div>
         )}
         {tab==="orders"&&catRevenue.length>1&&revenue>0&&(
@@ -1564,6 +1590,7 @@ function App(){
   const[detailProduct,setDetailProduct]=useState(null);
   const[myOrders,setMyOrders]=useState(()=>{const ids=LS.get("zr_my_orders",[]);return ids.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);});
   const[allOrders,setAllOrders]=useState([]);
+  const[serviceCalls,setServiceCalls]=useState([]);
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
@@ -1665,15 +1692,36 @@ function App(){
     });
   },[push]);
 
+  const requestService=useCallback(async()=>{
+    if(!selTable)return;
+    const ts=Date.now();
+    const key=`svc_${selTable}_${ts}`;
+    const call={key,table:selTable,ts,time:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
+    if(hasSt)await Db.set(key,call,true);
+    else{const svcList=LS.get("zr_svc_list",[]);LS.set("zr_svc_list",[...svcList,key]);LS.set(key,call);}
+    LS.set("zr_svc_last_"+selTable,ts);
+    push("Bedienung gerufen ✓","success",4000);
+    if(navigator.vibrate)navigator.vibrate([30,15,30]);
+  },[selTable,push]);
+
+  const dismissServiceCall=useCallback(async(key)=>{
+    if(hasSt)await Db.del(key,true);
+    else{LS.del(key);LS.set("zr_svc_list",LS.get("zr_svc_list",[]).filter(k=>k!==key));}
+    setServiceCalls(prev=>prev.filter(c=>c.key!==key));
+  },[]);
+
   const loadAdminOrders=useCallback(async()=>{
-    let orders;
+    let orders,svcs=[];
     if(hasSt){
-      const keys=await Db.list("order_",true);
-      orders=await Promise.all(keys.map(k=>Db.get(k,true)));
+      const[orderKeys,svcKeys]=await Promise.all([Db.list("order_",true),Db.list("svc_",true)]);
+      const[orderData,svcData]=await Promise.all([Promise.all(orderKeys.map(k=>Db.get(k,true))),Promise.all(svcKeys.map(k=>Db.get(k,true)))]);
+      orders=orderData;svcs=svcData.filter(Boolean);
     } else {
       const allIds=LS.get("zr_all_orders",[]);
       orders=allIds.map(id=>LS.get(`zr_order_${id}`,null));
+      svcs=LS.get("zr_svc_list",[]).map(k=>LS.get(k,null)).filter(Boolean);
     }
+    setServiceCalls(svcs);
     const sorted=orders.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt);
     setAllOrders(prev=>{
       const newNow=sorted.filter(o=>o.status==="new").length;
@@ -1743,6 +1791,7 @@ function App(){
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,
+    serviceCalls,requestService,dismissServiceCall,
   };
 
   const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
