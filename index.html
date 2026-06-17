@@ -1057,7 +1057,7 @@ function AdminScreen(){
   const[delConfId,setDelConfId]=useState(null);
   const[sortOldest,setSortOldest]=useState(true);
   const[tagesConf,setTagesConf]=useState(false);
-  const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",available:true});
+  const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
   useEffect(()=>{if(!ok)return;const t=setInterval(()=>{if(tab==="orders")loadAdminOrders();},8000);return()=>clearInterval(t);},[ok,tab,loadAdminOrders]);
@@ -1080,8 +1080,8 @@ function AdminScreen(){
     if(!np.name||!np.price)return;
     const sizes=[{l:np.sizeLabel||"normal",p:parseFloat(np.price)}];
     if(np.price2&&parseFloat(np.price2)>0)sizes.push({l:np.sizeLabel2||"groß",p:parseFloat(np.price2)});
-    addProduct({...np,id:Date.now(),sizes,milch:false,sirup:false,pop:false});
-    setNp({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",available:true});
+    addProduct({...np,id:Date.now(),sizes,pop:false});
+    setNp({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,available:true});
   };
 
   if(!ok)return(
@@ -1243,6 +1243,11 @@ function AdminScreen(){
                 <select value={np.tag} onChange={e=>setNp(p=>({...p,tag:e.target.value}))} style={inp}>
                   {["","Beliebt","Neu","Vegan"].map(t=><option key={t} value={t}>{t||"Kein Tag"}</option>)}
                 </select>
+                <div style={{display:"flex",gap:8}}>
+                  {[["milch","🥛 Milchoptionen"],["sirup","🍯 Sirup-Optionen"]].map(([k,l])=>(
+                    <button key={k} onClick={()=>setNp(p=>({...p,[k]:!p[k]}))} style={{flex:1,padding:"8px",borderRadius:DS.radius.sm,fontSize:12,fontWeight:700,border:`1.5px solid ${np[k]?C.primary:C.border}`,background:np[k]?C.light:C.surface2,color:np[k]?C.primary:C.textMid,cursor:"pointer"}}>{l} {np[k]?"✓":"–"}</button>
+                  ))}
+                </div>
                 <button onClick={addProd} disabled={!np.name||!np.price} style={{padding:"11px",background:!np.name||!np.price?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!np.name||!np.price?C.textLight:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:14,border:"none",cursor:!np.name||!np.price?"default":"pointer"}}>
                   Produkt speichern
                 </button>
@@ -1279,6 +1284,11 @@ function AdminScreen(){
                       {editData.img&&<PImg src={editData.img} emoji={editData.emoji} w={44} h={44} r={8}/>}
                     </div>
                     <textarea value={editData.desc||""} onChange={e=>setEditData(d=>({...d,desc:e.target.value}))} placeholder="Beschreibung" style={{...inp,height:56,resize:"none",marginBottom:8}}/>
+                    <div style={{display:"flex",gap:8,marginBottom:8}}>
+                      {[["milch","🥛 Milchoptionen"],["sirup","🍯 Sirup-Optionen"]].map(([k,l])=>(
+                        <button key={k} onClick={()=>setEditData(d=>({...d,[k]:!d[k]}))} style={{flex:1,padding:"7px",borderRadius:DS.radius.sm,fontSize:12,fontWeight:700,border:`1.5px solid ${editData[k]?C.primary:C.border}`,background:editData[k]?C.light:C.surface2,color:editData[k]?C.primary:C.textMid,cursor:"pointer"}}>{l} {editData[k]?"✓":"–"}</button>
+                      ))}
+                    </div>
                     <div style={{display:"flex",gap:7}}>
                       <button onClick={()=>{editProduct({id:p.id,...editData});setEditId(null);}} style={{flex:1,padding:"9px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>Speichern</button>
                       <button onClick={()=>setEditId(null)} style={{padding:"9px 13px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>✕</button>
@@ -1292,7 +1302,7 @@ function AdminScreen(){
                       <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{p.cat} · {p.sizes.map(s=>`${s.l} ${fmt(s.p)}`).join(", ")}</p>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-                      <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,prices:p.sizes.map(s=>String(s.p)),emoji:p.emoji,tag:p.tag||"",img:p.img||"",cat:p.cat,desc:p.desc||""});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
+                      <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,prices:p.sizes.map(s=>String(s.p)),emoji:p.emoji,tag:p.tag||"",img:p.img||"",cat:p.cat,desc:p.desc||"",milch:!!p.milch,sirup:!!p.sirup});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
                       <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>{p.available?"✓ Aktiv":"Pausiert"}</button>
                       {p.id>100&&(delConfId===p.id
                         ?<div style={{display:"flex",gap:4,alignItems:"center"}}>
@@ -1479,9 +1489,9 @@ function App(){
     setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
-  const editProduct=useCallback(({id,name,prices,price,emoji,tag,img,cat,desc})=>{
+  const editProduct=useCallback(({id,name,prices,price,emoji,tag,img,cat,desc,milch,sirup})=>{
     const prArr=prices||(price?[price]:[]);
-    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,name:name||p.name,emoji:emoji||p.emoji,tag:tag!==undefined?tag:p.tag,img:img!==undefined?img:p.img,cat:cat||p.cat,desc:desc!==undefined?desc:p.desc,sizes:p.sizes.map((s,i)=>({...s,p:parseFloat(prArr[i])||s.p}))}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
+    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,name:name||p.name,emoji:emoji||p.emoji,tag:tag!==undefined?tag:p.tag,img:img!==undefined?img:p.img,cat:cat||p.cat,desc:desc!==undefined?desc:p.desc,milch:milch!==undefined?milch:p.milch,sirup:sirup!==undefined?sirup:p.sirup,sizes:p.sizes.map((s,i)=>({...s,p:parseFloat(prArr[i])||s.p}))}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
   const clearCart=useCallback(()=>setCart([]),[]);
