@@ -747,6 +747,8 @@ function DetailScreen(){
   const isFav=p&&favs.includes(p.id);
   const toggleFav=()=>{if(!p)return;setFavs(prev=>{const n=prev.includes(p.id)?prev.filter(x=>x!==p.id):[...prev,p.id];LS.set("zr_favs",n);return n;});};
   useEffect(()=>{setQty(1);setSIdx(0);setMilk("Vollmilch");setSirup(null);setNote("");},[p?.id]);
+  const{products}=useApp();
+  const related=useMemo(()=>p?products.filter(r=>r.available&&r.cat===p.cat&&r.id!==p.id).slice(0,6):[],[p?.id,products]);
   if(!p){go("menu");return null;}
   const baseP=(p.sizes[sIdx]||p.sizes[0]).p;
   const unitP=baseP+(sirup?EXTRA_PRICE:0);
@@ -829,6 +831,22 @@ function DetailScreen(){
         <button onClick={handleAdd} style={{width:"100%",marginTop:22,padding:"18px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk),letterSpacing:"0.01em"}}>
           {iq>0?`Weitere hinzufügen · ${fmt(totP)}`:`In den Warenkorb · ${fmt(totP)}`}
         </button>
+        {related.length>0&&(
+          <div style={{marginTop:28}}>
+            <p style={{fontWeight:800,fontSize:15,color:C.text,marginBottom:12}}>Weitere aus {p.cat}</p>
+            <div style={{display:"flex",gap:11,overflowX:"auto",scrollbarWidth:"none",margin:"0 -18px",paddingLeft:18,paddingRight:18,paddingBottom:6}}>
+              {related.map(r=>(
+                <div key={r.id} onClick={()=>go("detail",r)} style={{minWidth:128,flexShrink:0,background:C.surface2,borderRadius:DS.radius.lg,overflow:"hidden",cursor:"pointer",boxShadow:DS.shadow.sm(dk)}}>
+                  <PImg src={r.img} emoji={r.emoji} w={128} h={80}/>
+                  <div style={{padding:"7px 10px 10px"}}>
+                    <p style={{fontWeight:700,fontSize:11,color:C.text,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name}</p>
+                    <p style={{fontSize:12,fontWeight:800,color:C.primary,marginTop:3}}>{r.sizes.length>1?"ab ":""}{fmt(r.sizes[0].p)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </Screen>
   );
