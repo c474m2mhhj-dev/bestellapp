@@ -1177,7 +1177,7 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,editProduct,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
@@ -1452,7 +1452,8 @@ function AdminScreen(){
                       <p style={{fontSize:11,color:C.textLight,marginTop:1}}>{p.cat} · {p.sizes.map(s=>`${s.l} ${fmt(s.p)}`).join(", ")}</p>
                     </div>
                     <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0}}>
-                      <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,prices:p.sizes.map(s=>String(s.p)),emoji:p.emoji,tag:p.tag||"",img:p.img||"",cat:p.cat,desc:p.desc||"",milch:!!p.milch,sirup:!!p.sirup});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
+                      <button onClick={()=>setProductPop(p.id,!p.pop)} aria-label={p.pop?"Beliebt entfernen":"Als Beliebt markieren"} title={p.pop?"Beliebt entfernen":"Als Beliebt markieren"} style={{background:p.pop?"#FEF3C7":C.surface2,color:p.pop?"#D97706":C.textLight,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:14,border:`1.5px solid ${p.pop?"#FDE68A":C.border}`,cursor:"pointer"}}>⭐</button>
+                      <button onClick={()=>{setEditId(p.id);setEditData({name:p.name,prices:p.sizes.map(s=>String(s.p)),emoji:p.emoji,tag:p.tag||"",img:p.img||"",cat:p.cat,desc:p.desc||"",milch:!!p.milch,sirup:!!p.sirup,pop:!!p.pop});}} aria-label="Produkt bearbeiten" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:13,border:"none",cursor:"pointer",color:C.textMid}}>✏️</button>
                       <button onClick={()=>setProductAvailable(p.id,!p.available)} style={{background:p.available?C.light:C.surface2,color:p.available?C.primary:C.textLight,borderRadius:DS.radius.sm,padding:"5px 9px",fontSize:11,fontWeight:700,border:`1.5px solid ${p.available?C.primary:C.border}`,cursor:"pointer",whiteSpace:"nowrap"}}>{p.available?"✓ Aktiv":"Pausiert"}</button>
                       {p.id>100&&(delConfId===p.id
                         ?<div style={{display:"flex",gap:4,alignItems:"center"}}>
@@ -1640,10 +1641,13 @@ function App(){
   const setProductAvailable=useCallback((id,available)=>{
     setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
+  const setProductPop=useCallback((id,pop)=>{
+    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,pop}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
+  },[]);
 
-  const editProduct=useCallback(({id,name,prices,price,emoji,tag,img,cat,desc,milch,sirup})=>{
+  const editProduct=useCallback(({id,name,prices,price,emoji,tag,img,cat,desc,milch,sirup,pop})=>{
     const prArr=prices||(price?[price]:[]);
-    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,name:name||p.name,emoji:emoji||p.emoji,tag:tag!==undefined?tag:p.tag,img:img!==undefined?img:p.img,cat:cat||p.cat,desc:desc!==undefined?desc:p.desc,milch:milch!==undefined?milch:p.milch,sirup:sirup!==undefined?sirup:p.sirup,sizes:p.sizes.map((s,i)=>({...s,p:parseFloat(prArr[i])||s.p}))}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
+    setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,name:name||p.name,emoji:emoji||p.emoji,tag:tag!==undefined?tag:p.tag,img:img!==undefined?img:p.img,cat:cat||p.cat,desc:desc!==undefined?desc:p.desc,milch:milch!==undefined?milch:p.milch,sirup:sirup!==undefined?sirup:p.sirup,pop:pop!==undefined?pop:p.pop,sizes:p.sizes.map((s,i)=>({...s,p:parseFloat(prArr[i])||s.p}))}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
 
   const clearCart=useCallback(()=>setCart([]),[]);
@@ -1662,7 +1666,7 @@ function App(){
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
-    setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,editProduct,
+    setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,
   };
 
   const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
