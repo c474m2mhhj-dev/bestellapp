@@ -35,7 +35,10 @@
     @keyframes shimmer{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
     @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.45)}50%{box-shadow:0 0 0 8px rgba(37,99,235,0)}}
     @keyframes kPulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
-  </style>
+    @keyframes spin{to{transform:rotate(360deg)}}
+    @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+</style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
     window.useCallback=React.useCallback;window.useMemo=React.useMemo;
@@ -1039,12 +1042,67 @@ function CartItem({item,onChQty,onRemove,onSetNote}){
 }
 
 /* ══════════════════════════════════════════════
+   PAYMENT SHEET — in-app Apple Pay / Google Pay / card
+══════════════════════════════════════════════ */
+function PaymentSheet({total,items,del,onConfirm,onClose}){
+  const C=useC(),{darkMode:dk}=useApp();
+  const[stage,setStage]=useState("select");
+  const[method,setMethod]=useState("");
+  const ua=typeof navigator!=="undefined"?navigator.userAgent:"";
+  const isApple=/iPhone|iPad|iPod|Macintosh/.test(ua)&&/Safari/.test(ua)&&!/CriOS|Chrome|Android/.test(ua);
+  const isAndroid=/Android/.test(ua);
+  const pay=(label)=>{
+    setMethod(label);setStage("processing");
+    if(navigator.vibrate)navigator.vibrate(12);
+    setTimeout(()=>{setStage("done");if(navigator.vibrate)navigator.vibrate([20,30,50]);setTimeout(()=>onConfirm(label),850);},1400);
+  };
+  const appleLogo=<svg viewBox="0 0 384 512" width="20" height="20" fill="currentColor" style={{marginRight:6}}><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>;
+  return(
+    <div onClick={stage==="select"?onClose:undefined} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"flex-end",justifyContent:"center",animation:"fadeIn .2s ease both"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:430,background:C.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:"10px 20px max(24px,env(safe-area-inset-bottom))",animation:"sheetUp .34s cubic-bezier(.34,1.4,.64,1) both",boxShadow:"0 -8px 40px rgba(0,0,0,.35)"}}>
+        <div style={{width:38,height:4,borderRadius:2,background:C.border,margin:"0 auto 16px"}}/>
+        {stage==="select"&&(<>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:3}}>
+            <p style={{fontWeight:800,fontSize:18,color:C.text}}>Bezahlen</p>
+            <p style={{fontWeight:900,fontSize:22,color:C.primary}}>{fmt(total)}</p>
+          </div>
+          <p style={{fontSize:12,color:C.textLight,marginBottom:18}}>{items.reduce((s,i)=>s+i.qty,0)} Artikel{del>0?` · inkl. ${fmt(del)} Servicegebühr`:""}</p>
+          <button onClick={()=>pay("Apple Pay")} style={{width:"100%",height:54,borderRadius:14,border:"none",cursor:"pointer",background:"#000",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,fontWeight:600,marginBottom:10}}>{appleLogo}Pay</button>
+          <button onClick={()=>pay("Google Pay")} style={{width:"100%",height:54,borderRadius:14,border:`1.5px solid ${C.border}`,cursor:"pointer",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,marginBottom:10}}>
+            <span style={{fontWeight:500,letterSpacing:"-.01em",fontSize:19}}><span style={{color:"#4285F4"}}>G</span><span style={{color:"#EA4335"}}>o</span><span style={{color:"#FBBC05"}}>o</span><span style={{color:"#4285F4"}}>g</span><span style={{color:"#34A853"}}>l</span><span style={{color:"#EA4335"}}>e</span></span><span style={{marginLeft:5,color:"#5F6368",fontWeight:600}}>Pay</span>
+          </button>
+          <button onClick={()=>pay("Kreditkarte")} style={{width:"100%",height:54,borderRadius:14,border:`1.5px solid ${C.border}`,cursor:"pointer",background:C.surface2,color:C.text,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:15,fontWeight:700}}>💳 Kredit- / Debitkarte</button>
+          <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginTop:15}}>🔒 {isApple?"Apple Pay empfohlen auf diesem Gerät":isAndroid?"Google Pay empfohlen auf diesem Gerät":"Sichere, SSL-verschlüsselte Zahlung"}</p>
+        </>)}
+        {stage==="processing"&&(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"30px 0 26px"}}>
+            <div style={{width:46,height:46,borderRadius:"50%",border:`3px solid ${C.border}`,borderTopColor:C.primary,animation:"spin .8s linear infinite",marginBottom:18}}/>
+            <p style={{fontWeight:800,fontSize:16,color:C.text}}>Zahlung wird verarbeitet…</p>
+            <p style={{fontSize:13,color:C.textLight,marginTop:4}}>{method} · {fmt(total)}</p>
+          </div>
+        )}
+        {stage==="done"&&(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"30px 0 26px"}}>
+            <div style={{width:62,height:62,borderRadius:"50%",background:`${C.primary}1A`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,animation:"cartIn .35s cubic-bezier(.34,1.56,.64,1) both"}}>
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
+            <p style={{fontWeight:800,fontSize:17,color:C.text}}>Bezahlt ✓</p>
+            <p style={{fontSize:13,color:C.textLight,marginTop:4}}>{fmt(total)} · {method}</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
    CART SCREEN
 ══════════════════════════════════════════════ */
 function CartScreen(){
   const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,darkMode:dk}=useApp();const C=useC();
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
   const[undoItem,setUndoItem]=useState(null);
+  const[payOpen,setPayOpen]=useState(false);
   const undoRef=useRef(null);
   const handleRemove=useCallback((item)=>{clearTimeout(undoRef.current);setUndoItem({...item});removeItem(item.ck);undoRef.current=setTimeout(()=>setUndoItem(null),5000);},[removeItem]);
   useEffect(()=>{LS.set("zr_note",note);},[note]);
@@ -1067,23 +1125,8 @@ function CartScreen(){
   },[cart,products]);
   const handlePay=async()=>{
     if(!selTable||submitting||ordersPaused)return;
-    if("Notification" in window&&Notification.permission==="default")await Notification.requestPermission();
-    if(window.PaymentRequest){
-      try{
-        const methods=[{supportedMethods:"basic-card",data:{supportedNetworks:["visa","mastercard","amex"],supportedTypes:["credit","debit","prepaid"]}}];
-        const details={
-          total:{label:"zeitraum Café & Bar",amount:{currency:"EUR",value:tot.toFixed(2)}},
-          displayItems:[
-            ...cart.map(i=>({label:`${i.name} × ${i.qty}`,amount:{currency:"EUR",value:(i.price*i.qty).toFixed(2)}})),
-            ...(del>0?[{label:"Servicegebühr",amount:{currency:"EUR",value:del.toFixed(2)}}]:[]),
-          ],
-        };
-        const req=new PaymentRequest(methods,details);
-        const canPay=await req.canMakePayment();
-        if(canPay){const resp=await req.show();await resp.complete("success");await submitOrder(note);return;}
-      }catch(e){if(e.name==="AbortError")return;}
-    }
-    await submitOrder(note);
+    if("Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission();}catch(e){}}
+    setPayOpen(true);
   };
   return(
     <Screen>
@@ -1181,6 +1224,7 @@ function CartScreen(){
           <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
         </div>
       )}
+      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note);setPayOpen(false);}}/>}
       <BottomNav/>
     </Screen>
   );
