@@ -513,7 +513,9 @@ function HomeScreen(){
   const recentProds=useMemo(()=>{const seen=new Set(),res=[];[...myOrders].sort((a,b)=>b.createdAt-a.createdAt).forEach(o=>o.items.forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);const p=products.find(pr=>pr.id===it.id&&pr.available);if(p)res.push(p);}}));return res.slice(0,5);},[myOrders,products]);
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   const hour=new Date().getHours();
-  const greet=hour<5?"Gute Nacht 🌙":hour<12?"Guten Morgen ☀️":hour<17?"Guten Tag 👋":hour<21?"Guten Abend 🌆":"Gute Nacht 🌙";
+  const gT=hour<5?"Gute Nacht":hour<12?"Guten Morgen":hour<17?"Guten Tag":hour<21?"Guten Abend":"Gute Nacht";
+  const gE=hour<5?"🌙":hour<12?"☀️":hour<17?"👋":hour<21?"🌆":"🌙";
+  const greet=user.name?`${gT}, ${user.name} ${gE}`:`${gT} ${gE}`;
   const activeOrds=myOrders.filter(o=>o.status!=="done");
   const urgentOrd=activeOrds.find(o=>o.status==="ready")||activeOrds.find(o=>o.status==="making")||activeOrds[0];
   const ordInfo={ready:{icon:"🤖",label:"Robert ist da – jetzt abholen!",bg:dk?"rgba(59,130,246,.18)":"#DBEAFE",cl:dk?"#93C5FD":"#1E40AF"},making:{icon:"👨‍🍳",label:"In Zubereitung…",bg:dk?"rgba(245,158,11,.15)":"#FEF3C7",cl:dk?"#FCD34D":"#92400E"},new:{icon:"✅",label:"Bestätigt",bg:dk?"rgba(16,185,129,.15)":"#D1FAE5",cl:dk?"#6EE7B7":"#065F46"}};
@@ -1187,7 +1189,7 @@ function PaymentSheet({total,items,del,onConfirm,onClose}){
    CART SCREEN
 ══════════════════════════════════════════════ */
 function CartScreen(){
-  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,darkMode:dk}=useApp();const C=useC();
+  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,user,darkMode:dk}=useApp();const C=useC();
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
   const[undoItem,setUndoItem]=useState(null);
   const[payOpen,setPayOpen]=useState(false);
@@ -1294,6 +1296,16 @@ function CartScreen(){
                 <span style={{color:C.text}}>Gesamt</span><span style={{color:C.primary}}>{fmt(tot)}</span>
               </div>
             </div>
+            {/* Bestellpunkte-Vorschau */}
+            {(()=>{const earn=ptsForOrder(tot);const before=user?.points||0;const after=before+earn;const unlocks=Math.floor(after/VOUCHER_AT)>Math.floor(before/VOUCHER_AT);const toNext=VOUCHER_AT-(after%VOUCHER_AT);return(
+              <div style={{background:dk?"rgba(212,168,67,.12)":"#FFFBEB",border:`1.5px solid ${dk?"rgba(212,168,67,.3)":"#FDE68A"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:9,display:"flex",alignItems:"center",gap:10}}>
+                <span style={{fontSize:20,flexShrink:0}}>🪙</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontWeight:800,fontSize:13,color:dk?"#FCD34D":"#B45309"}}>+{earn} Bestellpunkte für diese Bestellung</p>
+                  <p style={{fontSize:11,color:dk?"#FCD34D":"#B45309",opacity:.85,marginTop:1}}>{unlocks?"🎁 Freigetränk freigeschaltet!":`Noch ${toNext} bis zum nächsten Freigetränk`}</p>
+                </div>
+              </div>
+            );})()}
             <div style={{background:C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:9}}>
               <span>⏱</span>
               <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>ca. {estWait} Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Geschätzt · nach Bestätigung</p></div>
