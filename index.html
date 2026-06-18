@@ -432,7 +432,7 @@ function SplashScreen(){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService,addToCart,announcement,ordersPaused,specialId}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService,addToCart,announcement,ordersPaused,specialId,nextSlot}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
@@ -440,6 +440,12 @@ function HomeScreen(){
   const[billTs,setBillTs]=useState(()=>selTable?LS.get(`zr_svc_last_zahlen_${selTable}`,null):null);
   const quickAdd=(p,e)=>{e.stopPropagation();if(p.sizes.length===1&&!p.milch&&!p.sirup){const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:"",ck:`${p.id}||${pr.toFixed(2)}`},1);}else{go("detail",p);}};
   const[annDismissed,setAnnDismissed]=useState(()=>sessionStorage.getItem("zr_ann_dismissed")||"");
+  const[slotLabel,setSlotLabel]=useState("");
+  useEffect(()=>{
+    if(!nextSlot)return setSlotLabel("");
+    const calc=()=>{const now=new Date();const[h,m]=nextSlot.split(":").map(Number);const sl=new Date(now);sl.setHours(h,m,0,0);const diff=sl-now;if(diff<0||diff>90*60*1000)return setSlotLabel("");const mins=Math.ceil(diff/60000);setSlotLabel(mins<=1?"Jetzt":"in "+mins+" Min");};
+    calc();const t=setInterval(calc,30000);return()=>clearInterval(t);
+  },[nextSlot]);
   useEffect(()=>{setSvcTs(selTable?LS.get(`zr_svc_last_service_${selTable}`,null):null);setBillTs(selTable?LS.get(`zr_svc_last_zahlen_${selTable}`,null):null);},[selTable]);
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
@@ -482,6 +488,12 @@ function HomeScreen(){
           <span style={{fontSize:16,flexShrink:0}}>📢</span>
           <p style={{flex:1,fontSize:13,fontWeight:600,color:dk?"#FCD34D":"#92400E"}}>{announcement}</p>
           <button onClick={()=>{setAnnDismissed(announcement);sessionStorage.setItem("zr_ann_dismissed",announcement);}} style={{background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:18,flexShrink:0,lineHeight:1}}>×</button>
+        </div>
+      )}
+      {nextSlot&&slotLabel&&(
+        <div style={{background:dk?"rgba(16,185,129,.1)":"#ECFDF5",borderBottom:`1px solid ${dk?"rgba(16,185,129,.3)":"#6EE7B7"}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
+          <span style={{fontSize:16,flexShrink:0}}>🤖</span>
+          <p style={{flex:1,fontSize:13,fontWeight:600,color:dk?"#6EE7B7":"#065F46"}}>Nächster Lieferslot: {nextSlot} Uhr <span style={{fontWeight:400,opacity:.8}}>({slotLabel})</span></p>
         </div>
       )}
       {ordersPaused&&(
@@ -919,6 +931,18 @@ function DetailScreen(){
           </div>
           <p style={{fontSize:22,fontWeight:900,color:C.primary,flexShrink:0,whiteSpace:"nowrap"}}>{fmt(unitP)}</p>
         </div>
+        {p.cat==="Heiße Getränke"&&(
+          <div style={{background:dk?"rgba(245,158,11,.1)":"#FFF7ED",border:`1px solid ${dk?"rgba(245,158,11,.3)":"#FED7AA"}`,borderRadius:DS.radius.sm,padding:"8px 12px",marginTop:10,display:"flex",gap:8,alignItems:"center"}}>
+            <span style={{fontSize:14,flexShrink:0}}>☕</span>
+            <p style={{fontSize:11,color:dk?"#FCD34D":"#92400E",lineHeight:1.4}}>Für Robotelieferung: Heiße Getränke bitte in <strong>isoliertem Becher</strong> bestellen – Temperatur und Schaum können beim Transport leiden.</p>
+          </div>
+        )}
+        {["Kaltgetränke","Gebäck","Snacks"].includes(p.cat)&&(
+          <div style={{background:dk?"rgba(16,185,129,.08)":"#ECFDF5",border:`1px solid ${dk?"rgba(16,185,129,.25)":"#A7F3D0"}`,borderRadius:DS.radius.sm,padding:"7px 12px",marginTop:10,display:"flex",gap:8,alignItems:"center"}}>
+            <span style={{fontSize:13,flexShrink:0}}>🤖</span>
+            <p style={{fontSize:11,color:dk?"#6EE7B7":"#065F46"}}>Ideal für Robotelieferung – hält Qualität und Temperatur beim Transport.</p>
+          </div>
+        )}
         <div style={{display:"flex",gap:10,marginTop:14}}>
           {[["⭐","4.9"],["⏱",{Kaltgetränke:"~1 Min",Snacks:"~2 Min",Gebäck:"~3 Min",Sonstiges:"~2 Min"}[p.cat]||"~5 Min"],["🌿",p.tag||"Frisch"]].map(([ic,v])=>(
             <div key={v} style={{flex:1,background:C.surface2,borderRadius:DS.radius.sm,padding:"10px 8px",textAlign:"center"}}>
@@ -1348,12 +1372,13 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,announcement,saveAnnouncement,ordersPaused,togglePause,specialId,setSpecial,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,announcement,saveAnnouncement,ordersPaused,togglePause,specialId,setSpecial,nextSlot,setSlot,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
   const[tab,setTab]=useState("orders");
   const[annInput,setAnnInput]=useState(()=>announcement||"");
+  const[slotInput,setSlotInput]=useState(()=>nextSlot||"");
   const[stFilter,setStFilter]=useState("all");
   const[prodSearch,setProdSearch]=useState("");
   const[prodSort,setProdSort]=useState("cat");
@@ -1483,9 +1508,9 @@ function AdminScreen(){
         {tab==="orders"&&(
           <div style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",marginBottom:8,paddingBottom:2,alignItems:"center"}}>
             <span style={{fontSize:11,color:C.textLight,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>Tisch:</span>
-            {["all",...TABLES].map(tb=>{const n=tb==="all"?allOrders.filter(o=>o.status!=="done").length:allOrders.filter(o=>o.table===tb&&o.status!=="done").length;return(
-              <button key={tb} onClick={()=>setTableFilter(tb)} style={{padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:tableFilter===tb?C.dark:n>0?C.light:C.surface2,color:tableFilter===tb?"#fff":n>0?C.primary:C.textMid,transition:"all .15s"}}>
-                {tb==="all"?"Alle":tb}{n>0?<span style={{marginLeft:4,opacity:.8}}>({n})</span>:null}
+            {["all",...TABLES].map(tb=>{const n=tb==="all"?allOrders.filter(o=>o.status!=="done").length:allOrders.filter(o=>o.table===tb&&o.status!=="done").length;const hasBill=serviceCalls.some(c=>c.table===tb&&c.type==="zahlen");return(
+              <button key={tb} onClick={()=>setTableFilter(tb)} style={{padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:tableFilter===tb?C.dark:n>0?C.light:C.surface2,color:tableFilter===tb?"#fff":n>0?C.primary:C.textMid,transition:"all .15s",position:"relative"}}>
+                {tb==="all"?"Alle":tb}{n>0?<span style={{marginLeft:4,opacity:.8}}>({n})</span>:null}{hasBill&&tb!=="all"&&<span style={{position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#10B981",border:"2px solid transparent"}}/>}
               </button>
             );})}
             <button onClick={()=>setSortOldest(s=>!s)} title={sortOldest?"Älteste zuerst (aktiv)":"Neueste zuerst (aktiv)"} style={{marginLeft:"auto",flexShrink:0,padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>
@@ -1493,6 +1518,22 @@ function AdminScreen(){
             </button>
           </div>
         )}
+        {tab==="orders"&&tableFilter!=="all"&&(()=>{
+          const tOrds=allOrders.filter(o=>o.table===tableFilter);
+          const tActive=tOrds.filter(o=>o.status!=="done");
+          const tTotal=tOrds.reduce((s,o)=>s+(o.total||0),0);
+          const tBill=serviceCalls.some(c=>c.table===tableFilter&&c.type==="zahlen");
+          return tOrds.length>0&&(
+            <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"9px 13px",marginBottom:8,display:"flex",gap:12,alignItems:"center",boxShadow:DS.shadow.xs(dk)}}>
+              <p style={{fontWeight:800,fontSize:13,color:C.text,flexShrink:0}}>Tisch {tableFilter}</p>
+              <div style={{flex:1,display:"flex",gap:10,flexWrap:"wrap"}}>
+                {tActive.length>0&&<span style={{fontSize:11,color:C.textMid,fontWeight:600}}>{tActive.length} aktiv</span>}
+                {tTotal>0&&<span style={{fontSize:11,fontWeight:800,color:C.primary}}>{fmt(tTotal)} gesamt</span>}
+                {tBill&&<span style={{fontSize:11,fontWeight:700,color:"#059669"}}>💳 Zahlen angefordert</span>}
+              </div>
+            </div>
+          );
+        })()}
         {tab==="orders"&&allOrders.length>3&&(
           <div style={{position:"relative",marginBottom:8}}>
             <input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setOrderSearch("");}} placeholder="🔍 Tisch, #Nr oder Produkt…" style={{...inp,paddingRight:orderSearch?34:12}}/>
@@ -1507,11 +1548,19 @@ function AdminScreen(){
           </div>
         )}
         {tab==="orders"&&(
-          <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"10px 12px",marginBottom:10,display:"flex",gap:7,alignItems:"center"}}>
+          <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"10px 12px",marginBottom:6,display:"flex",gap:7,alignItems:"center"}}>
             <span style={{fontSize:14,flexShrink:0}}>📢</span>
             <input value={annInput} onChange={e=>setAnnInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){saveAnnouncement(annInput);}if(e.key==="Escape")setAnnInput(announcement||"");}} placeholder="Ankündigung für alle Tische…" style={{flex:1,padding:"7px 10px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:12,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"}}/>
             <button onClick={()=>{saveAnnouncement(annInput);}} style={{flexShrink:0,padding:"7px 12px",borderRadius:DS.radius.sm,background:C.primary,color:"#fff",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>✓</button>
             {announcement&&<button onClick={()=>{saveAnnouncement("");setAnnInput("");}} style={{flexShrink:0,padding:"7px 10px",borderRadius:DS.radius.sm,background:C.surface2,color:C.textMid,fontWeight:700,fontSize:11,border:"none",cursor:"pointer"}}>✕</button>}
+          </div>
+        )}
+        {tab==="orders"&&(
+          <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"10px 12px",marginBottom:10,display:"flex",gap:7,alignItems:"center"}}>
+            <span style={{fontSize:14,flexShrink:0}}>🤖</span>
+            <input value={slotInput} onChange={e=>setSlotInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")setSlot(slotInput);if(e.key==="Escape")setSlotInput(nextSlot||"");}} placeholder="Lieferslot HH:MM (leer = kein Slot)" style={{flex:1,padding:"7px 10px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:12,background:C.surface2,color:C.text,fontFamily:"monospace",outline:"none"}}/>
+            <button onClick={()=>setSlot(slotInput)} style={{flexShrink:0,padding:"7px 12px",borderRadius:DS.radius.sm,background:C.primary,color:"#fff",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>✓</button>
+            {nextSlot&&<button onClick={()=>{setSlot("");setSlotInput("");}} style={{flexShrink:0,padding:"7px 10px",borderRadius:DS.radius.sm,background:C.surface2,color:C.textMid,fontWeight:700,fontSize:11,border:"none",cursor:"pointer"}}>✕</button>}
           </div>
         )}
         {tab==="orders"&&(
@@ -1760,6 +1809,7 @@ function App(){
   const[ordersPaused,setOrdersPaused]=useState(()=>LS.get("zr_paused",false));
   const[confData,setConfData]=useState(null);
   const[specialId,setSpecialIdState]=useState(()=>LS.get("zr_special",null));
+  const[nextSlot,setNextSlotState]=useState(()=>LS.get("zr_slot",""));
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
@@ -1776,6 +1826,7 @@ function App(){
     Db.get("zr_announce",true).then(v=>{if(v!=null){setAnnouncement(v);LS.set("zr_announce",v);}});
     Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
     Db.get("zr_special",true).then(v=>{if(v){setSpecialIdState(v);LS.set("zr_special",v);}});
+    Db.get("zr_slot",true).then(v=>{if(v!=null){setNextSlotState(v);LS.set("zr_slot",v);}});
   },[]);
 
   useEffect(()=>{const t=setTimeout(()=>setSplash(false),1400);return()=>clearTimeout(t);},[]);
@@ -1955,6 +2006,7 @@ function App(){
 
   const clearCart=useCallback(()=>setCart([]),[]);
   const saveAnnouncement=useCallback((text)=>{const v=text.trim();setAnnouncement(v);LS.set("zr_announce",v);Db.set("zr_announce",v,true);},[]);
+  const setSlot=useCallback(async(time)=>{const v=time.trim();setNextSlotState(v);if(v){LS.set("zr_slot",v);await Db.set("zr_slot",v,true);}else{LS.del("zr_slot");await Db.del("zr_slot",true);}},[]);
   const togglePause=useCallback(async()=>{const next=!ordersPaused;setOrdersPaused(next);if(next){LS.set("zr_paused",true);await Db.set("zr_paused",true,true);}else{LS.del("zr_paused");await Db.del("zr_paused",true);}},[ordersPaused]);
   const setSpecial=useCallback(async(id)=>{setSpecialIdState(id);if(id){LS.set("zr_special",id);await Db.set("zr_special",id,true);}else{LS.del("zr_special");await Db.del("zr_special",true);}},[]);
 
@@ -1975,6 +2027,7 @@ function App(){
     setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,
     serviceCalls,requestService,dismissServiceCall,
     announcement,saveAnnouncement,
+    nextSlot,setSlot,
     ordersPaused,togglePause,
     confData,
     specialId,setSpecial,
