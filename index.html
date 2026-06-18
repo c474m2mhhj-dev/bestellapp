@@ -1041,6 +1041,9 @@ function CartItem({item,onChQty,onRemove,onSetNote}){
 function CartScreen(){
   const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,darkMode:dk}=useApp();const C=useC();
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
+  const[undoItem,setUndoItem]=useState(null);
+  const undoRef=useRef(null);
+  const handleRemove=useCallback((item)=>{clearTimeout(undoRef.current);setUndoItem({...item});removeItem(item.ck);undoRef.current=setTimeout(()=>setUndoItem(null),5000);},[removeItem]);
   useEffect(()=>{LS.set("zr_note",note);},[note]);
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const del=sub>=FREE_ABOVE?0:DEL_FEE;
@@ -1080,7 +1083,7 @@ function CartScreen(){
           </div>
         )}
         {cart.map(item=>(
-          <CartItem key={item.ck} item={item} onChQty={d=>chQty(item.ck,d)} onRemove={()=>removeItem(item.ck)} onSetNote={n=>setItemNote(item.ck,n)}/>
+          <CartItem key={item.ck} item={item} onChQty={d=>{if(d===-1&&item.qty===1)handleRemove(item);else chQty(item.ck,d);}} onRemove={()=>handleRemove(item)} onSetNote={n=>setItemNote(item.ck,n)}/>
         ))}
         {cart.length>0&&upsell.length>0&&(
           <div style={{marginBottom:9}}>
@@ -1149,6 +1152,12 @@ function CartScreen(){
           </>
         )}
       </div>
+      {undoItem&&(
+        <div style={{position:"fixed",bottom:72,left:"50%",transform:"translateX(-50%)",background:"#1A1A1A",color:"#fff",borderRadius:14,padding:"11px 14px",display:"flex",alignItems:"center",gap:12,zIndex:999,boxShadow:"0 8px 24px rgba(0,0,0,.35)",width:"min(92vw,360px)",animation:"tIn .25s cubic-bezier(.34,1.56,.64,1) both"}}>
+          <p style={{flex:1,fontSize:13,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{undoItem.name} entfernt</p>
+          <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
+        </div>
+      )}
       <BottomNav/>
     </Screen>
   );
