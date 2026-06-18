@@ -38,6 +38,8 @@
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
     @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+    @keyframes antglow{0%,100%{opacity:.45}50%{opacity:1}}
 </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
@@ -348,6 +350,47 @@ function Chip({children}){
 }
 
 /* ══════════════════════════════════════════════
+   ROBERT — delivery robot mascot (inline SVG)
+══════════════════════════════════════════════ */
+function Robert({size=80,bob=true,style={}}){
+  return(
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" role="img" aria-label="Robert, der Lieferroboter"
+      style={{display:"block",animation:bob?"bob 3s ease-in-out infinite":undefined,...style}}>
+      {/* antenna */}
+      <line x1="50" y1="20" x2="50" y2="10" stroke="#D4A843" strokeWidth="3" strokeLinecap="round"/>
+      <circle cx="50" cy="7" r="4.5" fill="#D4A843" style={{animation:"antglow 1.8s ease-in-out infinite"}}/>
+      {/* head */}
+      <rect x="25" y="18" width="50" height="37" rx="13" fill="#FFFFFF"/>
+      <rect x="25" y="18" width="50" height="37" rx="13" fill="none" stroke="rgba(0,0,0,.06)" strokeWidth="1"/>
+      {/* face screen */}
+      <rect x="31" y="24" width="38" height="25" rx="9" fill="#0A2A26"/>
+      {/* eyes */}
+      <circle cx="42" cy="35" r="5" fill="#4DE0C8"/>
+      <circle cx="58" cy="35" r="5" fill="#4DE0C8"/>
+      <circle cx="43.6" cy="33.4" r="1.5" fill="#fff"/>
+      <circle cx="59.6" cy="33.4" r="1.5" fill="#fff"/>
+      {/* smile */}
+      <path d="M43 43 Q50 48 57 43" stroke="#4DE0C8" strokeWidth="2.4" strokeLinecap="round" fill="none"/>
+      {/* body */}
+      <rect x="21" y="57" width="58" height="29" rx="11" fill="#00695C"/>
+      <rect x="21" y="57" width="58" height="29" rx="11" fill="none" stroke="rgba(255,255,255,.2)" strokeWidth="1.5"/>
+      {/* cargo window with coffee cup */}
+      <rect x="38" y="61" width="24" height="21" rx="5" fill="rgba(255,255,255,.92)"/>
+      <path d="M45 67 h7 v6 a2 2 0 0 1-2 2 h-3 a2 2 0 0 1-2-2 z" fill="#6B4226"/>
+      <path d="M52 68 h2 a2 2 0 0 1 0 4 h-2" stroke="#6B4226" strokeWidth="1.4" fill="none"/>
+      <rect x="44" y="65" width="9" height="2.4" rx="1.2" fill="#D4A843"/>
+      <path d="M47 63 q1.5-2 0-3.5" stroke="#9CA3AF" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity=".7"/>
+      <path d="M50 63 q1.5-2 0-3.5" stroke="#9CA3AF" strokeWidth="1.2" strokeLinecap="round" fill="none" opacity=".7"/>
+      {/* wheels */}
+      <circle cx="33" cy="89" r="7" fill="#0A2A26"/>
+      <circle cx="67" cy="89" r="7" fill="#0A2A26"/>
+      <circle cx="33" cy="89" r="3" fill="#4DB6A9"/>
+      <circle cx="67" cy="89" r="3" fill="#4DB6A9"/>
+    </svg>
+  );
+}
+
+/* ══════════════════════════════════════════════
    QR CODE (SVG, no library)
 ══════════════════════════════════════════════ */
 function QRWidget({table,size=200}){
@@ -440,6 +483,8 @@ function HomeScreen(){
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const quickAdd=(p,e)=>{e.stopPropagation();if(p.sizes.length===1&&!p.milch&&!p.sirup){const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:"",ck:`${p.id}||${pr.toFixed(2)}`},1);}else{go("detail",p);}};
   const[annDismissed,setAnnDismissed]=useState(()=>sessionStorage.getItem("zr_ann_dismissed")||"");
+  const[seenIntro,setSeenIntro]=useState(()=>LS.get("zr_seen_intro",false));
+  const dismissIntro=()=>{setSeenIntro(true);LS.set("zr_seen_intro",true);};
   const[slotLabel,setSlotLabel]=useState("");
   useEffect(()=>{
     if(!nextSlot)return setSlotLabel("");
@@ -462,23 +507,25 @@ function HomeScreen(){
   return(
     <Screen>
       {/* HERO */}
-      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"52px 18px 28px",borderBottomLeftRadius:32,borderBottomRightRadius:32,position:"relative",overflow:"hidden"}}>
-        <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.04)",pointerEvents:"none"}}/>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div style={{color:"#fff"}}>
-            <p style={{fontSize:11,opacity:.6,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase"}}>{greet}</p>
-            <h1 style={{margin:"5px 0 4px",fontSize:27,fontWeight:900,letterSpacing:"-.03em"}}>zeitraum</h1>
-            <p style={{opacity:.65,fontSize:13}}>{selTable?`📍 Tisch ${selTable} · Direkt bestellen`:"Direkt an deinen Tisch bestellen"}</p>
-          </div>
-          <div style={{display:"flex",gap:8,alignItems:"center"}}>
-            {/* Dark mode toggle */}
-            <button onClick={()=>setDarkMode(d=>!d)} aria-label="Dark Mode" style={{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.3)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:17}}>
-              {dk?"☀️":"🌙"}
-            </button>
+      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"48px 18px 26px",borderBottomLeftRadius:32,borderBottomRightRadius:32,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.05)",pointerEvents:"none"}}/>
+        <div style={{position:"absolute",bottom:-50,left:-40,width:150,height:150,borderRadius:"50%",background:"rgba(255,255,255,.03)",pointerEvents:"none"}}/>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <p style={{fontSize:11,opacity:.6,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#fff"}}>{greet}</p>
+          <button onClick={()=>setDarkMode(d=>!d)} aria-label="Dark Mode" style={{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.3)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:17,flexShrink:0}}>
+            {dk?"☀️":"🌙"}
+          </button>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
+          <div style={{flexShrink:0,filter:"drop-shadow(0 6px 14px rgba(0,0,0,.28))"}}><Robert size={84}/></div>
+          <div style={{color:"#fff",flex:1,minWidth:0}}>
+            <h1 style={{fontSize:26,fontWeight:900,letterSpacing:"-.03em",lineHeight:1.05}}>zeitraum</h1>
+            <p style={{opacity:.85,fontSize:13.5,lineHeight:1.4,marginTop:5,fontWeight:600}}>Bestell dein Getränk – <strong style={{fontWeight:800}}>Robert</strong> bringt's direkt vor den Hörsaal 🤖</p>
+            {selTable&&<p style={{opacity:.62,fontSize:12,marginTop:5}}>📍 Tisch {selTable} · bereit zum Bestellen</p>}
           </div>
         </div>
-        <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
-          <Chip>⏱ ~3–8 Min</Chip><Chip>🌿 Bio</Chip><Chip>♻️ Mehrweg</Chip>
+        <div style={{display:"flex",gap:6,marginTop:16,flexWrap:"wrap"}}>
+          <Chip>⏱ ~3–8 Min</Chip><Chip>🤖 Robot-Lieferung</Chip><Chip>♻️ Mehrweg</Chip>
         </div>
       </div>
 
@@ -503,6 +550,27 @@ function HomeScreen(){
       )}
 
       <div style={{padding:"16px 16px 0"}}>
+        {/* First-time onboarding — So funktioniert's */}
+        {!seenIntro&&(
+          <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:"15px 16px 16px",marginBottom:14,border:`1.5px solid ${dk?"rgba(77,182,169,.25)":C.light}`,position:"relative",overflow:"hidden"}}>
+            <div style={{position:"absolute",top:-30,right:-20,opacity:.12,pointerEvents:"none"}}><Robert size={96} bob={false}/></div>
+            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:13}}>
+              <span style={{fontSize:13,fontWeight:800,color:C.primary,textTransform:"uppercase",letterSpacing:".04em"}}>👋 So funktioniert's</span>
+              <button onClick={dismissIntro} aria-label="Hinweis schließen" style={{marginLeft:"auto",width:26,height:26,borderRadius:"50%",background:C.surface2,border:"none",cursor:"pointer",color:C.textLight,fontSize:16,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
+            </div>
+            {[["📍","Tisch wählen & Getränk bestellen","Tippe deinen Tisch an und leg los"],["💳","Bequem bezahlen","Apple Pay, Google Pay oder Karte"],["🤖","Robert bringt's vor den Hörsaal","Du bekommst eine Push, sobald er da ist"]].map(([ic,t,d],i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:11,marginBottom:i<2?11:14,position:"relative"}}>
+                <div style={{width:34,height:34,borderRadius:"50%",background:dk?"rgba(77,182,169,.16)":C.light,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{ic}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontWeight:700,fontSize:13.5,color:C.text,lineHeight:1.25}}>{t}</p>
+                  <p style={{fontSize:11.5,color:C.textLight,marginTop:1}}>{d}</p>
+                </div>
+                <span style={{fontWeight:900,fontSize:13,color:dk?"rgba(255,255,255,.18)":"rgba(0,0,0,.12)",flexShrink:0}}>{i+1}</span>
+              </div>
+            ))}
+            <button onClick={dismissIntro} style={{width:"100%",padding:"11px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:14,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>Verstanden, los geht's →</button>
+          </div>
+        )}
         {/* Table picker */}
         <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16,marginBottom:14}}>
           <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".06em",marginBottom:11}}>Tisch wählen</p>
@@ -1286,7 +1354,7 @@ function OrderCard({o}){
       </div>
       {o.status==="ready"&&(
         <div style={{background:dk?"rgba(37,99,235,.14)":"#EFF6FF",border:`1.5px solid ${dk?"rgba(37,99,235,.45)":"#BFDBFE"}`,borderRadius:DS.radius.md,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:11}}>
-          <span style={{fontSize:28,flexShrink:0}}>🤖</span>
+          <div style={{flexShrink:0}}><Robert size={44}/></div>
           <div style={{flex:1,minWidth:0}}>
             <p style={{fontWeight:800,fontSize:13,color:dk?"#93C5FD":"#1E40AF"}}>Robert ist da! Jetzt abholen</p>
             <p style={{fontSize:11,color:dk?"#93C5FD":"#1E40AF",opacity:.85,marginTop:1}}>Dein Getränk wartet vor dem Hörsaal · Tisch {o.table}</p>
