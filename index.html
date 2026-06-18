@@ -208,7 +208,6 @@ const fmt    = n=>typeof n==="number"?n.toFixed(2).replace(".",",")+"\u00a0€":
 const tagSty = t=>({Beliebt:{bg:"#FEF3C7",cl:"#92400E"},Neu:{bg:"#DBEAFE",cl:"#1E40AF"},Vegan:{bg:"#D1FAE5",cl:"#065F46"}}[t]);
 const genId  = ()=>`${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 const playBell=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(t=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;o.type="sine";g.gain.setValueAtTime(.35,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.45);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.45);});}catch(e){}};
-const playChime=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.14,.28].forEach((t,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=[1047,1319,1568][i];o.type="sine";g.gain.setValueAtTime(.28,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.4);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.4);});}catch(e){}};
 const relTime=t=>{const d=Math.floor((Date.now()-t)/1000);if(d<60)return"gerade eben";if(d<3600)return"vor "+Math.floor(d/60)+" min";if(d<86400)return"vor "+Math.floor(d/3600)+" Std";return"vor "+Math.floor(d/86400)+" T";};
 
 /* ══════════════════════════════════════════════
@@ -1371,7 +1370,7 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,serviceCalls,dismissServiceCall,announcement,saveAnnouncement,ordersPaused,togglePause,specialId,setSpecial,nextSlot,setSlot,darkMode:dk}=useApp();const C=useC();
+  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,announcement,saveAnnouncement,ordersPaused,togglePause,specialId,setSpecial,nextSlot,setSlot,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
@@ -1507,9 +1506,9 @@ function AdminScreen(){
         {tab==="orders"&&(
           <div style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",marginBottom:8,paddingBottom:2,alignItems:"center"}}>
             <span style={{fontSize:11,color:C.textLight,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>Tisch:</span>
-            {["all",...TABLES].map(tb=>{const n=tb==="all"?allOrders.filter(o=>o.status!=="done").length:allOrders.filter(o=>o.table===tb&&o.status!=="done").length;const hasBill=serviceCalls.some(c=>c.table===tb&&c.type==="zahlen");return(
+            {["all",...TABLES].map(tb=>{const n=tb==="all"?allOrders.filter(o=>o.status!=="done").length:allOrders.filter(o=>o.table===tb&&o.status!=="done").length;return(
               <button key={tb} onClick={()=>setTableFilter(tb)} style={{padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:tableFilter===tb?C.dark:n>0?C.light:C.surface2,color:tableFilter===tb?"#fff":n>0?C.primary:C.textMid,transition:"all .15s",position:"relative"}}>
-                {tb==="all"?"Alle":tb}{n>0?<span style={{marginLeft:4,opacity:.8}}>({n})</span>:null}{hasBill&&tb!=="all"&&<span style={{position:"absolute",top:-3,right:-3,width:7,height:7,borderRadius:"50%",background:"#10B981",border:"2px solid transparent"}}/>}
+                {tb==="all"?"Alle":tb}{n>0?<span style={{marginLeft:4,opacity:.8}}>({n})</span>:null}
               </button>
             );})}
             <button onClick={()=>setSortOldest(s=>!s)} title={sortOldest?"Älteste zuerst (aktiv)":"Neueste zuerst (aktiv)"} style={{marginLeft:"auto",flexShrink:0,padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",background:C.surface2,color:C.textMid,whiteSpace:"nowrap"}}>
@@ -1521,14 +1520,12 @@ function AdminScreen(){
           const tOrds=allOrders.filter(o=>o.table===tableFilter);
           const tActive=tOrds.filter(o=>o.status!=="done");
           const tTotal=tOrds.reduce((s,o)=>s+(o.total||0),0);
-          const tBill=serviceCalls.some(c=>c.table===tableFilter&&c.type==="zahlen");
           return tOrds.length>0&&(
             <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"9px 13px",marginBottom:8,display:"flex",gap:12,alignItems:"center",boxShadow:DS.shadow.xs(dk)}}>
               <p style={{fontWeight:800,fontSize:13,color:C.text,flexShrink:0}}>Tisch {tableFilter}</p>
               <div style={{flex:1,display:"flex",gap:10,flexWrap:"wrap"}}>
                 {tActive.length>0&&<span style={{fontSize:11,color:C.textMid,fontWeight:600}}>{tActive.length} aktiv</span>}
                 {tTotal>0&&<span style={{fontSize:11,fontWeight:800,color:C.primary}}>{fmt(tTotal)} gesamt</span>}
-                {tBill&&<span style={{fontSize:11,fontWeight:700,color:"#059669"}}>💳 Zahlen angefordert</span>}
               </div>
             </div>
           );
@@ -1567,20 +1564,6 @@ function AdminScreen(){
             <span>{ordersPaused?"▶":"⏸"}</span>
             <span>{ordersPaused?"Bestellungen sind pausiert – zum Freigeben tippen":"Bestellungen pausieren"}</span>
           </button>
-        )}
-        {tab==="orders"&&serviceCalls.length>0&&(
-          <div style={{marginBottom:10}}>
-            {serviceCalls.sort((a,b)=>b.ts-a.ts).map(c=>{const isPay=c.type==="zahlen";return(
-              <div key={c.key} style={{background:isPay?(dk?"rgba(16,185,129,.12)":"#ECFDF5"):(dk?"rgba(245,158,11,.12)":"#FEF3C7"),border:`1.5px solid ${isPay?(dk?"rgba(16,185,129,.35)":"#6EE7B7"):(dk?"rgba(245,158,11,.3)":"#FDE68A")}`,borderRadius:DS.radius.md,padding:"10px 13px",marginBottom:6,display:"flex",alignItems:"center",gap:10}}>
-                <span style={{fontSize:20,flexShrink:0}}>{isPay?"💳":"🔔"}</span>
-                <div style={{flex:1}}>
-                  <p style={{fontWeight:800,fontSize:13,color:isPay?(dk?"#6EE7B7":"#065F46"):(dk?C.amber:"#92400E")}}>{isPay?`Tisch ${c.table} möchte zahlen`:`Tisch ${c.table} ruft nach Bedienung`}</p>
-                  <p style={{fontSize:11,color:C.textMid,marginTop:1}}>{c.time}</p>
-                </div>
-                <button onClick={()=>dismissServiceCall(c.key)} style={{background:isPay?(dk?"rgba(16,185,129,.2)":"#D1FAE5"):(dk?"rgba(245,158,11,.2)":"#FEF08A"),border:"none",borderRadius:DS.radius.sm,padding:"5px 11px",fontWeight:700,fontSize:11,cursor:"pointer",color:isPay?(dk?"#6EE7B7":"#065F46"):(dk?C.amber:"#78350F"),flexShrink:0,whiteSpace:"nowrap"}}>✓ Erledigt</button>
-              </div>
-            );})}
-          </div>
         )}
         {tab==="orders"&&catRevenue.length>1&&revenue>0&&(
           <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"10px 12px",marginBottom:10,boxShadow:DS.shadow.sm(dk)}}>
@@ -1803,7 +1786,6 @@ function App(){
   const[detailProduct,setDetailProduct]=useState(null);
   const[myOrders,setMyOrders]=useState(()=>{const ids=LS.get("zr_my_orders",[]);return ids.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);});
   const[allOrders,setAllOrders]=useState([]);
-  const[serviceCalls,setServiceCalls]=useState([]);
   const[announcement,setAnnouncement]=useState(()=>LS.get("zr_announce",""));
   const[ordersPaused,setOrdersPaused]=useState(()=>LS.get("zr_paused",false));
   const[confData,setConfData]=useState(null);
@@ -1814,7 +1796,7 @@ function App(){
   const[splash,setSplash]=useState(true);
   const{toasts,push}=useToast();
 
-  useEffect(()=>{const ready=myOrders.filter(o=>o.status==="ready").length;const newOrd=allOrders.filter(o=>o.status==="new").length;const svc=serviceCalls.length;if(ready>0)document.title=`🔔 Bereit! – zeitraum`;else if(newOrd>0||svc>0){const p=[];if(newOrd>0)p.push(`${newOrd} neu`);if(svc>0)p.push(`${svc} 🔔`);document.title=`(${p.join(", ")}) Admin – zeitraum`;}else document.title="zeitraum – Café & Bar";},[myOrders,allOrders,serviceCalls]);
+  useEffect(()=>{const ready=myOrders.filter(o=>o.status==="ready").length;const newOrd=allOrders.filter(o=>o.status==="new").length;if(ready>0)document.title=`🔔 Bereit! – zeitraum`;else if(newOrd>0)document.title=`(${newOrd} neu) Admin – zeitraum`;else document.title="zeitraum – Café & Bar";},[myOrders,allOrders]);
   useEffect(()=>{LS.set("zr_dark",darkMode);},[darkMode]);
   useEffect(()=>{LS.set("zr_cart",cart);},[cart]);
   useEffect(()=>{selTable?LS.set("zr_table",selTable):LS.del("zr_table");},[selTable]);
@@ -1922,36 +1904,15 @@ function App(){
     });
   },[push]);
 
-  const requestService=useCallback(async(type="service")=>{
-    if(!selTable)return;
-    const ts=Date.now();
-    const key=`svc_${selTable}_${ts}`;
-    const call={key,table:selTable,ts,type,time:new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"})};
-    if(hasSt)await Db.set(key,call,true);
-    else{const svcList=LS.get("zr_svc_list",[]);LS.set("zr_svc_list",[...svcList,key]);LS.set(key,call);}
-    LS.set(`zr_svc_last_${type}_${selTable}`,ts);
-    push(type==="zahlen"?"Zahlung angefordert ✓":"Bedienung gerufen ✓","success",4000);
-    if(navigator.vibrate)navigator.vibrate([30,15,30]);
-  },[selTable,push]);
-
-  const dismissServiceCall=useCallback(async(key)=>{
-    if(hasSt)await Db.del(key,true);
-    else{LS.del(key);LS.set("zr_svc_list",LS.get("zr_svc_list",[]).filter(k=>k!==key));}
-    setServiceCalls(prev=>prev.filter(c=>c.key!==key));
-  },[]);
-
   const loadAdminOrders=useCallback(async()=>{
-    let orders,svcs=[];
+    let orders;
     if(hasSt){
-      const[orderKeys,svcKeys]=await Promise.all([Db.list("order_",true),Db.list("svc_",true)]);
-      const[orderData,svcData]=await Promise.all([Promise.all(orderKeys.map(k=>Db.get(k,true))),Promise.all(svcKeys.map(k=>Db.get(k,true)))]);
-      orders=orderData;svcs=svcData.filter(Boolean);
+      const orderKeys=await Db.list("order_",true);
+      orders=await Promise.all(orderKeys.map(k=>Db.get(k,true)));
     } else {
       const allIds=LS.get("zr_all_orders",[]);
       orders=allIds.map(id=>LS.get(`zr_order_${id}`,null));
-      svcs=LS.get("zr_svc_list",[]).map(k=>LS.get(k,null)).filter(Boolean);
     }
-    setServiceCalls(prev=>{if(svcs.length>prev.length)playChime();return svcs;});
     const sorted=orders.filter(Boolean).sort((a,b)=>b.createdAt-a.createdAt);
     setAllOrders(prev=>{
       const newNow=sorted.filter(o=>o.status==="new").length;
@@ -2025,7 +1986,6 @@ function App(){
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,
-    serviceCalls,requestService,dismissServiceCall,
     announcement,saveAnnouncement,
     nextSlot,setSlot,
     ordersPaused,togglePause,
