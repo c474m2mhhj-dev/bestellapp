@@ -432,12 +432,10 @@ function SplashScreen(){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,requestService,addToCart,announcement,ordersPaused,specialId,nextSlot}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,addToCart,announcement,ordersPaused,specialId,nextSlot}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
-  const[svcTs,setSvcTs]=useState(()=>selTable?LS.get(`zr_svc_last_service_${selTable}`,null):null);
-  const[billTs,setBillTs]=useState(()=>selTable?LS.get(`zr_svc_last_zahlen_${selTable}`,null):null);
   const quickAdd=(p,e)=>{e.stopPropagation();if(p.sizes.length===1&&!p.milch&&!p.sirup){const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:"",ck:`${p.id}||${pr.toFixed(2)}`},1);}else{go("detail",p);}};
   const[annDismissed,setAnnDismissed]=useState(()=>sessionStorage.getItem("zr_ann_dismissed")||"");
   const[slotLabel,setSlotLabel]=useState("");
@@ -446,7 +444,6 @@ function HomeScreen(){
     const calc=()=>{const now=new Date();const[h,m]=nextSlot.split(":").map(Number);const sl=new Date(now);sl.setHours(h,m,0,0);const diff=sl-now;if(diff<0||diff>90*60*1000)return setSlotLabel("");const mins=Math.ceil(diff/60000);setSlotLabel(mins<=1?"Jetzt":"in "+mins+" Min");};
     calc();const t=setInterval(calc,30000);return()=>clearInterval(t);
   },[nextSlot]);
-  useEffect(()=>{setSvcTs(selTable?LS.get(`zr_svc_last_service_${selTable}`,null):null);setBillTs(selTable?LS.get(`zr_svc_last_zahlen_${selTable}`,null):null);},[selTable]);
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
   const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
@@ -544,24 +541,6 @@ function HomeScreen(){
           </button>
         );})()}
 
-        {/* Service calls */}
-        {selTable&&(()=>{
-          const COOL=5*60*1000;
-          const svcCool=svcTs&&(Date.now()-svcTs)<COOL;const svcMin=svcCool?Math.ceil((COOL-(Date.now()-svcTs))/60000):0;
-          const billCool=billTs&&(Date.now()-billTs)<COOL;const billMin=billCool?Math.ceil((COOL-(Date.now()-billTs))/60000):0;
-          return(
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:14}}>
-              <button onClick={()=>{if(svcCool)return;requestService("service");setSvcTs(Date.now());}} disabled={!!svcCool} style={{padding:"11px 10px",background:svcCool?(dk?"rgba(245,158,11,.1)":"#FFF7ED"):C.surface,borderRadius:DS.radius.md,display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:svcCool?"default":"pointer",border:`1.5px solid ${svcCool?(dk?C.amber+"44":"#FED7AA"):C.border}`,boxShadow:DS.shadow.xs(dk),textAlign:"center"}}>
-                <span style={{fontSize:22}}>{svcCool?"✓":"🔔"}</span>
-                <p style={{fontWeight:700,fontSize:12,color:svcCool?(dk?C.amber:"#C2410C"):C.text,lineHeight:1.3}}>{svcCool?`Gerufen · ${svcMin} Min`:"Bedienung rufen"}</p>
-              </button>
-              <button onClick={()=>{if(billCool)return;requestService("zahlen");setBillTs(Date.now());}} disabled={!!billCool} style={{padding:"11px 10px",background:billCool?(dk?"rgba(16,185,129,.1)":"#ECFDF5"):C.surface,borderRadius:DS.radius.md,display:"flex",flexDirection:"column",alignItems:"center",gap:5,cursor:billCool?"default":"pointer",border:`1.5px solid ${billCool?(dk?"rgba(16,185,129,.4)":"#6EE7B7"):C.border}`,boxShadow:DS.shadow.xs(dk),textAlign:"center"}}>
-                <span style={{fontSize:22}}>{billCool?"✓":"💳"}</span>
-                <p style={{fontWeight:700,fontSize:12,color:billCool?(dk?"#6EE7B7":"#065F46"):C.text,lineHeight:1.3}}>{billCool?`Angefordert · ${billMin} Min`:"Zahlen bitte"}</p>
-              </button>
-            </div>
-          );
-        })()}
         {/* Categories */}
         <p style={{fontWeight:800,fontSize:16,marginBottom:12,color:C.text}}>Kategorien</p>
         <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:9,marginBottom:18}}>
@@ -1087,6 +1066,26 @@ function CartScreen(){
     const extra=totalQty>3?2:totalQty>1?1:0;
     return base+extra;
   },[cart,products]);
+  const handlePay=async()=>{
+    if(!selTable||submitting||ordersPaused)return;
+    if("Notification" in window&&Notification.permission==="default")await Notification.requestPermission();
+    if(window.PaymentRequest){
+      try{
+        const methods=[{supportedMethods:"basic-card",data:{supportedNetworks:["visa","mastercard","amex"],supportedTypes:["credit","debit","prepaid"]}}];
+        const details={
+          total:{label:"zeitraum Café & Bar",amount:{currency:"EUR",value:tot.toFixed(2)}},
+          displayItems:[
+            ...cart.map(i=>({label:`${i.name} × ${i.qty}`,amount:{currency:"EUR",value:(i.price*i.qty).toFixed(2)}})),
+            ...(del>0?[{label:"Servicegebühr",amount:{currency:"EUR",value:del.toFixed(2)}}]:[]),
+          ],
+        };
+        const req=new PaymentRequest(methods,details);
+        const canPay=await req.canMakePayment();
+        if(canPay){const resp=await req.show();await resp.complete("success");await submitOrder(note);return;}
+      }catch(e){if(e.name==="AbortError")return;}
+    }
+    await submitOrder(note);
+  };
   return(
     <Screen>
       <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
@@ -1170,10 +1169,10 @@ function CartScreen(){
               <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>ca. {estWait} Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Geschätzt · nach Bestätigung</p></div>
             </div>
             {ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>⏸</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>Bestellungen momentan pausiert – bitte kurz warten!</p></div>}
-            <button onClick={()=>!ordersPaused&&submitOrder(note)} disabled={!selTable||submitting||ordersPaused} style={{width:"100%",padding:"18px",background:!selTable||submitting||ordersPaused?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!selTable||submitting||ordersPaused?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:!selTable||submitting||ordersPaused?"default":"pointer",boxShadow:selTable&&!submitting&&!ordersPaused?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
-              {submitting?"Wird gesendet…":ordersPaused?"Bestellungen pausiert":selTable?`Jetzt bestellen · ${fmt(tot)}`:"Bitte zuerst Tisch wählen"}
+            <button onClick={handlePay} disabled={!selTable||submitting||ordersPaused} style={{width:"100%",padding:"18px",background:!selTable||submitting||ordersPaused?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:!selTable||submitting||ordersPaused?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:!selTable||submitting||ordersPaused?"default":"pointer",boxShadow:selTable&&!submitting&&!ordersPaused?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
+              {submitting?"Wird gesendet…":ordersPaused?"Bestellungen pausiert":selTable?`💳 Bezahlen & Bestellen · ${fmt(tot)}`:"Bitte zuerst Tisch wählen"}
             </button>
-            <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginBottom:32}}>Bezahlung am Tisch · Keine Vorauszahlung</p>
+            <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginBottom:32}}>Apple Pay · Google Pay · Kreditkarte</p>
           </>
         )}
       </div>
@@ -1827,6 +1826,7 @@ function App(){
     Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
     Db.get("zr_special",true).then(v=>{if(v){setSpecialIdState(v);LS.set("zr_special",v);}});
     Db.get("zr_slot",true).then(v=>{if(v!=null){setNextSlotState(v);LS.set("zr_slot",v);}});
+    if("serviceWorker" in navigator){navigator.serviceWorker.register("./sw.js").catch(()=>{});}
   },[]);
 
   useEffect(()=>{const t=setTimeout(()=>setSplash(false),1400);return()=>clearTimeout(t);},[]);
@@ -1916,7 +1916,7 @@ function App(){
     setMyOrders(prev=>{
       const prevReadyIds=new Set(prev.filter(o=>o.status==="ready").map(o=>o.id));
       const newlyReady=next.filter(o=>o.status==="ready"&&!prevReadyIds.has(o.id));
-      if(newlyReady.length>0){playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(`🔔 Deine Bestellung ist bereit!`,"success",5000);if("Notification" in window&&Notification.permission==="granted"){try{new Notification("🔔 Deine Bestellung ist bereit!",{body:`Tisch ${newlyReady[0].table} – jetzt abholen!`,icon:"/favicon.ico"});}catch(e){}}}
+      if(newlyReady.length>0){playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(`🤖 Robert ist da! Getränk jetzt abholen.`,"success",6000);if(Notification.permission==="granted"){const body=`Dein Getränk wartet vor dem Hörsaal – Tisch ${newlyReady[0].table}. Bitte in den nächsten Minuten abholen!`;try{if("serviceWorker" in navigator){navigator.serviceWorker.ready.then(sw=>{if(sw.active)sw.active.postMessage({type:"ROBERT_ARRIVED",body});}).catch(()=>{if("Notification" in window)new Notification("🤖 Robert ist da!",{body,icon:"/favicon.ico"});});}else if("Notification" in window){new Notification("🤖 Robert ist da!",{body,icon:"/favicon.ico"});}}catch(e){}}}
 
       return next;
     });
