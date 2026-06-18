@@ -457,7 +457,7 @@ function HomeScreen(){
   const greet=hour<5?"Gute Nacht 🌙":hour<12?"Guten Morgen ☀️":hour<17?"Guten Tag 👋":hour<21?"Guten Abend 🌆":"Gute Nacht 🌙";
   const activeOrds=myOrders.filter(o=>o.status!=="done");
   const urgentOrd=activeOrds.find(o=>o.status==="ready")||activeOrds.find(o=>o.status==="making")||activeOrds[0];
-  const ordInfo={ready:{icon:"🔔",label:"Bereit – jetzt abholen!",bg:dk?"rgba(59,130,246,.18)":"#DBEAFE",cl:dk?"#93C5FD":"#1E40AF"},making:{icon:"👨‍🍳",label:"In Zubereitung…",bg:dk?"rgba(245,158,11,.15)":"#FEF3C7",cl:dk?"#FCD34D":"#92400E"},new:{icon:"✅",label:"Bestätigt",bg:dk?"rgba(16,185,129,.15)":"#D1FAE5",cl:dk?"#6EE7B7":"#065F46"}};
+  const ordInfo={ready:{icon:"🤖",label:"Robert ist da – jetzt abholen!",bg:dk?"rgba(59,130,246,.18)":"#DBEAFE",cl:dk?"#93C5FD":"#1E40AF"},making:{icon:"👨‍🍳",label:"In Zubereitung…",bg:dk?"rgba(245,158,11,.15)":"#FEF3C7",cl:dk?"#FCD34D":"#92400E"},new:{icon:"✅",label:"Bestätigt",bg:dk?"rgba(16,185,129,.15)":"#D1FAE5",cl:dk?"#6EE7B7":"#065F46"}};
 
   return(
     <Screen>
@@ -1234,10 +1234,10 @@ function CartScreen(){
    ORDER TRACKING
 ══════════════════════════════════════════════ */
 const STEPS=[
-  {key:"new",    label:"Bestätigt",      icon:"✅",color:"#00695C"},
-  {key:"making", label:"In Zubereitung", icon:"👨‍🍳",color:"#F59E0B"},
-  {key:"ready",  label:"Bereit",         icon:"🔔",color:"#2563EB"},
-  {key:"done",   label:"Serviert ✓",    icon:"🎉",color:"#16A34A"},
+  {key:"new",    label:"Bestätigt",   icon:"✅",color:"#00695C"},
+  {key:"making", label:"Zubereitung", icon:"👨‍🍳",color:"#F59E0B"},
+  {key:"ready",  label:"Robert da",   icon:"🤖",color:"#2563EB"},
+  {key:"done",   label:"Abgeholt ✓",  icon:"🎉",color:"#16A34A"},
 ];
 function OrderCard({o}){
   const C=useC(),{darkMode:dk,addToCart,go,products}=useApp();
@@ -1284,6 +1284,15 @@ function OrderCard({o}){
           </div>
         ))}
       </div>
+      {o.status==="ready"&&(
+        <div style={{background:dk?"rgba(37,99,235,.14)":"#EFF6FF",border:`1.5px solid ${dk?"rgba(37,99,235,.45)":"#BFDBFE"}`,borderRadius:DS.radius.md,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:11}}>
+          <span style={{fontSize:28,flexShrink:0}}>🤖</span>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontWeight:800,fontSize:13,color:dk?"#93C5FD":"#1E40AF"}}>Robert ist da! Jetzt abholen</p>
+            <p style={{fontSize:11,color:dk?"#93C5FD":"#1E40AF",opacity:.85,marginTop:1}}>Dein Getränk wartet vor dem Hörsaal · Tisch {o.table}</p>
+          </div>
+        </div>
+      )}
       <div style={{paddingTop:9,borderTop:`1px solid ${C.border}`}}>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center",marginBottom:9}}>
           {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>{it.emoji?it.emoji+" ":""}{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
