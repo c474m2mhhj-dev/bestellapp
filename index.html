@@ -206,6 +206,20 @@ const EXTRA_PRICE= 0.20;
 const FREE_ABOVE = 15;
 const DEL_FEE    = 0.99;
 
+/* Loyalty — Bestellpunkte */
+const PTS_BONUS  = 10;   // flat Punkte pro Bestellung
+const VOUCHER_AT = 100;  // alle 100 Punkte = 1 Freigetränk
+const AVATARS    = ["🙂","😎","🦊","🐼","🐨","🦉","🐱","🐶","🦄","🐸","🤓","🧑‍🎓","☕","🌟","🚀","🌈"];
+const TIERS      = [
+  {min:0,   name:"Neuling",   emoji:"🌱", color:"#16A34A"},
+  {min:80,  name:"Stammgast", emoji:"⭐", color:"#D4A843"},
+  {min:200, name:"Kenner",    emoji:"🏆", color:"#2563EB"},
+  {min:400, name:"Legende",   emoji:"👑", color:"#9333EA"},
+];
+const tierOf     = pts=>{let t=TIERS[0];for(const x of TIERS)if(pts>=x.min)t=x;return t;};
+const nextTierOf = pts=>TIERS.find(x=>x.min>pts)||null;
+const ptsForOrder= total=>PTS_BONUS+Math.round(total);
+
 /* ══════════════════════════════════════════════
    UTILS
 ══════════════════════════════════════════════ */
@@ -477,7 +491,7 @@ function SplashScreen(){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,addToCart,announcement,ordersPaused,specialId,nextSlot}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,addToCart,announcement,ordersPaused,specialId,nextSlot,user}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
@@ -512,9 +526,15 @@ function HomeScreen(){
         <div style={{position:"absolute",bottom:-50,left:-40,width:150,height:150,borderRadius:"50%",background:"rgba(255,255,255,.03)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <p style={{fontSize:11,opacity:.6,fontWeight:700,letterSpacing:".08em",textTransform:"uppercase",color:"#fff"}}>{greet}</p>
-          <button onClick={()=>setDarkMode(d=>!d)} aria-label="Dark Mode" style={{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.3)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:17,flexShrink:0}}>
-            {dk?"☀️":"🌙"}
-          </button>
+          <div style={{display:"flex",gap:8,alignItems:"center"}}>
+            <button onClick={()=>go("profile")} aria-label="Mein Profil" style={{display:"flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.3)",borderRadius:999,padding:"4px 11px 4px 5px",cursor:"pointer",color:"#fff"}}>
+              <span style={{width:27,height:27,borderRadius:"50%",background:"rgba(255,255,255,.22)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:15,flexShrink:0}}>{user.avatar||"🙂"}</span>
+              <span style={{fontWeight:800,fontSize:13,whiteSpace:"nowrap"}}>{user.points||0} P</span>
+            </button>
+            <button onClick={()=>setDarkMode(d=>!d)} aria-label="Dark Mode" style={{width:38,height:38,borderRadius:"50%",background:"rgba(255,255,255,.18)",border:"1.5px solid rgba(255,255,255,.3)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",fontSize:17,flexShrink:0}}>
+              {dk?"☀️":"🌙"}
+            </button>
+          </div>
         </div>
         <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
           <div style={{flexShrink:0,filter:"drop-shadow(0 6px 14px rgba(0,0,0,.28))"}}><Robert size={84}/></div>
@@ -1387,10 +1407,16 @@ function OrderConfScreen(){
         </div>
         <p style={{fontSize:26,fontWeight:900,color:C.text,marginBottom:8}}>Bestellung aufgegeben!</p>
         <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>Tisch {confData.table} · #{String(confData.createdAt).slice(-4)}</p>
-        <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:"14px 22px",marginBottom:28,boxShadow:DS.shadow.md(dk),width:"100%",maxWidth:280}}>
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:"14px 22px",marginBottom:16,boxShadow:DS.shadow.md(dk),width:"100%",maxWidth:280}}>
           <p style={{fontSize:13,color:C.textLight,marginBottom:4}}>{confData.itemCount} Artikel · {fmt(confData.total)}</p>
           <p style={{fontSize:16,fontWeight:800,color:C.primary}}>⏱ ca. {confData.wait} Min Zubereitung</p>
         </div>
+        {confData.earned>0&&(
+          <div style={{background:dk?"rgba(212,168,67,.14)":"#FFFBEB",border:`1.5px solid ${dk?"rgba(212,168,67,.35)":"#FDE68A"}`,borderRadius:DS.radius.lg,padding:"12px 20px",marginBottom:28,width:"100%",maxWidth:280}}>
+            <p style={{fontSize:15,fontWeight:800,color:dk?"#FCD34D":"#B45309"}}>+{confData.earned} Bestellpunkte 🎉</p>
+            <p style={{fontSize:12,color:dk?"#FCD34D":"#B45309",opacity:.85,marginTop:2}}>{confData.voucherUnlocked?"🎁 Freigetränk freigeschaltet!":`Punktestand: ${confData.points}`}</p>
+          </div>
+        )}
         <button onClick={()=>go("orders")} style={{padding:"13px 28px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:15,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>Bestellung verfolgen →</button>
         <p style={{marginTop:14,fontSize:11,color:C.textLight}}>Weiterleitung in Kürze…</p>
       </div>
@@ -1895,6 +1921,110 @@ function AdminScreen(){
 }
 
 /* ══════════════════════════════════════════════
+   PROFILE — account + Bestellpunkte
+══════════════════════════════════════════════ */
+function ProfileScreen(){
+  const{go,user,saveUser,push,darkMode:dk}=useApp();const C=useC();
+  const[name,setName]=useState(user.name||"");
+  const[avatar,setAvatar]=useState(user.avatar||"🙂");
+  const[code,setCode]=useState(null);
+  const pts=user.points||0;
+  const tier=tierOf(pts), next=nextTierOf(pts);
+  const tierPct=next?Math.min(100,Math.round(((pts-tier.min)/(next.min-tier.min))*100)):100;
+  const avail=Math.floor(pts/VOUCHER_AT)-(user.vouchersUsed||0);
+  const toVoucher=VOUCHER_AT-(pts%VOUCHER_AT);
+  const dirty=name.trim()!==(user.name||"")||avatar!==(user.avatar||"🙂");
+  const save=()=>{saveUser({name:name.trim(),avatar});push("Profil gespeichert ✓","success");};
+  const redeem=()=>{if(avail<=0)return;const c="ZR-"+Math.random().toString(36).slice(2,7).toUpperCase();setCode(c);saveUser({vouchersUsed:(user.vouchersUsed||0)+1});push("Gutschein eingelöst 🎉","success",4000);};
+  const memberSince=new Date(user.createdAt||Date.now()).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
+  return(
+    <Screen>
+      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"46px 18px 30px",borderBottomLeftRadius:32,borderBottomRightRadius:32,position:"relative",overflow:"hidden"}}>
+        <div style={{position:"absolute",top:-50,right:-50,width:170,height:170,borderRadius:"50%",background:"rgba(255,255,255,.05)",pointerEvents:"none"}}/>
+        <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:18}}>
+          <BackBtn onPress={()=>go("home")}/>
+          <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Mein Profil</p>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:14,position:"relative"}}>
+          <div style={{width:62,height:62,borderRadius:"50%",background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.4)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:32,flexShrink:0}}>{user.avatar||"🙂"}</div>
+          <div style={{color:"#fff",flex:1,minWidth:0}}>
+            <p style={{fontWeight:900,fontSize:20,lineHeight:1.1,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{user.name||"Gast"}</p>
+            <div style={{display:"inline-flex",alignItems:"center",gap:5,marginTop:6,background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.3)",borderRadius:999,padding:"3px 10px"}}>
+              <span style={{fontSize:13}}>{tier.emoji}</span>
+              <span style={{fontWeight:800,fontSize:12}}>{tier.name}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{padding:"16px 16px 0"}}>
+        {/* Points card */}
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:18,marginBottom:14}}>
+          <div style={{display:"flex",alignItems:"baseline",gap:8,marginBottom:3}}>
+            <p style={{fontSize:38,fontWeight:900,color:C.primary,lineHeight:1}}>{pts}</p>
+            <p style={{fontSize:14,fontWeight:700,color:C.textMid}}>Bestellpunkte</p>
+          </div>
+          <p style={{fontSize:12,color:C.textLight,marginBottom:14}}>{next?`Noch ${next.min-pts} bis ${next.emoji} ${next.name}`:"Höchste Stufe erreicht 👑"}</p>
+          {next&&(
+            <div style={{height:8,background:C.surface2,borderRadius:4,overflow:"hidden",marginBottom:16}}>
+              <div style={{height:"100%",width:`${tierPct}%`,background:`linear-gradient(90deg,${C.primary},${C.accent})`,borderRadius:4,transition:"width .5s ease"}}/>
+            </div>
+          )}
+          <div style={{background:dk?"rgba(212,168,67,.12)":"#FFFBEB",border:`1.5px solid ${dk?"rgba(212,168,67,.3)":"#FDE68A"}`,borderRadius:DS.radius.md,padding:"12px 14px",display:"flex",alignItems:"center",gap:11}}>
+            <span style={{fontSize:24,flexShrink:0}}>🎁</span>
+            <div style={{flex:1,minWidth:0}}>
+              {avail>0
+                ?<><p style={{fontWeight:800,fontSize:13,color:dk?"#FCD34D":"#B45309"}}>{avail}× Freigetränk verfügbar!</p><p style={{fontSize:11,color:dk?"#FCD34D":"#B45309",opacity:.85,marginTop:1}}>Beim Personal einlösen</p></>
+                :<><p style={{fontWeight:800,fontSize:13,color:C.text}}>Nächstes Freigetränk</p><p style={{fontSize:11,color:C.textLight,marginTop:1}}>Noch {toVoucher} Punkte sammeln</p></>
+              }
+            </div>
+            {avail>0&&<button onClick={redeem} style={{flexShrink:0,padding:"8px 14px",borderRadius:DS.radius.sm,background:C.accent,color:"#3A2A00",fontWeight:800,fontSize:12,border:"none",cursor:"pointer"}}>Einlösen</button>}
+          </div>
+          {code&&(
+            <div style={{marginTop:11,background:dk?"rgba(16,185,129,.12)":"#ECFDF5",border:`1.5px dashed ${C.primary}`,borderRadius:DS.radius.md,padding:"11px 14px",textAlign:"center"}}>
+              <p style={{fontSize:11,color:C.textMid,marginBottom:3}}>Dein Gutschein-Code – beim Personal zeigen</p>
+              <p style={{fontWeight:900,fontSize:20,color:C.primary,letterSpacing:".08em",fontFamily:"monospace"}}>{code}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Stats */}
+        <div style={{display:"flex",gap:9,marginBottom:14}}>
+          {[["🧾",user.totalOrders||0,"Bestellungen"],["💶",fmt(user.totalSpent||0),"Ausgegeben"],["🏅",memberSince,"Dabei seit"]].map(([ic,v,l])=>(
+            <div key={l} style={{flex:1,background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:"12px 8px",textAlign:"center"}}>
+              <div style={{fontSize:18,marginBottom:4}}>{ic}</div>
+              <p style={{fontWeight:800,fontSize:13,color:C.text,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{v}</p>
+              <p style={{fontSize:10,color:C.textLight,marginTop:2}}>{l}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Edit profile */}
+        <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.sm(dk),padding:16,marginBottom:14}}>
+          <p style={{fontWeight:800,fontSize:14,color:C.text,marginBottom:11}}>Profil bearbeiten</p>
+          <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".05em",marginBottom:7}}>Name</p>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Dein Name oder Spitzname" maxLength={24} style={{width:"100%",padding:"11px 13px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:15,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none",marginBottom:14}}/>
+          <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Avatar</p>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(8,1fr)",gap:6,marginBottom:15}}>
+            {AVATARS.map(a=>(
+              <button key={a} onClick={()=>setAvatar(a)} style={{aspectRatio:"1",borderRadius:DS.radius.sm,border:`2px solid ${avatar===a?C.primary:C.border}`,background:avatar===a?C.light:C.surface2,fontSize:19,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",padding:0}}>{a}</button>
+            ))}
+          </div>
+          <button onClick={save} disabled={!dirty} style={{width:"100%",padding:"12px",background:dirty?`linear-gradient(135deg,${C.dark},${C.primary})`:C.surface2,color:dirty?"#fff":C.textLight,borderRadius:DS.radius.md,fontWeight:800,fontSize:14,border:"none",cursor:dirty?"pointer":"default",boxShadow:dirty?DS.shadow.green(dk):"none"}}>Speichern</button>
+        </div>
+
+        {/* How points work */}
+        <div style={{background:dk?"rgba(77,182,169,.08)":C.light,borderRadius:DS.radius.md,padding:"13px 15px",marginBottom:24,display:"flex",gap:10}}>
+          <span style={{fontSize:16,flexShrink:0}}>💡</span>
+          <p style={{fontSize:12,color:dk?C.textMid:C.dark,lineHeight:1.5}}>Du sammelst <strong>{PTS_BONUS} Punkte je Bestellung</strong> plus <strong>1 Punkt je €</strong>. Bei <strong>{VOUCHER_AT} Punkten</strong> gibt's ein Freigetränk gratis 🤖☕</p>
+        </div>
+      </div>
+      <BottomNav/>
+    </Screen>
+  );
+}
+
+/* ══════════════════════════════════════════════
    APP
 ══════════════════════════════════════════════ */
 function App(){
@@ -1912,6 +2042,11 @@ function App(){
   const[confData,setConfData]=useState(null);
   const[specialId,setSpecialIdState]=useState(()=>LS.get("zr_special",null));
   const[nextSlot,setNextSlotState]=useState(()=>LS.get("zr_slot",""));
+  const[user,setUser]=useState(()=>{
+    let u=LS.get("zr_user",null);
+    if(!u||!u.id){u={id:genId(),name:"",avatar:"🙂",points:0,totalOrders:0,totalSpent:0,vouchersUsed:0,createdAt:Date.now()};LS.set("zr_user",u);}
+    return u;
+  });
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
@@ -1965,6 +2100,10 @@ function App(){
   const removeItem=useCallback((ck)=>setCart(prev=>prev.filter(i=>i.ck!==ck)),[]);
   const setItemNote=useCallback((ck,note)=>setCart(prev=>prev.map(i=>i.ck===ck?{...i,note}:i)),[]);
 
+  const saveUser=useCallback((patch)=>{
+    setUser(prev=>{const next={...prev,...patch};LS.set("zr_user",next);Db.set(`user_${next.id}`,next,true);return next;});
+  },[]);
+
   const submitOrder=useCallback(async(note)=>{
     if(!selTable||submitting)return;
     setSubmitting(true);
@@ -1995,15 +2134,19 @@ function App(){
       const wait=base+(tQty>3?2:tQty>1?1:0);
       setCart([]);
       LS.del("zr_note");
+      const earned=ptsForOrder(order.total);
+      const newPoints=(user.points||0)+earned;
+      const voucherUnlocked=Math.floor(newPoints/VOUCHER_AT)>Math.floor((user.points||0)/VOUCHER_AT);
+      saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100});
       if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
-      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,total:order.total,itemCount:tQty,wait});
+      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked});
       go("conf");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
     }finally{
       setSubmitting(false);
     }
-  },[cart,selTable,submitting,push,go,products]);
+  },[cart,selTable,submitting,push,go,products,user,saveUser]);
 
   const syncOrders=useCallback(async()=>{
     if(hasSt)Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
@@ -2112,9 +2255,10 @@ function App(){
     ordersPaused,togglePause,
     confData,
     specialId,setSpecial,
+    user,saveUser,push,
   };
 
-  const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,conf:OrderConfScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen};
+  const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,conf:OrderConfScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen,profile:ProfileScreen};
   const S=screens[screen]||HomeScreen;
 
   if(splash)return<Ctx.Provider value={ctx}><SplashScreen/></Ctx.Provider>;
