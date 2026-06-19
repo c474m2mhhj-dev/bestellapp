@@ -102,8 +102,8 @@ const DS = {
    run the SQL in BACKEND_SETUP.md, then paste url + anon key here.
 ══════════════════════════════════════════════ */
 const BACKEND = {
-  url: "",   // z.B. "https://abcd1234.supabase.co"
-  key: "",   // Supabase anon/public key (mit RLS unbedenklich im Client)
+  url: "https://gxjiuysiodkloowaecws.supabase.co",   // Supabase Project URL
+  key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4aml1eXNpb2RrbG9vd2FlY3dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NjczMTAsImV4cCI6MjA5NzQ0MzMxMH0.sjKKPPH737IP7DLTe-ObZQBPj8pP1K44tHe_bpwdz6o",   // anon/public key (mit RLS unbedenklich im Client)
 };
 const hasRemote = !!(BACKEND.url && BACKEND.key);
 const hasSt = typeof window!=="undefined" && typeof window.storage!=="undefined";
