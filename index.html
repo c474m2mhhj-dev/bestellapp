@@ -1085,7 +1085,6 @@ function DetailScreen(){
             {label:"Lactosefrei",show:!!p.milch},
             {label:"Hafermilch",show:!!p.milch},
             {label:"Wenig Eis",show:p.cat==="Iced Drinks"},
-            {label:"Extra Schuss",show:["Heiße Getränke","Iced Drinks"].includes(p.cat)},
             {label:"Extra Zucker",show:!["Kaltgetränke","Snacks"].includes(p.cat)},
             {label:"Vegan",show:!p.milch},
           ])}
@@ -1234,8 +1233,23 @@ function CartScreen(){
   const tot=Math.max(0,Math.round((sub+del-freeAmount)*100)/100);
   const upsell=useMemo(()=>{
     const inCart=new Set(cart.map(i=>i.id));
-    const cartCats=new Set(cart.map(i=>products.find(p=>p.id===i.id)?.cat).filter(Boolean));
-    return products.filter(p=>p.available&&p.pop&&!inCart.has(p.id)&&!cartCats.has(p.cat)).slice(0,3);
+    const cats=cart.map(i=>products.find(p=>p.id===i.id)?.cat).filter(Boolean);
+    const FOOD_CATS=["Gebäck","Snacks"];
+    const hasDrink=cats.some(c=>DRINK_CATS.includes(c));
+    const hasFood=cats.some(c=>FOOD_CATS.includes(c));
+    const avail=products.filter(p=>p.available&&!inCart.has(p.id));
+    const byPop=arr=>arr.slice().sort((a,b)=>(b.pop?1:0)-(a.pop?1:0));
+    // Pairing: drink in cart → suggest something to eat (never another drink); food but no drink → suggest a drink
+    let pool;
+    if(hasDrink) pool=avail.filter(p=>FOOD_CATS.includes(p.cat));
+    else if(hasFood) pool=avail.filter(p=>DRINK_CATS.includes(p.cat));
+    else pool=avail.filter(p=>p.pop);
+    let res=byPop(pool).slice(0,3);
+    if(res.length<3){ // top up with popular items, still avoiding another drink when a drink is in the cart
+      const have=new Set(res.map(p=>p.id));
+      res=[...res,...byPop(avail.filter(p=>p.pop&&!have.has(p.id)&&!(hasDrink&&DRINK_CATS.includes(p.cat)))).slice(0,3-res.length)];
+    }
+    return res.slice(0,3);
   },[cart,products]);
   const estWait=useMemo(()=>{
     const CAT_MIN={Kaltgetränke:1,Snacks:2,Gebäck:3,Sonstiges:2};
