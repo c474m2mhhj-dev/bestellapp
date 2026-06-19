@@ -570,7 +570,21 @@ function HomeScreen(){
     calc();const t=setInterval(calc,30000);return()=>clearInterval(t);
   },[nextSlot]);
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
-  const pop=useMemo(()=>products.filter(p=>p.pop&&p.available).slice(0,6),[products]);
+  const[temp,setTemp]=useState(null);
+  useEffect(()=>{
+    let on=true;
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=49.8989&longitude=8.8489&current=temperature_2m")
+      .then(r=>r.json()).then(d=>{if(on&&d?.current?.temperature_2m!=null)setTemp(d.current.temperature_2m);}).catch(()=>{});
+    return()=>{on=false;};
+  },[]);
+  const pop=useMemo(()=>{
+    let list=products.filter(p=>p.pop&&p.available);
+    if(temp!=null){
+      const boost=temp>=20?["Iced Drinks","Kaltgetränke"]:temp<=11?["Heiße Getränke"]:null;
+      if(boost)list=[...list].sort((a,b)=>(boost.includes(b.cat)?1:0)-(boost.includes(a.cat)?1:0));
+    }
+    return list.slice(0,6);
+  },[products,temp]);
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
   const special=useMemo(()=>specialId?products.find(p=>p.id===specialId&&p.available)||null:null,[specialId,products]);
   const favProds=useMemo(()=>favs.map(id=>products.find(p=>p.id===id&&p.available)).filter(Boolean),[favs,products]);
@@ -799,10 +813,13 @@ function HomeScreen(){
             </div>
           </div>
         )}
-        {/* Popular */}
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-          <p style={{fontWeight:800,fontSize:16,color:C.text}}>⭐ Beliebt heute</p>
-          <button onClick={()=>go("menu")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer"}}>Alle →</button>
+        {/* Popular — weather-aware (Dieburg) */}
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:12}}>
+          <div>
+            <p style={{fontWeight:800,fontSize:16,color:C.text}}>⭐ Beliebt heute</p>
+            {temp!=null&&<p style={{fontSize:11,color:C.textLight,marginTop:2}}>{temp>=20?"☀️":temp<=11?"❄️":"⛅"} {Math.round(temp)}°C in Dieburg · {temp>=20?"Erfrischendes zuerst":temp<=11?"Wärmendes zuerst":"für jedes Wetter"}</p>}
+          </div>
+          <button onClick={()=>go("menu")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer",flexShrink:0}}>Alle →</button>
         </div>
         <div style={{display:"flex",gap:12,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16}}>
           {loading
