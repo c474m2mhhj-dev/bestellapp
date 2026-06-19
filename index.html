@@ -1219,12 +1219,18 @@ function CartScreen(){
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
   const[undoItem,setUndoItem]=useState(null);
   const[payOpen,setPayOpen]=useState(false);
+  const[useVoucher,setUseVoucher]=useState(false);
   const undoRef=useRef(null);
   const handleRemove=useCallback((item)=>{clearTimeout(undoRef.current);setUndoItem({...item});removeItem(item.ck);undoRef.current=setTimeout(()=>setUndoItem(null),5000);},[removeItem]);
   useEffect(()=>{LS.set("zr_note",note);},[note]);
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const del=sub>=FREE_ABOVE?0:DEL_FEE;
-  const tot=sub+del;
+  const availVouchers=Math.floor((user?.points||0)/VOUCHER_AT)-(user?.vouchersUsed||0);
+  const drinkPrices=cart.filter(i=>{const p=products.find(x=>x.id===i.id);return p&&["Heiße Getränke","Iced Drinks","Kaltgetränke"].includes(p.cat);}).map(i=>i.price);
+  const freeBase=drinkPrices.length?Math.max(...drinkPrices):0;
+  const voucherActive=useVoucher&&availVouchers>0&&freeBase>0;
+  const freeAmount=voucherActive?freeBase:0;
+  const tot=Math.max(0,Math.round((sub+del-freeAmount)*100)/100);
   const upsell=useMemo(()=>{
     const inCart=new Set(cart.map(i=>i.id));
     const cartCats=new Set(cart.map(i=>products.find(p=>p.id===i.id)?.cat).filter(Boolean));
@@ -1311,11 +1317,24 @@ function CartScreen(){
                 </div>
               </div>
             )}
+            {/* Freigetränk-Gutschein einlösen */}
+            {availVouchers>0&&(
+              <button onClick={()=>{if(freeBase>0)setUseVoucher(v=>!v);}} style={{width:"100%",textAlign:"left",background:voucherActive?(dk?"rgba(212,168,67,.16)":"#FFFBEB"):C.surface,border:`1.5px solid ${voucherActive?(dk?"rgba(212,168,67,.5)":"#FDE68A"):C.border}`,borderRadius:DS.radius.md,boxShadow:DS.shadow.xs(dk),padding:"12px 14px",marginBottom:9,display:"flex",alignItems:"center",gap:11,cursor:freeBase>0?"pointer":"default"}}>
+                <span style={{fontSize:22,flexShrink:0}}>🎁</span>
+                <div style={{flex:1,minWidth:0}}>
+                  <p style={{fontWeight:800,fontSize:13,color:dk?"#FCD34D":"#B45309"}}>Freigetränk einlösen</p>
+                  <p style={{fontSize:11,color:C.textMid,marginTop:1}}>{freeBase>0?(voucherActive?`Dein teuerstes Getränk gratis · −${fmt(freeBase)}`:`${availVouchers} verfügbar · teuerstes Getränk gratis`):"Füge ein Getränk hinzu, um es einzulösen"}</p>
+                </div>
+                <div style={{width:46,height:27,borderRadius:14,background:voucherActive?C.primary:C.border,flexShrink:0,position:"relative",transition:"background .2s",opacity:freeBase>0?1:.5}}>
+                  <div style={{position:"absolute",top:3,left:voucherActive?22:3,width:21,height:21,borderRadius:"50%",background:"#fff",transition:"left .2s",boxShadow:"0 1px 3px rgba(0,0,0,.3)"}}/>
+                </div>
+              </button>
+            )}
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
-              {[["Zwischensumme",fmt(sub)],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del)]].map(([l,v])=>(
+              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.textMid,marginBottom:7}}>
                   <span>{l}</span>
-                  <span style={{fontWeight:600,color:l==="Servicegebühr"&&del===0?C.primary:C.text}}>{v}</span>
+                  <span style={{fontWeight:600,color:cl}}>{v}</span>
                 </div>
               ))}
               <div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,display:"flex",justifyContent:"space-between",fontWeight:800,fontSize:17}}>
@@ -1350,7 +1369,7 @@ function CartScreen(){
           <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
         </div>
       )}
-      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note);setPayOpen(false);}}/>}
+      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note,freeAmount>0?{discount:freeAmount}:null);setPayOpen(false);}}/>}
       <BottomNav/>
     </Screen>
   );
@@ -2142,7 +2161,7 @@ function App(){
     setUser(prev=>{const next={...prev,...patch};LS.set("zr_user",next);Db.set(`user_${next.id}`,next,true);return next;});
   },[]);
 
-  const submitOrder=useCallback(async(note)=>{
+  const submitOrder=useCallback(async(note,opts)=>{
     if(!selTable||submitting)return;
     setSubmitting(true);
     try{
@@ -2150,13 +2169,15 @@ function App(){
       const now=new Date();
       const sub=Math.round(cart.reduce((s,i)=>s+i.price*i.qty,0)*100)/100;
       const del=sub>=FREE_ABOVE?0:DEL_FEE;
+      const discount=Math.min(Math.max(0,opts?.discount||0),sub+del);
       const order={
         id,createdAt:Date.now(),
         table:selTable,
         time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
         status:"new",
         items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note,id:i.id,emoji:i.emoji,img:i.img,price:i.price,size:i.size})),
-        total:Math.round((sub+del)*100)/100,
+        total:Math.round((sub+del-discount)*100)/100,
+        voucher:discount>0?Math.round(discount*100)/100:0,
         note:note.trim(),
       };
       const myIds=LS.get("zr_my_orders",[]);
@@ -2175,9 +2196,9 @@ function App(){
       const earned=ptsForOrder(order.total);
       const newPoints=(user.points||0)+earned;
       const voucherUnlocked=Math.floor(newPoints/VOUCHER_AT)>Math.floor((user.points||0)/VOUCHER_AT);
-      saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100});
+      saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100,vouchersUsed:(user.vouchersUsed||0)+(discount>0?1:0)});
       if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
-      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked});
+      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
       go("conf");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
