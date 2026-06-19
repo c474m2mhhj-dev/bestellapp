@@ -91,13 +91,39 @@ const DS = {
 
 /* ══════════════════════════════════════════════
    STORAGE
+   Shared backend for cross-device sync (orders → kitchen,
+   products, announcements, accounts & Bestellpunkte).
+
+   Priority:  1) Supabase REST backend (BACKEND below)
+              2) window.storage (Claude preview sandbox)
+              3) localStorage only (offline / single device)
+
+   To go live across devices: create a free Supabase project,
+   run the SQL in BACKEND_SETUP.md, then paste url + anon key here.
 ══════════════════════════════════════════════ */
+const BACKEND = {
+  url: "",   // z.B. "https://abcd1234.supabase.co"
+  key: "",   // Supabase anon/public key (mit RLS unbedenklich im Client)
+};
+const hasRemote = !!(BACKEND.url && BACKEND.key);
 const hasSt = typeof window!=="undefined" && typeof window.storage!=="undefined";
+
+/* Supabase PostgREST adapter over a single kv(key,shared,value) table */
+const sbHead = ()=>({apikey:BACKEND.key,Authorization:"Bearer "+BACKEND.key,"Content-Type":"application/json"});
+const sbUrl  = ()=>BACKEND.url.replace(/\/$/,"")+"/rest/v1/kv";
+const sbBool = b=>b?"is.true":"is.false";
+const Remote = {
+  set: async(k,v,sh)=>{ await fetch(sbUrl(),{method:"POST",headers:{...sbHead(),Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({key:k,shared:!!sh,value:v,updated_at:new Date().toISOString()})}); },
+  get: async(k,sh)=>{ const r=await fetch(sbUrl()+"?select=value&key=eq."+encodeURIComponent(k)+"&shared="+sbBool(sh),{headers:sbHead()}); if(!r.ok)return null; const a=await r.json(); return a.length?a[0].value:null; },
+  list:async(p,sh)=>{ const r=await fetch(sbUrl()+"?select=key&shared="+sbBool(sh)+"&key=like."+encodeURIComponent(p)+"*",{headers:sbHead()}); if(!r.ok)return[]; const a=await r.json(); return a.map(x=>x.key); },
+  del: async(k,sh)=>{ await fetch(sbUrl()+"?key=eq."+encodeURIComponent(k)+"&shared="+sbBool(sh),{method:"DELETE",headers:sbHead()}); },
+};
 const Db = {
-  set:  async(k,v,sh=false)=>{ if(!hasSt)return; try{await window.storage.set(k,JSON.stringify(v),sh)}catch(e){} },
-  get:  async(k,sh=false)  =>{ if(!hasSt)return null; try{const r=await window.storage.get(k,sh);return r?JSON.parse(r.value):null}catch(e){return null} },
-  list: async(p,sh=false)  =>{ if(!hasSt)return[]; try{const r=await window.storage.list(p,sh);return r?r.keys:[]}catch(e){return[]} },
-  del:  async(k,sh=false)  =>{ if(!hasSt)return; try{await window.storage.delete(k,sh)}catch(e){} },
+  enabled: hasRemote || hasSt,
+  set:  async(k,v,sh=false)=>{ try{ if(hasRemote)return await Remote.set(k,v,sh); if(hasSt)await window.storage.set(k,JSON.stringify(v),sh); }catch(e){} },
+  get:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.get(k,sh); if(hasSt){const r=await window.storage.get(k,sh);return r?JSON.parse(r.value):null;} }catch(e){} return null; },
+  list: async(p,sh=false)  =>{ try{ if(hasRemote)return await Remote.list(p,sh); if(hasSt){const r=await window.storage.list(p,sh);return r?r.keys:[];} }catch(e){} return []; },
+  del:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.del(k,sh); if(hasSt)await window.storage.delete(k,sh); }catch(e){} },
 };
 const LS = {
   get:(k,d=null)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d} },
@@ -2161,11 +2187,11 @@ function App(){
   },[cart,selTable,submitting,push,go,products,user,saveUser]);
 
   const syncOrders=useCallback(async()=>{
-    if(hasSt)Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
+    if(Db.enabled)Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
     const myIds=LS.get("zr_my_orders",[]);
     if(!myIds.length)return;
     let next;
-    if(hasSt){
+    if(Db.enabled){
       const updated=await Promise.all(myIds.map(id=>Db.get(`order_${id}`,true)));
       next=updated.filter(Boolean);
     } else {
@@ -2182,7 +2208,7 @@ function App(){
 
   const loadAdminOrders=useCallback(async()=>{
     let orders;
-    if(hasSt){
+    if(Db.enabled){
       const orderKeys=await Db.list("order_",true);
       orders=await Promise.all(orderKeys.map(k=>Db.get(k,true)));
     } else {
@@ -2199,16 +2225,16 @@ function App(){
   },[]);
 
   const setOrderStatus=useCallback(async(id,status)=>{
-    const order=hasSt?await Db.get(`order_${id}`,true):LS.get(`zr_order_${id}`);
+    const order=Db.enabled?await Db.get(`order_${id}`,true):LS.get(`zr_order_${id}`);
     if(!order)return;
     const updated={...order,status};
-    if(hasSt) await Db.set(`order_${id}`,updated,true);
+    if(Db.enabled) await Db.set(`order_${id}`,updated,true);
     else LS.set(`zr_order_${id}`,updated);
     setAllOrders(prev=>prev.map(o=>o.id===id?updated:o));
   },[]);
 
   const deleteOrder=useCallback(async(id)=>{
-    if(hasSt) await Db.del(`order_${id}`,true);
+    if(Db.enabled) await Db.del(`order_${id}`,true);
     else{ LS.del(`zr_order_${id}`); LS.set("zr_all_orders",LS.get("zr_all_orders",[]).filter(i=>i!==id)); }
     setAllOrders(prev=>prev.filter(o=>o.id!==id));
   },[]);
@@ -2217,7 +2243,7 @@ function App(){
     const ids=LS.get("zr_all_orders",[]);
     ids.forEach(id=>LS.del(`zr_order_${id}`));
     LS.del("zr_all_orders");
-    if(hasSt){const keys=await Db.list("order_",true);await Promise.all(keys.map(k=>Db.del(k,true)));}
+    if(Db.enabled){const keys=await Db.list("order_",true);await Promise.all(keys.map(k=>Db.del(k,true)));}
     setAllOrders([]);
   },[]);
 
