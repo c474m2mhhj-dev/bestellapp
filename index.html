@@ -1274,6 +1274,7 @@ function CartScreen(){
   const[payOpen,setPayOpen]=useState(false);
   const[useVoucher,setUseVoucher]=useState(false);
   const[mode,setMode]=useState(()=>LS.get("zr_mode","delivery"));
+  const[nameDraft,setNameDraft]=useState(()=>(user?.name||""));
   useEffect(()=>{LS.set("zr_mode",mode);},[mode]);
   const isPickup=mode==="pickup";
   const undoRef=useRef(null);
@@ -1316,9 +1317,11 @@ function CartScreen(){
     const extra=totalQty>3?2:totalQty>1?1:0;
     return base+extra;
   },[cart,products]);
+  const needsName=!nameDraft.trim();
   const needsTable=!isPickup&&!selTable;
+  const cantPay=needsName||needsTable;
   const handlePay=async()=>{
-    if(needsTable||submitting||ordersPaused)return;
+    if(cantPay||submitting||ordersPaused)return;
     if("Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission();}catch(e){}}
     setPayOpen(true);
   };
@@ -1366,6 +1369,11 @@ function CartScreen(){
         )}
         {cart.length>0&&(
           <>
+            {/* Name — orders are identified by name */}
+            <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:"12px 14px",marginBottom:9,border:needsName?`1.5px solid ${dk?C.amber+"66":"#FED7AA"}`:`1px solid ${C.border}`}}>
+              <p style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:7}}>🙂 Dein Name <span style={{fontWeight:400,fontSize:11,color:C.textLight}}>(damit wir dich aufrufen)</span></p>
+              <input value={nameDraft} onChange={e=>setNameDraft(e.target.value)} placeholder="z.B. Marcel" maxLength={24} autoCapitalize="words" style={{width:"100%",padding:"11px 13px",border:`1.5px solid ${needsName?(dk?C.amber+"88":"#FDBA74"):C.border}`,borderRadius:DS.radius.sm,fontSize:16,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"}}/>
+            </div>
             {/* Fulfillment: deliver vs pickup */}
             <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:9}}>
               {[["delivery","🤖","Liefern lassen","Robert bringt's"],["pickup","🛍️","Selbst abholen","An der Theke"]].map(([m,ic,t,sub2])=>(
@@ -1444,8 +1452,8 @@ function CartScreen(){
               <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>ca. {estWait} Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Geschätzt · nach Bestätigung</p></div>
             </div>
             {ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>⏸</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>Bestellungen momentan pausiert – bitte kurz warten!</p></div>}
-            <button onClick={handlePay} disabled={needsTable||submitting||ordersPaused} style={{width:"100%",padding:"18px",background:needsTable||submitting||ordersPaused?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:needsTable||submitting||ordersPaused?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:needsTable||submitting||ordersPaused?"default":"pointer",boxShadow:!needsTable&&!submitting&&!ordersPaused?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
-              {submitting?"Wird gesendet…":ordersPaused?"Bestellungen pausiert":needsTable?"Bitte zuerst Hörsaal wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
+            <button onClick={handlePay} disabled={cantPay||submitting||ordersPaused} style={{width:"100%",padding:"18px",background:cantPay||submitting||ordersPaused?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:cantPay||submitting||ordersPaused?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:cantPay||submitting||ordersPaused?"default":"pointer",boxShadow:!cantPay&&!submitting&&!ordersPaused?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
+              {submitting?"Wird gesendet…":ordersPaused?"Bestellungen pausiert":needsName?"Bitte Namen eingeben":needsTable?"Bitte zuerst Hörsaal wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
             </button>
             <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginBottom:32}}>Apple Pay · Google Pay · Kreditkarte</p>
           </>
@@ -1457,7 +1465,7 @@ function CartScreen(){
           <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
         </div>
       )}
-      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note,{discount:freeAmount>0?freeAmount:0,mode});setPayOpen(false);}}/>}
+      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note,{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim()});setPayOpen(false);}}/>}
       <BottomNav/>
     </Screen>
   );
@@ -1490,7 +1498,7 @@ function OrderCard({o}){
     <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk),animation:o.status==="ready"?"pulse 1.8s ease-in-out infinite":undefined}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
         <div style={{flex:1}}>
-          <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung #{String(o.createdAt).slice(-4)}</p>
+          <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung #{String(o.createdAt).slice(-4)}{o.customer?` · ${o.customer}`:""}</p>
           <p style={{fontSize:12,color:C.textLight,marginTop:2}}>{isPickup?"🛍️ Abholung":o.table} · {o.time}</p>
           {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:7,padding:"3px 8px",marginTop:5,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
         </div>
@@ -1553,7 +1561,7 @@ function OrderConfScreen(){
           <svg width="52" height="52" viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="26" fill={C.primary} opacity=".12"/><path d="M14 26l9 9 15-15" stroke={C.primary} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <p style={{fontSize:26,fontWeight:900,color:C.text,marginBottom:8}}>Bestellung aufgegeben!</p>
-        <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>{confData.mode==="pickup"?"🛍️ Selbstabholung":confData.table} · #{String(confData.createdAt).slice(-4)}</p>
+        <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>{confData.customer?`Für ${confData.customer} · `:""}{confData.mode==="pickup"?"🛍️ Selbstabholung":confData.table} · #{String(confData.createdAt).slice(-4)}</p>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:"14px 22px",marginBottom:16,boxShadow:DS.shadow.md(dk),width:"100%",maxWidth:280}}>
           <p style={{fontSize:13,color:C.textLight,marginBottom:4}}>{confData.itemCount} Artikel · {fmt(confData.total)}</p>
           <p style={{fontSize:16,fontWeight:800,color:C.primary}}>⏱ ca. {confData.wait} Min Zubereitung</p>
@@ -1633,8 +1641,8 @@ function KitchenScreen(){
               <div key={o.id} style={{background:cfg.bg,borderRadius:14,padding:16,display:"flex",flexDirection:"column",gap:10,border:`2px solid ${borderCol}`,animation:urgent?"kPulse 1.8s ease-in-out infinite":undefined}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <p style={{color:"#fff",fontWeight:900,fontSize:22}}>{o.mode==="pickup"?"🛍️ Abholung":o.table}</p>
-                    <p style={{color:"#888",fontSize:11,marginTop:1}}>{totalItems} Artikel · #{String(o.createdAt).slice(-4)}</p>
+                    <p style={{color:"#fff",fontWeight:900,fontSize:22}}>{o.avatar?o.avatar+" ":""}{o.customer||"Gast"}</p>
+                    <p style={{color:"#9ad6cc",fontSize:12,fontWeight:700,marginTop:1}}>{o.mode==="pickup"?"🛍️ Abholung":"📍 "+o.table} · {totalItems} Artikel · #{String(o.createdAt).slice(-4)}</p>
                   </div>
                   <span style={{fontSize:12,fontWeight:700,color:urgent?"#F87171":warn?"#FCD34D":"#888",background:"rgba(0,0,0,.3)",borderRadius:20,padding:"3px 9px"}}>{age} min{urgent?" ⚠️":warn?" ⚡":""}</span>
                 </div>
@@ -1931,7 +1939,8 @@ function AdminScreen(){
               <div key={o.id} style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:9,boxShadow:DS.shadow.sm(dk)}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
-                    <p style={{fontWeight:800,fontSize:14,color:C.text}}>{o.mode==="pickup"?"🛍️ Abholung":o.table} · #{String(o.createdAt).slice(-4)}</p>
+                    <p style={{fontWeight:800,fontSize:14,color:C.text}}>{o.avatar?o.avatar+" ":""}{o.customer||"Gast"}</p>
+                    <p style={{fontSize:12,fontWeight:700,color:C.primary,marginTop:1}}>{o.mode==="pickup"?"🛍️ Abholung":"📍 "+o.table} · #{String(o.createdAt).slice(-4)}</p>
                     {((age=><p style={{fontSize:12,color:o.status==="new"&&age>=3?C.red:C.textLight,fontWeight:o.status==="new"&&age>=3?700:400,marginTop:1}}>{o.status==="new"&&age>=3?`⚠️ ${age} min warten · `:""}  {relTime(o.createdAt)} · {o.time}</p>)(Math.floor((Date.now()-o.createdAt)/60000)))}
                     {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:6,padding:"2px 7px",marginTop:4,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
                   </div>
@@ -1947,7 +1956,7 @@ function AdminScreen(){
                 </div>
               </div>
             ))}<div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:11,color:C.textMid}}>{filtered.length} Bestellung{filtered.length!==1?"en":""}</span><span style={{fontWeight:800,fontSize:13,color:C.primary}}>{fmt(filtered.reduce((s,o)=>s+o.total,0))}</span></div></>
-          )([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim();return String(o.table).toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
+          )([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim();return(o.customer||"").toLowerCase().includes(q)||String(o.table||"").toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
         ):null}
         {tab==="orders"&&(
           <div style={{marginTop:16,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
@@ -2304,7 +2313,9 @@ function App(){
 
   const submitOrder=useCallback(async(note,opts)=>{
     const mode=opts?.mode==="pickup"?"pickup":"delivery";
-    if((mode==="delivery"&&!selTable)||submitting)return;
+    const custName=(opts?.name||user.name||"").trim();
+    if((mode==="delivery"&&!selTable)||!custName||submitting)return;
+    if(custName&&custName!==user.name)saveUser({name:custName});
     setSubmitting(true);
     try{
       const id=genId();
@@ -2316,6 +2327,8 @@ function App(){
         id,createdAt:Date.now(),
         table:mode==="pickup"?null:selTable,
         mode,
+        customer:custName,
+        avatar:user.avatar||"🙂",
         time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
         status:"new",
         items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note,id:i.id,emoji:i.emoji,img:i.img,price:i.price,size:i.size})),
@@ -2341,7 +2354,7 @@ function App(){
       const voucherUnlocked=Math.floor(newPoints/VOUCHER_AT)>Math.floor((user.points||0)/VOUCHER_AT);
       saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100,vouchersUsed:(user.vouchersUsed||0)+(discount>0?1:0)});
       if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
-      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,mode:order.mode,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
+      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,mode:order.mode,customer:order.customer,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
       go("conf");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
@@ -2364,7 +2377,7 @@ function App(){
     setMyOrders(prev=>{
       const prevReadyIds=new Set(prev.filter(o=>o.status==="ready").map(o=>o.id));
       const newlyReady=next.filter(o=>o.status==="ready"&&!prevReadyIds.has(o.id));
-      if(newlyReady.length>0){const o0=newlyReady[0];const pickup=o0.mode==="pickup";const title=pickup?"🛍️ Abholbereit!":"🤖 Robert ist da!";const body=pickup?"Deine Bestellung wartet an der Theke. Bitte in den nächsten Minuten abholen!":`Dein Getränk wartet vor ${o0.table}. Bitte in den nächsten Minuten abholen!`;playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(pickup?"🛍️ Abholbereit! Jetzt an der Theke abholen.":"🤖 Robert ist da! Getränk jetzt abholen.","success",6000);if(Notification.permission==="granted"){try{if("serviceWorker" in navigator){navigator.serviceWorker.ready.then(sw=>{if(sw.active)sw.active.postMessage({type:"ROBERT_ARRIVED",title,body});}).catch(()=>{if("Notification" in window)new Notification(title,{body,icon:"/favicon.ico"});});}else if("Notification" in window){new Notification(title,{body,icon:"/favicon.ico"});}}catch(e){}}}
+      if(newlyReady.length>0){const o0=newlyReady[0];const pickup=o0.mode==="pickup";const nm=o0.customer?o0.customer+", ":"";const title=pickup?"🛍️ Abholbereit!":"🤖 Robert ist da!";const body=pickup?`${nm}deine Bestellung wartet an der Theke. Bitte in den nächsten Minuten abholen!`:`${nm}dein Getränk wartet vor ${o0.table}. Bitte in den nächsten Minuten abholen!`;playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(pickup?"🛍️ Abholbereit! Jetzt an der Theke abholen.":"🤖 Robert ist da! Getränk jetzt abholen.","success",6000);if(Notification.permission==="granted"){try{if("serviceWorker" in navigator){navigator.serviceWorker.ready.then(sw=>{if(sw.active)sw.active.postMessage({type:"ROBERT_ARRIVED",title,body});}).catch(()=>{if("Notification" in window)new Notification(title,{body,icon:"/favicon.ico"});});}else if("Notification" in window){new Notification(title,{body,icon:"/favicon.ico"});}}catch(e){}}}
 
       return next;
     });
