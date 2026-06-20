@@ -1,0 +1,18 @@
+{
+  "name": "zeitraum – Café & Bar",
+  "short_name": "zeitraum",
+  "description": "Bestell-App für das zeitraum Café & Bar – Robert liefert dein Getränk vor den Hörsaal",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#004D40",
+  "theme_color": "#004D40",
+  "lang": "de",
+  "categories": ["food", "shopping", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
