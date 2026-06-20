@@ -229,6 +229,9 @@ const CICO  = {"Alle":"🍽️","Heiße Getränke":"☕","Iced Drinks":"🧊","G
 // Abhol-/Lieferorte = Hörsäle am h_da Campus Dieburg (Wert ist selbstbeschreibend, z.B. "Hörsaal 1")
 const TABLES= ["Aula","Hörsaal 1","Hörsaal 2","Hörsaal 3","Hörsaal 4","Hörsaal 5"];
 const ADMIN_PIN  = "1234";
+// Admin-Bereich ist für Gäste komplett unsichtbar. Freischalten nur über den
+// Team-Link: …/?admin=zr-team-2026  (auf dem Gerät gespeichert). Entfernen: …/?admin=off
+const ADMIN_ACCESS_TOKEN = "zr-team-2026";
 const MILK_OPT   = ["Vollmilch","Hafermilch","Mandelmilch","Sojamilch"];
 const SIRUP_OPT  = [null,"Karamel","Vanille","Haselnuss"];
 const EXTRA_PRICE= 0.20;
@@ -467,15 +470,16 @@ const NAV=[
   {id:"admin", label:"Admin", icon:on=><svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={on?2.2:1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>},
 ];
 function BottomNav(){
-  const{screen,go,cart,myOrders,allOrders,darkMode:dk}=useApp();const C=useC();
+  const{screen,go,cart,myOrders,allOrders,adminAccess,darkMode:dk}=useApp();const C=useC();
   const qty=cart.reduce((s,i)=>s+i.qty,0);
   const activeOrds=myOrders.filter(o=>o.status!=="done").length;
   const newAdminOrds=allOrders.filter(o=>o.status==="new").length;
   const active=s=>["cart","detail","qr"].includes(screen)?s==="menu":screen===s;
   const badge=(n,right="calc(50% - 22px)")=>n>0?<span style={{position:"absolute",top:2,right,background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:DS.radius.full,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{n}</span>:null;
+  const items=NAV.filter(n=>n.id!=="admin"||adminAccess); // Admin nur mit Team-Link sichtbar
   return(
     <nav style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.navBg,backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderTop:`1px solid ${C.border}`,display:"flex",zIndex:400,paddingTop:5,paddingBottom:"max(8px,env(safe-area-inset-bottom))"}}>
-      {NAV.map(({id,label,icon})=>{const on=active(id);return(
+      {items.map(({id,label,icon})=>{const on=active(id);return(
         <button key={id} onClick={()=>go(id)} aria-label={label} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px 2px",minHeight:48,justifyContent:"center",position:"relative",border:"none",background:"none",cursor:"pointer",color:on?C.primary:C.textLight,fontSize:10,fontWeight:on?700:500,transition:"color .15s"}}>
           {icon(on)}
           <span>{label}</span>
@@ -1714,7 +1718,7 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{go,allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,announcement,saveAnnouncement,ad,saveAd,ordersPaused,togglePause,specialId,setSpecial,nextSlot,setSlot,darkMode:dk}=useApp();const C=useC();
+  const{go,allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,reopenAllProducts,setProductPop,editProduct,announcement,saveAnnouncement,ad,saveAd,ordersPaused,togglePause,specialId,setSpecial,nextSlot,setSlot,revokeAdmin,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
@@ -1948,6 +1952,10 @@ function AdminScreen(){
                   </div>
                   <span style={{color:C.textLight,fontSize:16}}>›</span>
                 </button>
+                <button onClick={()=>{if(confirm("Admin-Zugang auf diesem Gerät entfernen? Der Admin-Bereich ist danach nur über den Team-Link wieder erreichbar."))revokeAdmin();}} style={{width:"100%",marginTop:6,padding:"9px 12px",borderRadius:DS.radius.md,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",display:"flex",alignItems:"center",gap:9,color:C.red}}>
+                  <span style={{fontSize:14,flexShrink:0}}>🔒</span>
+                  <p style={{fontWeight:700,fontSize:12,textAlign:"left",flex:1}}>Admin-Zugang auf diesem Gerät entfernen</p>
+                </button>
               </div>
             )}
           </div>
@@ -2013,9 +2021,9 @@ function AdminScreen(){
                       </div>
                     ))}
                   </div>
-                  <p style={{fontSize:12,color:C.textMid,marginBottom:10}}>Diese Daten werden nach dem Leeren gelöscht. Jetzt notieren!</p>
+                  <p style={{fontSize:12,color:C.textMid,marginBottom:10}}>Diese Daten werden nach dem Leeren gelöscht. Jetzt notieren!{products.some(p=>!p.available)?" Ausverkaufte Produkte werden wieder aktiviert.":""}</p>
                   <div style={{display:"flex",gap:8}}>
-                    <button onClick={async()=>{await clearAllOrders();setTagesConf(false);}} style={{flex:1,padding:"9px",background:C.red,color:"#fff",borderRadius:DS.radius.sm,fontWeight:800,fontSize:13,border:"none",cursor:"pointer"}}>Jetzt leeren</button>
+                    <button onClick={async()=>{await clearAllOrders();reopenAllProducts();setTagesConf(false);}} style={{flex:1,padding:"9px",background:C.red,color:"#fff",borderRadius:DS.radius.sm,fontWeight:800,fontSize:13,border:"none",cursor:"pointer"}}>Jetzt leeren</button>
                     <button onClick={()=>setTagesConf(false)} style={{padding:"9px 14px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>Abbrechen</button>
                   </div>
                 </div>
@@ -2298,6 +2306,7 @@ function App(){
   const[submitting,setSubmitting]=useState(false);
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
+  const[adminAccess,setAdminAccess]=useState(()=>LS.get("zr_admin_access",false));
   const{toasts,push}=useToast();
 
   useEffect(()=>{const ready=myOrders.filter(o=>o.status==="ready").length;const newOrd=allOrders.filter(o=>o.status==="new").length;if(ready>0)document.title=`🔔 Bereit! – zeitraum`;else if(newOrd>0)document.title=`(${newOrd} neu) Admin – zeitraum`;else document.title="zeitraum – Café & Bar";},[myOrders,allOrders]);
@@ -2322,6 +2331,12 @@ function App(){
     const p=new URLSearchParams(window.location.search);
     const t=p.get("table");
     if(t&&TABLES.includes(t)){setSelTable(t);setTimeout(()=>push(`${t} erkannt ✓`,"success"),1600);}
+    // Staff-only admin access via special link (…?admin=<token>); …?admin=off revokes it
+    const a=p.get("admin");
+    if(a===ADMIN_ACCESS_TOKEN){setAdminAccess(true);LS.set("zr_admin_access",true);setScreen("admin");setTimeout(()=>push("Admin-Zugang aktiviert 🔑","success",4000),1600);}
+    else if(a==="off"){setAdminAccess(false);LS.del("zr_admin_access");setScreen("home");setTimeout(()=>push("Admin-Zugang entfernt","info",3000),1600);}
+    // strip sensitive/handled params from the visible URL
+    if(p.has("admin")||p.has("table")){try{history.replaceState(null,"",window.location.pathname);}catch(e){}}
   },[]);
 
   const go=useCallback((sc,param=null)=>{
@@ -2482,6 +2497,9 @@ function App(){
   const setProductAvailable=useCallback((id,available)=>{
     setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,available}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
+  const reopenAllProducts=useCallback(()=>{
+    setProducts(prev=>{if(prev.every(p=>p.available))return prev;const next=prev.map(p=>p.available?p:{...p,available:true});LS.set("zr_products",next);Db.set("zr_products",next);return next;});
+  },[]);
   const setProductPop=useCallback((id,pop)=>{
     setProducts(prev=>{const next=prev.map(p=>p.id===id?{...p,pop}:p);LS.set("zr_products",next);Db.set("zr_products",next);return next;});
   },[]);
@@ -2508,11 +2526,14 @@ function App(){
     });
   },[]);
 
+  const revokeAdmin=useCallback(()=>{setAdminAccess(false);LS.del("zr_admin_access");setScreen("home");},[]);
+
   const ctx={
+    adminAccess,revokeAdmin,
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
-    setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,
+    setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,reopenAllProducts,setProductPop,editProduct,
     announcement,saveAnnouncement,
     ad,saveAd,
     nextSlot,setSlot,
@@ -2523,7 +2544,9 @@ function App(){
   };
 
   const screens={home:HomeScreen,menu:MenuScreen,cart:CartScreen,conf:OrderConfScreen,orders:OrdersScreen,admin:AdminScreen,detail:DetailScreen,qr:QRScreen,kitchen:KitchenScreen,profile:ProfileScreen};
-  const S=screens[screen]||HomeScreen;
+  // Admin/Kitchen/QR are staff-only — guests without the team link can't land there
+  const staffOnly=["admin","kitchen","qr"];
+  const S=(staffOnly.includes(screen)&&!adminAccess)?HomeScreen:(screens[screen]||HomeScreen);
 
   if(splash)return<Ctx.Provider value={ctx}><SplashScreen/></Ctx.Provider>;
 
