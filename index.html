@@ -258,6 +258,16 @@ const tagSty = t=>({Beliebt:{bg:"#FEF3C7",cl:"#92400E"},Neu:{bg:"#DBEAFE",cl:"#1
 const genId  = ()=>`${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 const playBell=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(t=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;o.type="sine";g.gain.setValueAtTime(.35,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.45);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.45);});}catch(e){}};
 const relTime=t=>{const d=Math.floor((Date.now()-t)/1000);if(d<60)return"gerade eben";if(d<3600)return"vor "+Math.floor(d/60)+" min";if(d<86400)return"vor "+Math.floor(d/3600)+" Std";return"vor "+Math.floor(d/86400)+" T";};
+// Öffnungszeiten Café Zeitraum (Minuten ab Mitternacht); Tag 0=So..6=Sa
+const HOURS={1:[510,990],2:[510,990],3:[510,990],4:[510,990],5:[570,810]}; // Mo–Do 8:30–16:30, Fr 9:30–13:30
+const DAYNAMES=["So","Mo","Di","Mi","Do","Fr","Sa"];
+const cafeStatus=(d=new Date())=>{
+  const fmtT=m=>`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`;
+  const day=d.getDay(),min=d.getHours()*60+d.getMinutes(),today=HOURS[day];
+  if(today&&min>=today[0]&&min<today[1])return{open:true,label:`Jetzt geöffnet · bis ${fmtT(today[1])} Uhr`};
+  for(let i=0;i<8;i++){const nd=(day+i)%7,nh=HOURS[nd];if(!nh)continue;if(i===0&&min<nh[0])return{open:false,label:`Geschlossen · öffnet heute ${fmtT(nh[0])} Uhr`};if(i>0)return{open:false,label:`Geschlossen · öffnet ${i===1?"morgen":DAYNAMES[nd]} ${fmtT(nh[0])} Uhr`};}
+  return{open:false,label:"Geschlossen"};
+};
 
 /* ══════════════════════════════════════════════
    CONTEXT
@@ -567,6 +577,9 @@ function HomeScreen(){
   const[seenIntro,setSeenIntro]=useState(()=>LS.get("zr_seen_intro",false));
   const dismissIntro=()=>{setSeenIntro(true);LS.set("zr_seen_intro",true);};
   const[slotLabel,setSlotLabel]=useState("");
+  const[,setNowTick]=useState(0);
+  useEffect(()=>{const t=setInterval(()=>setNowTick(x=>x+1),60000);return()=>clearInterval(t);},[]);
+  const caf=cafeStatus();
   useEffect(()=>{
     if(!nextSlot)return setSlotLabel("");
     const calc=()=>{const now=new Date();const[h,m]=nextSlot.split(":").map(Number);const sl=new Date(now);sl.setHours(h,m,0,0);const diff=sl-now;if(diff<0||diff>90*60*1000)return setSlotLabel("");const mins=Math.ceil(diff/60000);setSlotLabel(mins<=1?"Jetzt":"in "+mins+" Min");};
@@ -639,6 +652,10 @@ function HomeScreen(){
           <button onClick={()=>{setAnnDismissed(announcement);sessionStorage.setItem("zr_ann_dismissed",announcement);}} style={{background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:18,flexShrink:0,lineHeight:1}}>×</button>
         </div>
       )}
+      <div style={{background:caf.open?(dk?"rgba(16,185,129,.1)":"#ECFDF5"):(dk?"rgba(239,68,68,.12)":"#FEF2F2"),borderBottom:`1px solid ${caf.open?(dk?"rgba(16,185,129,.3)":"#6EE7B7"):(dk?"rgba(239,68,68,.3)":"#FECACA")}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
+        <span style={{fontSize:16,flexShrink:0}}>{caf.open?"🟢":"🔴"}</span>
+        <p style={{flex:1,fontSize:13,fontWeight:600,color:caf.open?(dk?"#6EE7B7":"#065F46"):(dk?"#FCA5A5":"#991B1B")}}>{caf.label}</p>
+      </div>
       {nextSlot&&slotLabel&&(
         <div style={{background:dk?"rgba(16,185,129,.1)":"#ECFDF5",borderBottom:`1px solid ${dk?"rgba(16,185,129,.3)":"#6EE7B7"}`,padding:"10px 16px",display:"flex",alignItems:"center",gap:10}}>
           <span style={{fontSize:16,flexShrink:0}}>🤖</span>
@@ -1320,8 +1337,9 @@ function CartScreen(){
   const needsName=!nameDraft.trim();
   const needsTable=!isPickup&&!selTable;
   const cantPay=needsName||needsTable;
+  const closed=!cafeStatus().open;
   const handlePay=async()=>{
-    if(cantPay||submitting||ordersPaused)return;
+    if(cantPay||submitting||ordersPaused||closed)return;
     if("Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission();}catch(e){}}
     setPayOpen(true);
   };
@@ -1451,9 +1469,10 @@ function CartScreen(){
               <span>⏱</span>
               <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>ca. {estWait} Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Geschätzt · nach Bestätigung</p></div>
             </div>
+            {closed&&!ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>🔴</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>{cafeStatus().label} – Robert liefert nur während der Öffnungszeiten.</p></div>}
             {ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>⏸</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>Bestellungen momentan pausiert – bitte kurz warten!</p></div>}
-            <button onClick={handlePay} disabled={cantPay||submitting||ordersPaused} style={{width:"100%",padding:"18px",background:cantPay||submitting||ordersPaused?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:cantPay||submitting||ordersPaused?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:cantPay||submitting||ordersPaused?"default":"pointer",boxShadow:!cantPay&&!submitting&&!ordersPaused?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
-              {submitting?"Wird gesendet…":ordersPaused?"Bestellungen pausiert":needsName?"Bitte Namen eingeben":needsTable?"Bitte zuerst Hörsaal wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
+            <button onClick={handlePay} disabled={cantPay||submitting||ordersPaused||closed} style={{width:"100%",padding:"18px",background:cantPay||submitting||ordersPaused||closed?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:cantPay||submitting||ordersPaused||closed?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:cantPay||submitting||ordersPaused||closed?"default":"pointer",boxShadow:!cantPay&&!submitting&&!ordersPaused&&!closed?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
+              {submitting?"Wird gesendet…":closed?"Außerhalb der Öffnungszeiten":ordersPaused?"Bestellungen pausiert":needsName?"Bitte Namen eingeben":needsTable?"Bitte zuerst Hörsaal wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
             </button>
             <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginBottom:32}}>Apple Pay · Google Pay · Kreditkarte</p>
           </>
