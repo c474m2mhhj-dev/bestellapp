@@ -253,6 +253,13 @@ const nextTierOf = pts=>TIERS.find(x=>x.min>pts)||null;
 // Anzahl Getränke (Kaffee-Stempel) in einer Bestellung
 const drinkStamps= (items,products)=>items.reduce((s,i)=>{const p=products.find(x=>x.id===i.id);return s+(p&&DRINK_CATS.includes(p.cat)?(i.qty||1):0);},0);
 
+/* Mehrweg-Pfand — Becher-Getränke (Heißgetränke + Iced Coffees/Matchas).
+   Lieferung: immer Mehrwegbecher (Becher+Deckel). Abholung: Becher to-go ODER Tasse hier. */
+const CUP_CATS = ["Heiße Getränke","Iced Drinks"];
+const cupUnitsOf = (items,products)=>items.reduce((s,i)=>{const p=products.find(x=>x.id===i.id);return s+(p&&CUP_CATS.includes(p.cat)?(i.qty||1):0);},0);
+const depositRates = (products)=>{const f=n=>{const p=products.find(x=>x.name===n);return p&&p.sizes&&p.sizes[0]?p.sizes[0].p:null;};return{becher:Math.round(((f("Becherpfand")??1.0)+(f("Deckelpfand")??0.5))*100)/100,tasse:(f("Tassenpfand")??2.0)};};
+const cupDeposit = (items,products,mode,cupType)=>{const units=cupUnitsOf(items,products);if(!units)return{units:0,deposit:0,type:null};const r=depositRates(products);const type=mode==="pickup"&&cupType==="tasse"?"tasse":"becher";const per=type==="tasse"?r.tasse:r.becher;return{units,type,deposit:Math.round(units*per*100)/100};};
+
 /* ══════════════════════════════════════════════
    UTILS
 ══════════════════════════════════════════════ */
@@ -1298,8 +1305,10 @@ function CartScreen(){
   const[payOpen,setPayOpen]=useState(false);
   const[useVoucher,setUseVoucher]=useState(false);
   const[mode,setMode]=useState(()=>LS.get("zr_mode","delivery"));
+  const[cupType,setCupType]=useState(()=>LS.get("zr_cuptype","becher"));
   const[nameDraft,setNameDraft]=useState(()=>(user?.name||""));
   useEffect(()=>{LS.set("zr_mode",mode);},[mode]);
+  useEffect(()=>{LS.set("zr_cuptype",cupType);},[cupType]);
   const isPickup=mode==="pickup";
   const undoRef=useRef(null);
   const handleRemove=useCallback((item)=>{clearTimeout(undoRef.current);setUndoItem({...item});removeItem(item.ck);undoRef.current=setTimeout(()=>setUndoItem(null),5000);},[removeItem]);
@@ -1311,7 +1320,9 @@ function CartScreen(){
   const freeBase=drinkPrices.length?Math.max(...drinkPrices):0;
   const voucherActive=useVoucher&&availVouchers>0&&freeBase>0;
   const freeAmount=voucherActive?freeBase:0;
-  const tot=Math.max(0,Math.round((sub+del-freeAmount)*100)/100);
+  const cupInfo=cupDeposit(cart,products,mode,cupType);
+  const deposit=cupInfo.deposit;
+  const tot=Math.max(0,Math.round((sub+del+deposit-freeAmount)*100)/100);
   const upsell=useMemo(()=>{
     const inCart=new Set(cart.map(i=>i.id));
     const cats=cart.map(i=>products.find(p=>p.id===i.id)?.cat).filter(Boolean);
@@ -1423,6 +1434,28 @@ function CartScreen(){
                 <p style={{fontSize:12.5,fontWeight:600,color:dk?"#6EE7B7":"#065F46"}}>Selbstabholung an der Theke – keine Servicegebühr. Wir benachrichtigen dich, sobald es fertig ist.</p>
               </div>
             )}
+            {/* Mehrweg-Pfand für Becher-Getränke */}
+            {cupInfo.units>0&&(()=>{const r=depositRates(products);return(
+              <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:"12px 14px",marginBottom:9}}>
+                <p style={{fontWeight:700,fontSize:13,color:C.text,marginBottom:isPickup?9:6}}>♻️ Mehrweg-Pfand <span style={{fontWeight:400,fontSize:11,color:C.textLight}}>· {cupInfo.units}× Getränk</span></p>
+                {isPickup?(
+                  <>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+                      {[["becher","🥤","To-go (Mehrwegbecher)","Becher + Deckel",r.becher],["tasse","☕","Hier (Tasse)","Mehrwegtasse",r.tasse]].map(([k,ic,t,d,p])=>(
+                        <button key={k} onClick={()=>setCupType(k)} style={{padding:"10px 9px",borderRadius:DS.radius.sm,background:cupType===k?C.light:C.surface2,border:`1.5px solid ${cupType===k?C.primary:C.border}`,cursor:"pointer",textAlign:"left"}}>
+                          <div style={{fontSize:18,marginBottom:2}}>{ic}</div>
+                          <p style={{fontWeight:800,fontSize:12,color:cupType===k?C.primary:C.text,lineHeight:1.2}}>{t}</p>
+                          <p style={{fontSize:10,color:C.textLight,marginTop:1}}>{d} · +{fmt(p)}/Stk</p>
+                        </button>
+                      ))}
+                    </div>
+                    <p style={{fontSize:10.5,color:C.textLight,marginTop:8}}>Pfand wird bei Rückgabe vollständig erstattet ♻️</p>
+                  </>
+                ):(
+                  <p style={{fontSize:11.5,color:C.textMid,lineHeight:1.45}}>Robert liefert im <strong>Mehrwegbecher</strong> (Becher + Deckel, +{fmt(r.becher)}/Getränk). Der Pfand wird bei Rückgabe vollständig erstattet ♻️</p>
+                )}
+              </div>
+            );})()}
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
               <p style={{fontWeight:700,fontSize:13,marginBottom:7,color:C.text}}>📝 Bestellnotiz</p>
               <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, besondere Wünsche…" style={{width:"100%",padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,height:64,resize:"none",fontFamily:"inherit",outline:"none",color:C.text}}/>
@@ -1452,7 +1485,7 @@ function CartScreen(){
               </button>
             )}
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
-              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
+              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(deposit>0?[[`♻️ Pfand (${cupInfo.type==="tasse"?"Tasse":"Becher"})`,fmt(deposit),C.text]]:[]),...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.textMid,marginBottom:7}}>
                   <span>{l}</span>
                   <span style={{fontWeight:600,color:cl}}>{v}</span>
@@ -1491,7 +1524,7 @@ function CartScreen(){
           <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
         </div>
       )}
-      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note,{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim()});setPayOpen(false);}}/>}
+      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note,{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim(),cupType});setPayOpen(false);}}/>}
       <BottomNav/>
     </Screen>
   );
@@ -1585,6 +1618,7 @@ function OrderCard({o}){
       <div style={{paddingTop:9,borderTop:`1px solid ${C.border}`}}>
         <div style={{display:"flex",flexWrap:"wrap",gap:4,alignItems:"center",marginBottom:9}}>
           {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>{it.emoji?it.emoji+" ":""}{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
+          {o.deposit>0&&<span style={{fontSize:11,fontWeight:700,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>♻️ {o.cupType==="tasse"?"Tasse":"Becher"}-Pfand {fmt(o.deposit)}</span>}
           <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:14}}>{fmt(o.total)}</span>
         </div>
         <button onClick={reorder} style={{width:"100%",padding:"9px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${C.border}`,cursor:"pointer"}}>🔁 Nochmal bestellen</button>
@@ -2002,6 +2036,7 @@ function AdminScreen(){
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingTop:9,borderTop:`1px solid ${C.border}`,alignItems:"center"}}>
                   {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"3px 8px",color:C.textMid}}>{it.emoji?it.emoji+" ":""}{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
+                  {o.deposit>0&&<span style={{fontSize:11,fontWeight:800,background:dk?"rgba(16,185,129,.16)":"#D1FAE5",color:dk?"#6EE7B7":"#065F46",borderRadius:7,padding:"3px 8px"}}>{o.cupType==="tasse"?"☕":"🥤"} {o.cups}× {o.cupType==="tasse"?"Tasse":"Becher"} · Pfand {fmt(o.deposit)}</span>}
                   <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:13}}>{fmt(o.total)}</span>
                 </div>
               </div>
@@ -2379,6 +2414,7 @@ function App(){
       const now=new Date();
       const sub=Math.round(cart.reduce((s,i)=>s+i.price*i.qty,0)*100)/100;
       const del=mode==="pickup"?0:(sub>=FREE_ABOVE?0:DEL_FEE);
+      const cup=cupDeposit(cart,products,mode,opts?.cupType);
       const discount=Math.min(Math.max(0,opts?.discount||0),sub+del);
       const CAT_MIN={Kaltgetränke:1,Snacks:2,Gebäck:3,Sonstiges:2};
       const times=cart.map(it=>{const pr=products.find(x=>x.id===it.id);return CAT_MIN[pr?.cat]??5;});
@@ -2399,7 +2435,10 @@ function App(){
         status:"new",
         readyAt:created+wait*60000,
         items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note,id:i.id,emoji:i.emoji,img:i.img,price:i.price,size:i.size})),
-        total:Math.round((sub+del-discount)*100)/100,
+        total:Math.round((sub+del+cup.deposit-discount)*100)/100,
+        deposit:cup.deposit,
+        cups:cup.units,
+        cupType:cup.type,
         voucher:discount>0?Math.round(discount*100)/100:0,
         note:note.trim(),
       };
@@ -2416,7 +2455,7 @@ function App(){
       const voucherUnlocked=Math.floor(newPoints/VOUCHER_AT)>Math.floor((user.points||0)/VOUCHER_AT);
       saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100,vouchersUsed:(user.vouchersUsed||0)+(discount>0?1:0)});
       if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
-      setConfData({id:order.id,createdAt:order.createdAt,no:order.no,table:order.table,mode:order.mode,customer:order.customer,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
+      setConfData({id:order.id,createdAt:order.createdAt,no:order.no,table:order.table,mode:order.mode,customer:order.customer,total:order.total,deposit:order.deposit,cups:order.cups,cupType:order.cupType,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
       go("conf");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
