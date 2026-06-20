@@ -13,9 +13,9 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png"/>
   <title>zeitraum – Café & Bar</title>
   <meta property="og:title" content="zeitraum – Café & Bar"/>
-  <meta property="og:description" content="Einfach per QR-Code bestellen – direkt an deinen Tisch"/>
+  <meta property="og:description" content="Mit deinem Namen bestellen – Robert liefert vor den Hörsaal"/>
   <meta property="og:type" content="website"/>
-  <meta name="description" content="Café & Bar Bestellapp – scanne den QR-Code am Tisch und bestell direkt ohne Warten"/>
+  <meta name="description" content="Café & Bar Bestellapp – scanne den QR-Code vor dem Hörsaal und bestell mit deinem Namen"/>
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone@7.23.10/babel.min.js"></script>
@@ -226,7 +226,8 @@ const PRODUCTS_INITIAL = [
 ];
 const CATS  = ["Alle","Heiße Getränke","Iced Drinks","Gebäck","Snacks","Kaltgetränke","Sonstiges"];
 const CICO  = {"Alle":"🍽️","Heiße Getränke":"☕","Iced Drinks":"🧊","Gebäck":"🥐","Snacks":"🍫","Kaltgetränke":"🥤","Sonstiges":"📦"};
-const TABLES= ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
+// Abhol-/Lieferorte = Hörsäle am h_da Campus Dieburg (Wert ist selbstbeschreibend, z.B. "Hörsaal 1")
+const TABLES= ["Aula","Hörsaal 1","Hörsaal 2","Hörsaal 3","Hörsaal 4","Hörsaal 5"];
 const ADMIN_PIN  = "1234";
 const MILK_OPT   = ["Vollmilch","Hafermilch","Mandelmilch","Sojamilch"];
 const SIRUP_OPT  = [null,"Karamel","Vanille","Haselnuss"];
@@ -440,7 +441,7 @@ function QRWidget({table,size=200}){
   const base=typeof window!=="undefined"?window.location.origin+window.location.pathname.replace(/\/$/,""):"https://c474m2mhhj-dev.github.io/bestellapp";
   const url=`${base}?table=${encodeURIComponent(table)}`;
   const src=`https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}&margin=4&color=004D40`;
-  return<img src={src} width={size} height={size} alt={`QR Code Tisch ${table}`} style={{display:"block",borderRadius:8}}/>;
+  return<img src={src} width={size} height={size} alt={`QR-Code ${table}`} style={{display:"block",borderRadius:8}}/>;
 }
 
 /* ══════════════════════════════════════════════
@@ -623,7 +624,7 @@ function HomeScreen(){
           <div style={{color:"#fff",flex:1,minWidth:0}}>
             <h1 style={{fontSize:26,fontWeight:900,letterSpacing:"-.03em",lineHeight:1.05}}>zeitraum</h1>
             <p style={{opacity:.85,fontSize:13.5,lineHeight:1.4,marginTop:5,fontWeight:600}}>Bestell dein Getränk – <strong style={{fontWeight:800}}>Robert</strong> bringt's direkt vor den Hörsaal 🤖</p>
-            {selTable&&<p style={{opacity:.62,fontSize:12,marginTop:5}}>📍 Tisch {selTable} · bereit zum Bestellen</p>}
+            {selTable&&<p style={{opacity:.62,fontSize:12,marginTop:5}}>📍 {selTable} · bereit zum Bestellen</p>}
           </div>
         </div>
         <div style={{display:"flex",gap:6,marginTop:16,flexWrap:"wrap"}}>
@@ -660,7 +661,7 @@ function HomeScreen(){
               <span style={{fontSize:13,fontWeight:800,color:C.primary,textTransform:"uppercase",letterSpacing:".04em"}}>👋 So funktioniert's</span>
               <button onClick={dismissIntro} aria-label="Hinweis schließen" style={{marginLeft:"auto",width:26,height:26,borderRadius:"50%",background:C.surface2,border:"none",cursor:"pointer",color:C.textLight,fontSize:16,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
             </div>
-            {[["📍","Tisch wählen & Getränk bestellen","Tippe deinen Tisch an und leg los"],["💳","Bequem bezahlen","Apple Pay, Google Pay oder Karte"],["🤖","Robert bringt's vor den Hörsaal","Du bekommst eine Push, sobald er da ist"]].map(([ic,t,d],i)=>(
+            {[["🙂","Name eingeben & bestellen","Du bestellst mit deinem Namen"],["📍","Hörsaal wählen","Wo Robert hinliefern soll – oder QR vor dem Hörsaal scannen"],["🤖","Robert bringt's vor den Hörsaal","Push, sobald er da ist – nach Name"]].map(([ic,t,d],i)=>(
               <div key={i} style={{display:"flex",alignItems:"center",gap:11,marginBottom:i<2?11:14,position:"relative"}}>
                 <div style={{width:34,height:34,borderRadius:"50%",background:dk?"rgba(77,182,169,.16)":C.light,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{ic}</div>
                 <div style={{flex:1,minWidth:0}}>
@@ -675,7 +676,7 @@ function HomeScreen(){
         )}
         {/* Table picker */}
         <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16,marginBottom:14}}>
-          <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".06em",marginBottom:11}}>Tisch wählen</p>
+          <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".06em",marginBottom:11}}>Hörsaal wählen</p>
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
             {TABLES.map(t=>(
               <button key={t} onClick={()=>setSelTable(selTable===t?null:t)} style={{padding:"9px 14px",borderRadius:DS.radius.sm,background:selTable===t?C.primary:C.surface2,color:selTable===t?"#fff":C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",boxShadow:selTable===t?DS.shadow.green(dk):"none",transition:"all .15s"}}>
@@ -685,21 +686,14 @@ function HomeScreen(){
           </div>
           {selTable&&(
             <div style={{marginTop:11,background:C.light,borderRadius:DS.radius.sm,padding:"9px 13px",display:"flex",alignItems:"center"}}>
-              <span style={{color:C.primary,fontWeight:800,fontSize:13}}>✓ Tisch {selTable} ausgewählt</span>
-              <button onClick={()=>setSelTable(null)} aria-label="Tisch abwählen" style={{marginLeft:"auto",color:C.textLight,fontSize:20,padding:"2px 8px",background:"none",border:"none",cursor:"pointer"}}>×</button>
+              <span style={{color:C.primary,fontWeight:800,fontSize:13}}>✓ {selTable} ausgewählt</span>
+              <button onClick={()=>setSelTable(null)} aria-label="Hörsaal abwählen" style={{marginLeft:"auto",color:C.textLight,fontSize:20,padding:"2px 8px",background:"none",border:"none",cursor:"pointer"}}>×</button>
             </div>
           )}
         </div>
 
-        {/* QR shortcut — glass card */}
-        <button onClick={()=>go("qr")} style={{width:"100%",marginBottom:14,padding:"13px 16px",...DS.glass(dk),borderRadius:DS.radius.md,display:"flex",alignItems:"center",gap:12,cursor:"pointer",boxShadow:DS.shadow.md(dk),border:`1px solid ${C.borderGlass}`}}>
-          <div style={{width:40,height:40,borderRadius:DS.radius.sm,background:C.primary,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22,flexShrink:0}}>🔳</div>
-          <div style={{textAlign:"left"}}>
-            <p style={{fontWeight:800,fontSize:14,color:C.text}}>QR-Code für Tisch</p>
-            <p style={{fontSize:12,color:C.textLight,marginTop:1}}>Scan → automatische Tischerkennung</p>
-          </div>
-          <span style={{marginLeft:"auto",fontSize:18,color:C.textLight}}>›</span>
-        </button>
+        {/* QR shortcut is intentionally NOT shown here — QR codes live physically in
+            front of each Hörsaal (scanning auto-selects it). Staff print them from Admin. */}
 
         {/* Sponsor / Event ad */}
         {ad&&ad.title&&<AdBanner ad={ad}/>}
@@ -710,7 +704,7 @@ function HomeScreen(){
             <span style={{fontSize:24,flexShrink:0}}>{icon}</span>
             <div style={{flex:1,minWidth:0}}>
               <p style={{fontWeight:800,fontSize:13,color:cl}}>{label}</p>
-              <p style={{fontSize:11,color:cl,opacity:.75,marginTop:1}}>{activeOrds.length} Bestellung{activeOrds.length!==1?"en":""} · {urgentOrd.mode==="pickup"?"Abholung":`Tisch ${urgentOrd.table}`}</p>
+              <p style={{fontSize:11,color:cl,opacity:.75,marginTop:1}}>{activeOrds.length} Bestellung{activeOrds.length!==1?"en":""} · {urgentOrd.mode==="pickup"?"Abholung":urgentOrd.table}</p>
             </div>
             <span style={{fontSize:18,color:cl,opacity:.6}}>›</span>
           </button>
@@ -862,7 +856,7 @@ function QRScreen(){
     const base=typeof window!=="undefined"?window.location.href.split("?")[0]:"https://c474m2mhhj-dev.github.io/bestellapp";
     const qSrc=tb=>`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(base+"?table="+encodeURIComponent(tb))}&margin=4&color=004D40`;
     const w=window.open("","_blank");
-    w.document.write(`<!DOCTYPE html><html><head><title>QR-Codes zeitraum</title><style>*{box-sizing:border-box}body{margin:0;font-family:-apple-system,sans-serif;background:#fff}@media print{@page{margin:10mm;size:A4}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:20px}.card{text-align:center;border:2px solid #E0E0DA;border-radius:14px;padding:18px;break-inside:avoid}.card img{width:180px;height:180px}.card h2{font-size:22px;font-weight:800;color:#004D40;margin:10px 0 4px}.card p{font-size:10px;color:#999;font-family:monospace;word-break:break-all}</style></head><body><div class="grid">${TABLES.map(tb=>`<div class="card"><img src="${qSrc(tb)}" alt="Tisch ${tb}"><h2>Tisch ${tb}</h2><p>${base}?table=${tb}</p></div>`).join("")}</div><script>window.onload=()=>setTimeout(()=>window.print(),900);<\/script></body></html>`);
+    w.document.write(`<!DOCTYPE html><html><head><title>QR-Codes zeitraum</title><style>*{box-sizing:border-box}body{margin:0;font-family:-apple-system,sans-serif;background:#fff}@media print{@page{margin:10mm;size:A4}}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;padding:20px}.card{text-align:center;border:2px solid #E0E0DA;border-radius:14px;padding:18px;break-inside:avoid}.card img{width:180px;height:180px}.card h2{font-size:20px;font-weight:800;color:#004D40;margin:10px 0 4px}.card p{font-size:10px;color:#999;font-family:monospace;word-break:break-all}</style></head><body><div class="grid">${TABLES.map(tb=>`<div class="card"><img src="${qSrc(tb)}" alt="${tb}"><h2>${tb}</h2><p>${base}?table=${tb}</p></div>`).join("")}</div><script>window.onload=()=>setTimeout(()=>window.print(),900);<\/script></body></html>`);
     w.document.close();
   };
   return(
@@ -871,14 +865,14 @@ function QRScreen(){
         <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:16}}>
           <BackBtn onPress={()=>go("home")}/>
           <div>
-            <p style={{color:"#fff",fontWeight:900,fontSize:19}}>QR-Code Bestellen</p>
-            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>Tisch scannen &amp; direkt bestellen</p>
+            <p style={{color:"#fff",fontWeight:900,fontSize:19}}>QR-Codes für Hörsäle</p>
+            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>Drucken &amp; vor dem jeweiligen Hörsaal aushängen</p>
           </div>
         </div>
       </div>
       <div style={{padding:"20px 16px 0"}}>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.md(dk),marginBottom:16}}>
-          <p style={{fontWeight:700,fontSize:14,marginBottom:11,color:C.text}}>Tisch auswählen</p>
+          <p style={{fontWeight:700,fontSize:14,marginBottom:11,color:C.text}}>Hörsaal auswählen</p>
           <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
             {TABLES.map(tb=><button key={tb} onClick={()=>setT(tb)} style={{padding:"8px 13px",borderRadius:DS.radius.sm,background:t===tb?C.primary:C.surface2,color:t===tb?"#fff":C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",transition:"all .15s",boxShadow:t===tb?DS.shadow.green(dk):"none"}}>{tb}</button>)}
           </div>
@@ -887,19 +881,19 @@ function QRScreen(){
           <div style={{display:"inline-block",padding:12,background:"#fff",borderRadius:DS.radius.lg,boxShadow:DS.shadow.sm(dk)}}>
             <QRWidget table={t} size={200}/>
           </div>
-          <p style={{marginTop:16,fontWeight:800,fontSize:18,color:C.text}}>Tisch {t}</p>
-          <p style={{color:C.textLight,fontSize:13,marginTop:4}}>Scan → Tisch automatisch erkannt</p>
+          <p style={{marginTop:16,fontWeight:800,fontSize:18,color:C.text}}>{t}</p>
+          <p style={{color:C.textLight,fontSize:13,marginTop:4}}>Scan → Hörsaal automatisch erkannt</p>
           <div style={{marginTop:12,background:C.surface2,borderRadius:DS.radius.sm,padding:"9px 14px",display:"inline-block"}}>
             <code style={{fontSize:11,color:C.textMid}}>{(typeof window!=="undefined"?window.location.host+window.location.pathname.replace(/\/$/,""):"zeitraum.app")}?table={t}</code>
           </div>
           <div style={{marginTop:14,display:"flex",gap:8,justifyContent:"center",flexWrap:"wrap"}}>
             <a href={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent((typeof window!=="undefined"?window.location.href.split("?")[0]:"https://c474m2mhhj-dev.github.io/bestellapp")+"?table="+encodeURIComponent(t))}&margin=4&color=004D40`} target="_blank" rel="noopener noreferrer" style={{padding:"10px 20px",background:C.primary,color:"#fff",borderRadius:DS.radius.md,fontWeight:700,fontSize:13,textDecoration:"none",display:"inline-flex",alignItems:"center",gap:6}}>⬇ Bild öffnen</a>
-            <button onClick={printAll} style={{padding:"10px 20px",background:C.surface2,color:C.text,borderRadius:DS.radius.md,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>📄 Alle Tische</button>
+            <button onClick={printAll} style={{padding:"10px 20px",background:C.surface2,color:C.text,borderRadius:DS.radius.md,fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>📄 Alle Hörsäle</button>
           </div>
         </div>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:16,boxShadow:DS.shadow.sm(dk)}}>
           <p style={{fontWeight:700,fontSize:14,marginBottom:12,color:C.text}}>Ablauf</p>
-          {[["1","QR-Code am Tisch aufstellen"],["2","Gast scannt mit Kamera-App"],["3","Tisch wird automatisch erkannt"],["4","Direkt bestellen ohne manuelle Auswahl"]].map(([n,txt])=>(
+          {[["1","QR-Code vor dem jeweiligen Hörsaal aushängen"],["2","Studierende scannen mit der Kamera-App"],["3","Hörsaal wird automatisch erkannt"],["4","Mit Namen bestellen – ohne manuelle Auswahl"]].map(([n,txt])=>(
             <div key={n} style={{display:"flex",alignItems:"center",gap:11,marginBottom:10}}>
               <div style={{width:26,height:26,borderRadius:"50%",background:C.primary,color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:800,fontSize:12,flexShrink:0}}>{n}</div>
               <p style={{fontSize:14,color:C.textMid}}>{txt}</p>
@@ -943,7 +937,7 @@ function MenuScreen(){
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
           <div style={{flex:1}}>
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Speisekarte</p>
-            {selTable&&<p style={{color:"rgba(255,255,255,.6)",fontSize:11,marginTop:2}}>📍 Tisch {selTable}</p>}
+            {selTable&&<p style={{color:"rgba(255,255,255,.6)",fontSize:11,marginTop:2}}>📍 {selTable}</p>}
           </div>
           <button onClick={()=>{const v=!gridView;setGridView(v);LS.set("zr_menu_grid",v);}} aria-label={gridView?"Listenansicht":"Gitteransicht"} style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,.18)",border:"none",cursor:"pointer",color:"#fff",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gridView?"☰":"⊞"}</button>
           {qty>0&&<button onClick={()=>go("cart")} style={{background:"rgba(255,255,255,.18)",borderRadius:13,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>🛒 {qty}</button>}
@@ -1335,7 +1329,7 @@ function CartScreen(){
           <BackBtn onPress={()=>go(prevScreen||"menu")}/>
           <div style={{flex:1}}>
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Warenkorb</p>
-            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>{isPickup?"🛍️ Selbstabholung":selTable?`📍 Tisch ${selTable}`:"⚠️ Kein Tisch"}</p>
+            <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>{isPickup?"🛍️ Selbstabholung":selTable?`📍 ${selTable}`:"⚠️ Kein Hörsaal"}</p>
           </div>
           {cart.length>0&&<button onClick={clearCart} aria-label="Warenkorb leeren" style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",borderRadius:DS.radius.sm,color:"#fff",padding:"6px 12px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Leeren</button>}
         </div>
@@ -1384,7 +1378,7 @@ function CartScreen(){
             </div>
             {!isPickup&&!selTable&&(
               <div style={{background:dk?"rgba(251,192,45,.1)":"#FFF7ED",border:`2px solid ${dk?C.amber+"55":"#FED7AA"}`,borderRadius:DS.radius.md,padding:14,marginBottom:9}}>
-                <p style={{fontWeight:700,fontSize:13,color:dk?C.amber:"#C2410C",marginBottom:9}}>⚠️ Bitte Tisch wählen</p>
+                <p style={{fontWeight:700,fontSize:13,color:dk?C.amber:"#C2410C",marginBottom:9}}>⚠️ Bitte Hörsaal wählen</p>
                 <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
                   {TABLES.map(t=><button key={t} onClick={()=>setSelTable(t)} style={{padding:"8px 13px",borderRadius:DS.radius.sm,background:C.surface2,color:C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",minHeight:42}}>{t}</button>)}
                 </div>
@@ -1451,7 +1445,7 @@ function CartScreen(){
             </div>
             {ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>⏸</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>Bestellungen momentan pausiert – bitte kurz warten!</p></div>}
             <button onClick={handlePay} disabled={needsTable||submitting||ordersPaused} style={{width:"100%",padding:"18px",background:needsTable||submitting||ordersPaused?C.border:`linear-gradient(135deg,${C.dark},${C.primary})`,color:needsTable||submitting||ordersPaused?C.textLight:"#fff",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:needsTable||submitting||ordersPaused?"default":"pointer",boxShadow:!needsTable&&!submitting&&!ordersPaused?DS.shadow.green(dk):"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
-              {submitting?"Wird gesendet…":ordersPaused?"Bestellungen pausiert":needsTable?"Bitte zuerst Tisch wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
+              {submitting?"Wird gesendet…":ordersPaused?"Bestellungen pausiert":needsTable?"Bitte zuerst Hörsaal wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
             </button>
             <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginBottom:32}}>Apple Pay · Google Pay · Kreditkarte</p>
           </>
@@ -1497,7 +1491,7 @@ function OrderCard({o}){
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
         <div style={{flex:1}}>
           <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung #{String(o.createdAt).slice(-4)}</p>
-          <p style={{fontSize:12,color:C.textLight,marginTop:2}}>{isPickup?"🛍️ Abholung":`Tisch ${o.table}`} · {o.time}</p>
+          <p style={{fontSize:12,color:C.textLight,marginTop:2}}>{isPickup?"🛍️ Abholung":o.table} · {o.time}</p>
           {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:7,padding:"3px 8px",marginTop:5,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
         </div>
         <div style={{textAlign:"center",background:`${step.color}18`,borderRadius:14,padding:"9px 13px",flexShrink:0,marginLeft:11}}>
@@ -1530,7 +1524,7 @@ function OrderCard({o}){
           <div style={{flexShrink:0,fontSize:isPickup?28:undefined}}>{isPickup?"🛍️":<Robert size={44}/>}</div>
           <div style={{flex:1,minWidth:0}}>
             <p style={{fontWeight:800,fontSize:13,color:dk?"#93C5FD":"#1E40AF"}}>{isPickup?"Abholbereit! Jetzt abholen":"Robert ist da! Jetzt abholen"}</p>
-            <p style={{fontSize:11,color:dk?"#93C5FD":"#1E40AF",opacity:.85,marginTop:1}}>{isPickup?"Deine Bestellung wartet an der Theke":`Dein Getränk wartet vor dem Hörsaal · Tisch ${o.table}`}</p>
+            <p style={{fontSize:11,color:dk?"#93C5FD":"#1E40AF",opacity:.85,marginTop:1}}>{isPickup?"Deine Bestellung wartet an der Theke":`Dein Getränk wartet vor ${o.table}`}</p>
           </div>
         </div>
       )}
@@ -1559,7 +1553,7 @@ function OrderConfScreen(){
           <svg width="52" height="52" viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="26" fill={C.primary} opacity=".12"/><path d="M14 26l9 9 15-15" stroke={C.primary} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <p style={{fontSize:26,fontWeight:900,color:C.text,marginBottom:8}}>Bestellung aufgegeben!</p>
-        <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>{confData.mode==="pickup"?"🛍️ Selbstabholung":`Tisch ${confData.table}`} · #{String(confData.createdAt).slice(-4)}</p>
+        <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>{confData.mode==="pickup"?"🛍️ Selbstabholung":confData.table} · #{String(confData.createdAt).slice(-4)}</p>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:"14px 22px",marginBottom:16,boxShadow:DS.shadow.md(dk),width:"100%",maxWidth:280}}>
           <p style={{fontSize:13,color:C.textLight,marginBottom:4}}>{confData.itemCount} Artikel · {fmt(confData.total)}</p>
           <p style={{fontSize:16,fontWeight:800,color:C.primary}}>⏱ ca. {confData.wait} Min Zubereitung</p>
@@ -1639,7 +1633,7 @@ function KitchenScreen(){
               <div key={o.id} style={{background:cfg.bg,borderRadius:14,padding:16,display:"flex",flexDirection:"column",gap:10,border:`2px solid ${borderCol}`,animation:urgent?"kPulse 1.8s ease-in-out infinite":undefined}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
-                    <p style={{color:"#fff",fontWeight:900,fontSize:22}}>Tisch {o.table}</p>
+                    <p style={{color:"#fff",fontWeight:900,fontSize:22}}>{o.mode==="pickup"?"🛍️ Abholung":o.table}</p>
                     <p style={{color:"#888",fontSize:11,marginTop:1}}>{totalItems} Artikel · #{String(o.createdAt).slice(-4)}</p>
                   </div>
                   <span style={{fontSize:12,fontWeight:700,color:urgent?"#F87171":warn?"#FCD34D":"#888",background:"rgba(0,0,0,.3)",borderRadius:20,padding:"3px 9px"}}>{age} min{urgent?" ⚠️":warn?" ⚡":""}</span>
@@ -1670,7 +1664,7 @@ function KitchenScreen(){
    ADMIN
 ══════════════════════════════════════════════ */
 function AdminScreen(){
-  const{allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,announcement,saveAnnouncement,ad,saveAd,ordersPaused,togglePause,specialId,setSpecial,nextSlot,setSlot,darkMode:dk}=useApp();const C=useC();
+  const{go,allOrders,loadAdminOrders,setOrderStatus,deleteOrder,clearAllOrders,products,addProduct,deleteProduct,setProductAvailable,setProductPop,editProduct,announcement,saveAnnouncement,ad,saveAd,ordersPaused,togglePause,specialId,setSpecial,nextSlot,setSlot,darkMode:dk}=useApp();const C=useC();
   const[ok,setOk]=useState(()=>sessionStorage.getItem("zr_admin_ok")==="1");
   const[pin,setPin]=useState("");
   const[err,setErr]=useState(false);
@@ -1707,7 +1701,7 @@ function AdminScreen(){
   },[allOrders,revenue,revenueDone]);
   const downloadCSV=useCallback(()=>{
     const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-    const rows=[["Nr","Uhrzeit","Tisch","Status","Artikel","Gesamt"],...[...allOrders].sort((a,b)=>a.createdAt-b.createdAt).map(o=>[String(o.createdAt).slice(-4),o.time,o.table,o.status,o.items.map(it=>`${it.qty}x ${it.name}`).join("; "),o.total.toFixed(2)])];
+    const rows=[["Nr","Uhrzeit","Hörsaal","Status","Artikel","Gesamt"],...[...allOrders].sort((a,b)=>a.createdAt-b.createdAt).map(o=>[String(o.createdAt).slice(-4),o.time,o.mode==="pickup"?"Abholung":o.table,o.status,o.items.map(it=>`${it.qty}x ${it.name}`).join("; "),o.total.toFixed(2)])];
     const csv=rows.map(r=>r.map(esc).join(",")).join("\r\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}));
     a.download=`zeitraum_${new Date().toISOString().slice(0,10)}.csv`;a.click();
@@ -1807,7 +1801,7 @@ function AdminScreen(){
         )}
         {tab==="orders"&&(
           <div style={{display:"flex",gap:5,overflowX:"auto",scrollbarWidth:"none",marginBottom:8,paddingBottom:2,alignItems:"center"}}>
-            <span style={{fontSize:11,color:C.textLight,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>Tisch:</span>
+            <span style={{fontSize:11,color:C.textLight,fontWeight:600,flexShrink:0,whiteSpace:"nowrap"}}>Hörsaal:</span>
             {["all",...TABLES].map(tb=>{const n=tb==="all"?allOrders.filter(o=>o.status!=="done").length:allOrders.filter(o=>o.table===tb&&o.status!=="done").length;return(
               <button key={tb} onClick={()=>setTableFilter(tb)} style={{padding:"5px 9px",borderRadius:DS.radius.full,fontWeight:700,fontSize:11,border:"none",cursor:"pointer",flexShrink:0,background:tableFilter===tb?C.dark:n>0?C.light:C.surface2,color:tableFilter===tb?"#fff":n>0?C.primary:C.textMid,transition:"all .15s",position:"relative"}}>
                 {tb==="all"?"Alle":tb}{n>0?<span style={{marginLeft:4,opacity:.8}}>({n})</span>:null}
@@ -1824,7 +1818,7 @@ function AdminScreen(){
           const tTotal=tOrds.reduce((s,o)=>s+(o.total||0),0);
           return tOrds.length>0&&(
             <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"9px 13px",marginBottom:8,display:"flex",gap:12,alignItems:"center",boxShadow:DS.shadow.xs(dk)}}>
-              <p style={{fontWeight:800,fontSize:13,color:C.text,flexShrink:0}}>Tisch {tableFilter}</p>
+              <p style={{fontWeight:800,fontSize:13,color:C.text,flexShrink:0}}>{tableFilter}</p>
               <div style={{flex:1,display:"flex",gap:10,flexWrap:"wrap"}}>
                 {tActive.length>0&&<span style={{fontSize:11,color:C.textMid,fontWeight:600}}>{tActive.length} aktiv</span>}
                 {tTotal>0&&<span style={{fontSize:11,fontWeight:800,color:C.primary}}>{fmt(tTotal)} gesamt</span>}
@@ -1834,7 +1828,7 @@ function AdminScreen(){
         })()}
         {tab==="orders"&&allOrders.length>3&&(
           <div style={{position:"relative",marginBottom:8}}>
-            <input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setOrderSearch("");}} placeholder="🔍 Tisch, #Nr oder Produkt…" style={{...inp,paddingRight:orderSearch?34:12}}/>
+            <input value={orderSearch} onChange={e=>setOrderSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Escape")setOrderSearch("");}} placeholder="🔍 Name, Hörsaal, #Nr oder Produkt…" style={{...inp,paddingRight:orderSearch?34:12}}/>
             {orderSearch&&<button onClick={()=>setOrderSearch("")} style={{position:"absolute",right:10,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:16,lineHeight:1}}>×</button>}
           </div>
         )}
@@ -1861,7 +1855,7 @@ function AdminScreen(){
               <div style={{marginTop:8}}>
                 <div style={{background:C.surface,borderRadius:DS.radius.md,padding:"10px 12px",marginBottom:6,display:"flex",gap:7,alignItems:"center"}}>
                   <span style={{fontSize:14,flexShrink:0}}>📢</span>
-                  <input value={annInput} onChange={e=>setAnnInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){saveAnnouncement(annInput);}if(e.key==="Escape")setAnnInput(announcement||"");}} placeholder="Ankündigung für alle Tische…" style={{flex:1,padding:"7px 10px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:12,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"}}/>
+                  <input value={annInput} onChange={e=>setAnnInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"){saveAnnouncement(annInput);}if(e.key==="Escape")setAnnInput(announcement||"");}} placeholder="Ankündigung für alle Hörsäle…" style={{flex:1,padding:"7px 10px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:12,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"}}/>
                   <button onClick={()=>{saveAnnouncement(annInput);}} style={{flexShrink:0,padding:"7px 12px",borderRadius:DS.radius.sm,background:C.primary,color:"#fff",fontWeight:700,fontSize:11,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>✓</button>
                   {announcement&&<button onClick={()=>{saveAnnouncement("");setAnnInput("");}} style={{flexShrink:0,padding:"7px 10px",borderRadius:DS.radius.sm,background:C.surface2,color:C.textMid,fontWeight:700,fontSize:11,border:"none",cursor:"pointer"}}>✕</button>}
                 </div>
@@ -1896,6 +1890,14 @@ function AdminScreen(){
                     </div>
                   </div>
                 );})()}
+                <button onClick={()=>go("qr")} style={{width:"100%",marginTop:8,padding:"10px 12px",borderRadius:DS.radius.md,border:`1px solid ${C.border}`,background:C.surface,boxShadow:DS.shadow.xs(dk),cursor:"pointer",display:"flex",alignItems:"center",gap:9}}>
+                  <span style={{fontSize:15,flexShrink:0}}>🔳</span>
+                  <div style={{textAlign:"left",flex:1}}>
+                    <p style={{fontWeight:800,fontSize:12.5,color:C.text}}>QR-Codes für Hörsäle</p>
+                    <p style={{fontSize:10.5,color:C.textLight,marginTop:1}}>Drucken & vor dem jeweiligen Hörsaal aushängen</p>
+                  </div>
+                  <span style={{color:C.textLight,fontSize:16}}>›</span>
+                </button>
               </div>
             )}
           </div>
@@ -1929,7 +1931,7 @@ function AdminScreen(){
               <div key={o.id} style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:9,boxShadow:DS.shadow.sm(dk)}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
-                    <p style={{fontWeight:800,fontSize:14,color:C.text}}>{o.mode==="pickup"?"🛍️ Abholung":`Tisch ${o.table}`} · #{String(o.createdAt).slice(-4)}</p>
+                    <p style={{fontWeight:800,fontSize:14,color:C.text}}>{o.mode==="pickup"?"🛍️ Abholung":o.table} · #{String(o.createdAt).slice(-4)}</p>
                     {((age=><p style={{fontSize:12,color:o.status==="new"&&age>=3?C.red:C.textLight,fontWeight:o.status==="new"&&age>=3?700:400,marginTop:1}}>{o.status==="new"&&age>=3?`⚠️ ${age} min warten · `:""}  {relTime(o.createdAt)} · {o.time}</p>)(Math.floor((Date.now()-o.createdAt)/60000)))}
                     {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:6,padding:"2px 7px",marginTop:4,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
                   </div>
@@ -2268,7 +2270,7 @@ function App(){
   useEffect(()=>{
     const p=new URLSearchParams(window.location.search);
     const t=p.get("table");
-    if(t&&TABLES.includes(t)){setSelTable(t);setTimeout(()=>push(`Tisch ${t} erkannt ✓`,"success"),1600);}
+    if(t&&TABLES.includes(t)){setSelTable(t);setTimeout(()=>push(`${t} erkannt ✓`,"success"),1600);}
   },[]);
 
   const go=useCallback((sc,param=null)=>{
@@ -2362,7 +2364,7 @@ function App(){
     setMyOrders(prev=>{
       const prevReadyIds=new Set(prev.filter(o=>o.status==="ready").map(o=>o.id));
       const newlyReady=next.filter(o=>o.status==="ready"&&!prevReadyIds.has(o.id));
-      if(newlyReady.length>0){const o0=newlyReady[0];const pickup=o0.mode==="pickup";const title=pickup?"🛍️ Abholbereit!":"🤖 Robert ist da!";const body=pickup?"Deine Bestellung wartet an der Theke. Bitte in den nächsten Minuten abholen!":`Dein Getränk wartet vor dem Hörsaal – Tisch ${o0.table}. Bitte in den nächsten Minuten abholen!`;playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(pickup?"🛍️ Abholbereit! Jetzt an der Theke abholen.":"🤖 Robert ist da! Getränk jetzt abholen.","success",6000);if(Notification.permission==="granted"){try{if("serviceWorker" in navigator){navigator.serviceWorker.ready.then(sw=>{if(sw.active)sw.active.postMessage({type:"ROBERT_ARRIVED",title,body});}).catch(()=>{if("Notification" in window)new Notification(title,{body,icon:"/favicon.ico"});});}else if("Notification" in window){new Notification(title,{body,icon:"/favicon.ico"});}}catch(e){}}}
+      if(newlyReady.length>0){const o0=newlyReady[0];const pickup=o0.mode==="pickup";const title=pickup?"🛍️ Abholbereit!":"🤖 Robert ist da!";const body=pickup?"Deine Bestellung wartet an der Theke. Bitte in den nächsten Minuten abholen!":`Dein Getränk wartet vor ${o0.table}. Bitte in den nächsten Minuten abholen!`;playBell();if(navigator.vibrate)navigator.vibrate([80,40,80]);push(pickup?"🛍️ Abholbereit! Jetzt an der Theke abholen.":"🤖 Robert ist da! Getränk jetzt abholen.","success",6000);if(Notification.permission==="granted"){try{if("serviceWorker" in navigator){navigator.serviceWorker.ready.then(sw=>{if(sw.active)sw.active.postMessage({type:"ROBERT_ARRIVED",title,body});}).catch(()=>{if("Notification" in window)new Notification(title,{body,icon:"/favicon.ico"});});}else if("Notification" in window){new Notification(title,{body,icon:"/favicon.ico"});}}catch(e){}}}
 
       return next;
     });
