@@ -4,7 +4,7 @@
 self.addEventListener('message', e => {
   if (e.data?.type === 'ROBERT_ARRIVED') {
     e.waitUntil(
-      self.registration.showNotification('🤖 Robert ist da!', {
+      self.registration.showNotification(e.data.title || '🤖 Robert ist da!', {
         body: e.data.body || 'Dein Getränk wartet. Bitte abholen!',
         icon: e.data.icon || '/bestellapp/icon-192.png',
         badge: e.data.icon || '/bestellapp/icon-192.png',
