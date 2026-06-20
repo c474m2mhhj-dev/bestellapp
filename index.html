@@ -268,6 +268,9 @@ const cafeStatus=(d=new Date())=>{
   for(let i=0;i<8;i++){const nd=(day+i)%7,nh=HOURS[nd];if(!nh)continue;if(i===0&&min<nh[0])return{open:false,label:`Geschlossen · öffnet heute ${fmtT(nh[0])} Uhr`};if(i>0)return{open:false,label:`Geschlossen · öffnet ${i===1?"morgen":DAYNAMES[nd]} ${fmtT(nh[0])} Uhr`};}
   return{open:false,label:"Geschlossen"};
 };
+// Tages-Bonnummer
+const ymd=(d=new Date())=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+const orderNo=o=>o&&o.no?`#${o.no}`:`#${String(o.createdAt).slice(-4)}`;
 
 /* ══════════════════════════════════════════════
    CONTEXT
@@ -1517,7 +1520,7 @@ function OrderCard({o}){
     <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk),animation:o.status==="ready"?"pulse 1.8s ease-in-out infinite":undefined}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
         <div style={{flex:1}}>
-          <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung #{String(o.createdAt).slice(-4)}{o.customer?` · ${o.customer}`:""}</p>
+          <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung {orderNo(o)}{o.customer?` · ${o.customer}`:""}</p>
           <p style={{fontSize:12,color:C.textLight,marginTop:2}}>{isPickup?"🛍️ Abholung":o.table} · {o.time}</p>
           {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:7,padding:"3px 8px",marginTop:5,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
         </div>
@@ -1546,6 +1549,26 @@ function OrderCard({o}){
           </div>
         ))}
       </div>
+      {(o.status==="new"||o.status==="making")&&o.readyAt&&!isPickup&&(()=>{
+        const mins=Math.max(1,Math.ceil((o.readyAt-Date.now())/60000));
+        const late=o.readyAt-Date.now()<=0;
+        return(
+          <div style={{background:dk?"rgba(245,158,11,.12)":"#FFF7ED",border:`1.5px solid ${dk?"rgba(245,158,11,.3)":"#FED7AA"}`,borderRadius:DS.radius.md,padding:"10px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20,flexShrink:0}}>🤖</span>
+            <p style={{flex:1,fontWeight:700,fontSize:12.5,color:dk?"#FCD34D":"#B45309"}}>{late?"Robert ist gleich da …":`Robert liefert in ~${mins} Min`}<span style={{fontWeight:400,opacity:.8}}> · {o.table}</span></p>
+          </div>
+        );
+      })()}
+      {(o.status==="new"||o.status==="making")&&o.readyAt&&isPickup&&(()=>{
+        const mins=Math.max(1,Math.ceil((o.readyAt-Date.now())/60000));
+        const late=o.readyAt-Date.now()<=0;
+        return(
+          <div style={{background:dk?"rgba(245,158,11,.12)":"#FFF7ED",border:`1.5px solid ${dk?"rgba(245,158,11,.3)":"#FED7AA"}`,borderRadius:DS.radius.md,padding:"10px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{fontSize:20,flexShrink:0}}>⏱</span>
+            <p style={{flex:1,fontWeight:700,fontSize:12.5,color:dk?"#FCD34D":"#B45309"}}>{late?"Gleich abholbereit …":`Fertig in ~${mins} Min`}<span style={{fontWeight:400,opacity:.8}}> · an der Theke</span></p>
+          </div>
+        );
+      })()}
       {o.status==="ready"&&(
         <div style={{background:dk?"rgba(37,99,235,.14)":"#EFF6FF",border:`1.5px solid ${dk?"rgba(37,99,235,.45)":"#BFDBFE"}`,borderRadius:DS.radius.md,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:11}}>
           <div style={{flexShrink:0,fontSize:isPickup?28:undefined}}>{isPickup?"🛍️":<Robert size={44}/>}</div>
@@ -1580,7 +1603,7 @@ function OrderConfScreen(){
           <svg width="52" height="52" viewBox="0 0 52 52" fill="none"><circle cx="26" cy="26" r="26" fill={C.primary} opacity=".12"/><path d="M14 26l9 9 15-15" stroke={C.primary} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </div>
         <p style={{fontSize:26,fontWeight:900,color:C.text,marginBottom:8}}>Bestellung aufgegeben!</p>
-        <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>{confData.customer?`Für ${confData.customer} · `:""}{confData.mode==="pickup"?"🛍️ Selbstabholung":confData.table} · #{String(confData.createdAt).slice(-4)}</p>
+        <p style={{fontSize:15,color:C.textMid,marginBottom:22}}>{confData.customer?`Für ${confData.customer} · `:""}{confData.mode==="pickup"?"🛍️ Selbstabholung":confData.table} · {orderNo(confData)}</p>
         <div style={{background:C.surface,borderRadius:DS.radius.lg,padding:"14px 22px",marginBottom:16,boxShadow:DS.shadow.md(dk),width:"100%",maxWidth:280}}>
           <p style={{fontSize:13,color:C.textLight,marginBottom:4}}>{confData.itemCount} Artikel · {fmt(confData.total)}</p>
           <p style={{fontSize:16,fontWeight:800,color:C.primary}}>⏱ ca. {confData.wait} Min Zubereitung</p>
@@ -1661,7 +1684,7 @@ function KitchenScreen(){
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
                     <p style={{color:"#fff",fontWeight:900,fontSize:22}}>{o.avatar?o.avatar+" ":""}{o.customer||"Gast"}</p>
-                    <p style={{color:"#9ad6cc",fontSize:12,fontWeight:700,marginTop:1}}>{o.mode==="pickup"?"🛍️ Abholung":"📍 "+o.table} · {totalItems} Artikel · #{String(o.createdAt).slice(-4)}</p>
+                    <p style={{color:"#9ad6cc",fontSize:12,fontWeight:700,marginTop:1}}>{o.mode==="pickup"?"🛍️ Abholung":"📍 "+o.table} · {totalItems} Artikel · {orderNo(o)}</p>
                   </div>
                   <span style={{fontSize:12,fontWeight:700,color:urgent?"#F87171":warn?"#FCD34D":"#888",background:"rgba(0,0,0,.3)",borderRadius:20,padding:"3px 9px"}}>{age} min{urgent?" ⚠️":warn?" ⚡":""}</span>
                 </div>
@@ -1728,7 +1751,7 @@ function AdminScreen(){
   },[allOrders,revenue,revenueDone]);
   const downloadCSV=useCallback(()=>{
     const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-    const rows=[["Nr","Uhrzeit","Hörsaal","Status","Artikel","Gesamt"],...[...allOrders].sort((a,b)=>a.createdAt-b.createdAt).map(o=>[String(o.createdAt).slice(-4),o.time,o.mode==="pickup"?"Abholung":o.table,o.status,o.items.map(it=>`${it.qty}x ${it.name}`).join("; "),o.total.toFixed(2)])];
+    const rows=[["Nr","Uhrzeit","Hörsaal","Name","Status","Artikel","Gesamt"],...[...allOrders].sort((a,b)=>a.createdAt-b.createdAt).map(o=>[o.no!=null?String(o.no):String(o.createdAt).slice(-4),o.time,o.mode==="pickup"?"Abholung":o.table,o.customer||"",o.status,o.items.map(it=>`${it.qty}x ${it.name}`).join("; "),o.total.toFixed(2)])];
     const csv=rows.map(r=>r.map(esc).join(",")).join("\r\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}));
     a.download=`zeitraum_${new Date().toISOString().slice(0,10)}.csv`;a.click();
@@ -1959,7 +1982,7 @@ function AdminScreen(){
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
                     <p style={{fontWeight:800,fontSize:14,color:C.text}}>{o.avatar?o.avatar+" ":""}{o.customer||"Gast"}</p>
-                    <p style={{fontSize:12,fontWeight:700,color:C.primary,marginTop:1}}>{o.mode==="pickup"?"🛍️ Abholung":"📍 "+o.table} · #{String(o.createdAt).slice(-4)}</p>
+                    <p style={{fontSize:12,fontWeight:700,color:C.primary,marginTop:1}}>{o.mode==="pickup"?"🛍️ Abholung":"📍 "+o.table} · {orderNo(o)}</p>
                     {((age=><p style={{fontSize:12,color:o.status==="new"&&age>=3?C.red:C.textLight,fontWeight:o.status==="new"&&age>=3?700:400,marginTop:1}}>{o.status==="new"&&age>=3?`⚠️ ${age} min warten · `:""}  {relTime(o.createdAt)} · {o.time}</p>)(Math.floor((Date.now()-o.createdAt)/60000)))}
                     {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:6,padding:"2px 7px",marginTop:4,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
                   </div>
@@ -1975,7 +1998,7 @@ function AdminScreen(){
                 </div>
               </div>
             ))}<div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:11,color:C.textMid}}>{filtered.length} Bestellung{filtered.length!==1?"en":""}</span><span style={{fontWeight:800,fontSize:13,color:C.primary}}>{fmt(filtered.reduce((s,o)=>s+o.total,0))}</span></div></>
-          )([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim();return(o.customer||"").toLowerCase().includes(q)||String(o.table||"").toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
+          )([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim().replace(/^#/,"");return(o.customer||"").toLowerCase().includes(q)||String(o.no||"").includes(q)||String(o.table||"").toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
         ):null}
         {tab==="orders"&&(
           <div style={{marginTop:16,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
@@ -2342,14 +2365,24 @@ function App(){
       const sub=Math.round(cart.reduce((s,i)=>s+i.price*i.qty,0)*100)/100;
       const del=mode==="pickup"?0:(sub>=FREE_ABOVE?0:DEL_FEE);
       const discount=Math.min(Math.max(0,opts?.discount||0),sub+del);
+      const CAT_MIN={Kaltgetränke:1,Snacks:2,Gebäck:3,Sonstiges:2};
+      const times=cart.map(it=>{const pr=products.find(x=>x.id===it.id);return CAT_MIN[pr?.cat]??5;});
+      const base=times.length?Math.max(...times):5;
+      const tQty=cart.reduce((s,i)=>s+i.qty,0);
+      const wait=base+(tQty>3?2:tQty>1?1:0);
+      // fortlaufende Tages-Bonnummer
+      const sk="seq_"+ymd();let no=null;
+      try{if(Db.enabled){const cur=(await Db.get(sk,true))||0;no=cur+1;await Db.set(sk,no,true);}else{const cur=LS.get(sk,0)||0;no=cur+1;LS.set(sk,no);}}catch(e){no=null;}
+      const created=Date.now();
       const order={
-        id,createdAt:Date.now(),
+        id,createdAt:created,no,
         table:mode==="pickup"?null:selTable,
         mode,
         customer:custName,
         avatar:user.avatar||"🙂",
         time:now.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"}),
         status:"new",
+        readyAt:created+wait*60000,
         items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note,id:i.id,emoji:i.emoji,img:i.img,price:i.price,size:i.size})),
         total:Math.round((sub+del-discount)*100)/100,
         voucher:discount>0?Math.round(discount*100)/100:0,
@@ -2361,11 +2394,6 @@ function App(){
       LS.set("zr_all_orders",[...LS.get("zr_all_orders",[]),id]);
       await Db.set(`order_${id}`,order,true);
       setMyOrders(prev=>[...prev,order]);
-      const CAT_MIN={Kaltgetränke:1,Snacks:2,Gebäck:3,Sonstiges:2};
-      const times=cart.map(it=>{const pr=products.find(x=>x.id===it.id);return CAT_MIN[pr?.cat]??5;});
-      const base=times.length?Math.max(...times):5;
-      const tQty=cart.reduce((s,i)=>s+i.qty,0);
-      const wait=base+(tQty>3?2:tQty>1?1:0);
       setCart([]);
       LS.del("zr_note");
       const earned=drinkStamps(cart,products);
@@ -2373,7 +2401,7 @@ function App(){
       const voucherUnlocked=Math.floor(newPoints/VOUCHER_AT)>Math.floor((user.points||0)/VOUCHER_AT);
       saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100,vouchersUsed:(user.vouchersUsed||0)+(discount>0?1:0)});
       if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
-      setConfData({id:order.id,createdAt:order.createdAt,table:order.table,mode:order.mode,customer:order.customer,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
+      setConfData({id:order.id,createdAt:order.createdAt,no:order.no,table:order.table,mode:order.mode,customer:order.customer,total:order.total,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
       go("conf");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
