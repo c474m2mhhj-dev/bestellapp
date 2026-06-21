@@ -2471,7 +2471,6 @@ function App(){
   },[]);
 
   const removeItem=useCallback((ck)=>setCart(prev=>prev.filter(i=>i.ck!==ck)),[]);
-  const setItemNote=useCallback((ck,note)=>setCart(prev=>prev.map(i=>i.ck===ck?{...i,note}:i)),[]);
 
   const saveUser=useCallback((patch)=>{
     setUser(prev=>{const next={...prev,...patch};LS.set("zr_user",next);Db.set(`user_${next.id}`,next,true);return next;});
@@ -2645,7 +2644,7 @@ function App(){
   const ctx={
     adminAccess,revokeAdmin,activeLoad,
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
-    darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
+    darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,reopenAllProducts,setProductPop,editProduct,
     announcement,saveAnnouncement,
