@@ -1218,10 +1218,9 @@ function DetailScreen(){
 /* ══════════════════════════════════════════════
    CART ITEM with swipe-to-remove
 ══════════════════════════════════════════════ */
-function CartItem({item,onChQty,onRemove,onSetNote}){
+function CartItem({item,onChQty,onRemove}){
   const C=useC(),{darkMode:dk}=useApp();
   const{dx,onTStart,onTMove,onTEnd}=useSwipe(onRemove);
-  const[noteOpen,setNoteOpen]=useState(!!item.note);
   return(
     <div style={{position:"relative",marginBottom:9,overflow:"hidden",borderRadius:DS.radius.md}}>
       <div style={{position:"absolute",right:0,top:0,bottom:0,width:80,background:C.red,display:"flex",alignItems:"center",justifyContent:"center",color:"#fff",fontSize:22,borderRadius:DS.radius.md}}>🗑</div>
@@ -1239,13 +1238,7 @@ function CartItem({item,onChQty,onRemove,onSetNote}){
             <QtyBtn op="+" onPress={()=>onChQty(1)} sz={36}/>
           </div>
         </div>
-        {onSetNote&&((item.note||noteOpen)
-          ?<div style={{display:"flex",gap:6,alignItems:"center",marginTop:8}}>
-              <input value={item.note||""} onChange={e=>onSetNote(e.target.value)} placeholder="z.B. ohne Milch, extra Zucker…" autoFocus style={{flex:1,padding:"6px 10px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:12,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"}}/>
-              <button onClick={()=>{onSetNote("");setNoteOpen(false);}} style={{background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:16,padding:"2px 4px",lineHeight:1}}>✕</button>
-            </div>
-          :<button onClick={()=>setNoteOpen(true)} style={{marginTop:7,padding:"8px 12px",border:`1px solid ${C.border}`,borderRadius:DS.radius.full,fontSize:11,background:"none",cursor:"pointer",color:C.textLight,fontFamily:"inherit"}}>+ Notiz</button>
-        )}
+        {item.note&&<p style={{marginTop:8,fontSize:11.5,color:C.textMid,background:C.surface2,borderRadius:7,padding:"4px 9px",display:"inline-block"}}>📝 {item.note}</p>}
       </div>
     </div>
   );
@@ -1377,8 +1370,7 @@ function PaymentSheet({total,items,del,onConfirm,onClose}){
    CART SCREEN
 ══════════════════════════════════════════════ */
 function CartScreen(){
-  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,user,activeLoad,darkMode:dk}=useApp();const C=useC();
-  const[note,setNote]=useState(()=>LS.get("zr_note",""));
+  const{go,prevScreen,cart,chQty,removeItem,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,user,activeLoad,darkMode:dk}=useApp();const C=useC();
   const[undoItem,setUndoItem]=useState(null);
   const[payOpen,setPayOpen]=useState(false);
   const[useVoucher,setUseVoucher]=useState(false);
@@ -1390,7 +1382,6 @@ function CartScreen(){
   const isPickup=mode==="pickup";
   const undoRef=useRef(null);
   const handleRemove=useCallback((item)=>{clearTimeout(undoRef.current);setUndoItem({...item});removeItem(item.ck);undoRef.current=setTimeout(()=>setUndoItem(null),5000);},[removeItem]);
-  useEffect(()=>{LS.set("zr_note",note);},[note]);
   const sub=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const del=isPickup?0:(sub>=FREE_ABOVE?0:DEL_FEE);
   const availVouchers=Math.floor((user?.points||0)/VOUCHER_AT)-(user?.vouchersUsed||0);
@@ -1461,7 +1452,7 @@ function CartScreen(){
           </div>
         )}
         {cart.map(item=>(
-          <CartItem key={item.ck} item={item} onChQty={d=>{if(d===-1&&item.qty===1)handleRemove(item);else chQty(item.ck,d);}} onRemove={()=>handleRemove(item)} onSetNote={n=>setItemNote(item.ck,n)}/>
+          <CartItem key={item.ck} item={item} onChQty={d=>{if(d===-1&&item.qty===1)handleRemove(item);else chQty(item.ck,d);}} onRemove={()=>handleRemove(item)}/>
         ))}
         {cart.length>0&&upsell.length>0&&(
           <div style={{marginBottom:9}}>
@@ -1535,10 +1526,6 @@ function CartScreen(){
                 )}
               </div>
             );})()}
-            <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
-              <p style={{fontWeight:700,fontSize:13,marginBottom:7,color:C.text}}>📝 Bestellnotiz</p>
-              <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Allergien, besondere Wünsche…" style={{width:"100%",padding:"10px 12px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:14,background:C.surface2,height:64,resize:"none",fontFamily:"inherit",outline:"none",color:C.text}}/>
-            </div>
             {/* Free delivery progress */}
             {!isPickup&&sub<FREE_ABOVE&&(
               <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.xs(dk),padding:13,marginBottom:9}}>
@@ -1606,7 +1593,7 @@ function CartScreen(){
           <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
         </div>
       )}
-      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async(pay)=>{await submitOrder(note,{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim(),cupType,payment:pay});setPayOpen(false);}}/>}
+      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async(pay)=>{await submitOrder("",{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim(),cupType,payment:pay});setPayOpen(false);}}/>}
       <BottomNav/>
     </Screen>
   );
@@ -2538,7 +2525,6 @@ function App(){
       await Db.set(`order_${id}`,order,true);
       setMyOrders(prev=>[...prev,order]);
       setCart([]);
-      LS.del("zr_note");
       const earned=drinkStamps(cart,products);
       const newPoints=(user.points||0)+earned;
       const voucherUnlocked=Math.floor(newPoints/VOUCHER_AT)>Math.floor((user.points||0)/VOUCHER_AT);
