@@ -122,6 +122,8 @@ const Remote = {
   get: async(k,sh)=>{ const r=await fetch(sbUrl()+"?select=value&key=eq."+encodeURIComponent(k)+"&shared="+sbBool(sh),{headers:sbHead()}); if(!r.ok)return null; const a=await r.json(); return a.length?a[0].value:null; },
   list:async(p,sh)=>{ const r=await fetch(sbUrl()+"?select=key&shared="+sbBool(sh)+"&key=like."+encodeURIComponent(p)+"*",{headers:sbHead()}); if(!r.ok)return[]; const a=await r.json(); return a.map(x=>x.key); },
   del: async(k,sh)=>{ await fetch(sbUrl()+"?key=eq."+encodeURIComponent(k)+"&shared="+sbBool(sh),{method:"DELETE",headers:sbHead()}); },
+  // Anzahl offener Bestellungen (new|making) – günstig per count-Header
+  activeCount: async()=>{ try{ const r=await fetch(sbUrl()+"?select=key&shared=is.true&key=like.order_*&value->>status=in.(new,making)",{headers:{...sbHead(),Prefer:"count=exact",Range:"0-0"}}); const cr=r.headers.get("content-range")||""; const n=parseInt((cr.split("/")[1]||"").trim()); return isNaN(n)?0:n; }catch(e){ return 0; } },
 };
 const Db = {
   enabled: hasRemote || hasSt,
@@ -129,6 +131,7 @@ const Db = {
   get:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.get(k,sh); if(hasSt){const r=await window.storage.get(k,sh);return r?JSON.parse(r.value):null;} }catch(e){} return null; },
   list: async(p,sh=false)  =>{ try{ if(hasRemote)return await Remote.list(p,sh); if(hasSt){const r=await window.storage.list(p,sh);return r?r.keys:[];} }catch(e){} return []; },
   del:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.del(k,sh); if(hasSt)await window.storage.delete(k,sh); }catch(e){} },
+  activeLoad: async()=>{ try{ if(hasRemote)return await Remote.activeCount(); const keys=hasSt?await Db.list("order_",true):LS.get("zr_all_orders",[]).map(id=>"zr_order_"+id); const os=await Promise.all(keys.map(k=>hasSt?Db.get(k,true):Promise.resolve(LS.get(k,null)))); return os.filter(o=>o&&(o.status==="new"||o.status==="making")).length; }catch(e){ return 0; } },
 };
 const LS = {
   get:(k,d=null)=>{ try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d} },
@@ -262,6 +265,10 @@ const CUP_CATS = ["Heiße Getränke","Iced Drinks"];
 const cupUnitsOf = (items,products)=>items.reduce((s,i)=>{const p=products.find(x=>x.id===i.id);return s+(p&&CUP_CATS.includes(p.cat)?(i.qty||1):0);},0);
 const depositRates = (products)=>{const f=n=>{const p=products.find(x=>x.name===n);return p&&p.sizes&&p.sizes[0]?p.sizes[0].p:null;};return{becher:Math.round(((f("Becherpfand")??1.0)+(f("Deckelpfand")??0.5))*100)/100,tasse:(f("Tassenpfand")??2.0)};};
 const cupDeposit = (items,products,mode,cupType)=>{const units=cupUnitsOf(items,products);if(!units)return{units:0,deposit:0,type:null};const r=depositRates(products);const type=mode==="pickup"&&cupType==="tasse"?"tasse":"becher";const per=type==="tasse"?r.tasse:r.becher;return{units,type,deposit:Math.round(units*per*100)/100};};
+
+// Auslastung: zusätzliche Wartezeit (Min) je nach Anzahl offener Bestellungen im System
+const loadExtraMin = (n)=> n>=10?7 : n>=7?5 : n>=4?3 : n>=2?1 : 0;
+const loadInfo = (n)=> n>=7?{icon:"🔥",label:"Stoßzeit – längere Wartezeit",tone:"hot"} : n>=4?{icon:"⏳",label:"Gerade viel los",tone:"busy"} : null;
 
 /* ══════════════════════════════════════════════
    UTILS
@@ -585,7 +592,7 @@ function AdBanner({ad}){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,addToCart,announcement,ordersPaused,specialId,nextSlot,user,ad}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,addToCart,announcement,ordersPaused,specialId,nextSlot,user,ad,activeLoad}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
@@ -658,7 +665,7 @@ function HomeScreen(){
           </div>
         </div>
         <div style={{display:"flex",gap:6,marginTop:16,flexWrap:"wrap"}}>
-          <Chip>⏱ ~3–8 Min</Chip><Chip>🤖 Robot-Lieferung</Chip><Chip>♻️ Mehrweg</Chip>
+          {(()=>{const li=loadInfo(activeLoad||0);return li?<Chip>{li.icon} {li.label}</Chip>:<Chip>⏱ ~3–8 Min</Chip>;})()}<Chip>🤖 Robot-Lieferung</Chip><Chip>♻️ Mehrweg</Chip>
         </div>
       </div>
 
@@ -1370,7 +1377,7 @@ function PaymentSheet({total,items,del,onConfirm,onClose}){
    CART SCREEN
 ══════════════════════════════════════════════ */
 function CartScreen(){
-  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,user,darkMode:dk}=useApp();const C=useC();
+  const{go,prevScreen,cart,chQty,removeItem,setItemNote,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,user,activeLoad,darkMode:dk}=useApp();const C=useC();
   const[note,setNote]=useState(()=>LS.get("zr_note",""));
   const[undoItem,setUndoItem]=useState(null);
   const[payOpen,setPayOpen]=useState(false);
@@ -1421,8 +1428,9 @@ function CartScreen(){
     const base=Math.max(...times);
     const totalQty=cart.reduce((s,i)=>s+i.qty,0);
     const extra=totalQty>3?2:totalQty>1?1:0;
-    return base+extra;
-  },[cart,products]);
+    return base+extra+loadExtraMin((activeLoad||0)+1);
+  },[cart,products,activeLoad]);
+  const load=loadInfo(activeLoad||0);
   const needsName=!nameDraft.trim();
   const needsTable=!isPickup&&!selTable;
   const cantPay=needsName||needsTable;
@@ -1576,9 +1584,12 @@ function CartScreen(){
                 </div>
               </div>
             );})()}
-            <div style={{background:C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:9}}>
-              <span>⏱</span>
-              <div><p style={{fontWeight:700,fontSize:13,color:C.dark}}>ca. {estWait} Min Zubereitungszeit</p><p style={{fontSize:11,color:C.textMid}}>Geschätzt · nach Bestätigung</p></div>
+            <div style={{background:load?(load.tone==="hot"?(dk?"rgba(239,68,68,.12)":"#FEF2F2"):(dk?"rgba(245,158,11,.12)":"#FFFBEB")):C.light,borderRadius:DS.radius.sm,padding:"11px 14px",marginBottom:18,display:"flex",alignItems:"center",gap:9}}>
+              <span>{load?load.icon:"⏱"}</span>
+              <div style={{flex:1}}>
+                <p style={{fontWeight:700,fontSize:13,color:load?(load.tone==="hot"?(dk?"#FCA5A5":"#991B1B"):(dk?"#FCD34D":"#92400E")):C.dark}}>ca. {estWait} Min Zubereitungszeit</p>
+                <p style={{fontSize:11,color:C.textMid}}>{load?`${load.label} · ${activeLoad} offene Bestellungen`:"Geschätzt · nach Bestätigung"}</p>
+              </div>
             </div>
             {closed&&!ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>🔴</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>{cafeStatus().label} – Robert liefert nur während der Öffnungszeiten.</p></div>}
             {ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>⏸</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>Bestellungen momentan pausiert – bitte kurz warten!</p></div>}
@@ -2414,6 +2425,7 @@ function App(){
   const[prevScreen,setPrevScreen]=useState("menu");
   const[splash,setSplash]=useState(true);
   const[adminAccess,setAdminAccess]=useState(()=>LS.get("zr_admin_access",false));
+  const[activeLoad,setActiveLoad]=useState(0);
   const{toasts,push}=useToast();
 
   useEffect(()=>{const ready=myOrders.filter(o=>o.status==="ready").length;const newOrd=allOrders.filter(o=>o.status==="new").length;if(ready>0)document.title=`🔔 Bereit! – zeitraum`;else if(newOrd>0)document.title=`(${newOrd} neu) Admin – zeitraum`;else document.title="zeitraum – Café & Bar";},[myOrders,allOrders]);
@@ -2433,6 +2445,9 @@ function App(){
   },[]);
 
   useEffect(()=>{const t=setTimeout(()=>setSplash(false),1400);return()=>clearTimeout(t);},[]);
+
+  // Aktuelle Auslastung (offene Bestellungen) regelmäßig holen → ETA/Anzeige
+  useEffect(()=>{let on=true;const tick=()=>Db.activeLoad().then(n=>{if(on)setActiveLoad(n);});tick();const t=setInterval(tick,25000);const onVis=()=>{if(document.visibilityState==="visible")tick();};document.addEventListener("visibilitychange",onVis);return()=>{on=false;clearInterval(t);document.removeEventListener("visibilitychange",onVis);};},[]);
 
   useEffect(()=>{
     const p=new URLSearchParams(window.location.search);
@@ -2492,7 +2507,8 @@ function App(){
       const times=cart.map(it=>{const pr=products.find(x=>x.id===it.id);return CAT_MIN[pr?.cat]??5;});
       const base=times.length?Math.max(...times):5;
       const tQty=cart.reduce((s,i)=>s+i.qty,0);
-      const wait=base+(tQty>3?2:tQty>1?1:0);
+      // Auslastung beim Bestellzeitpunkt einrechnen (+1 für die eigene Bestellung)
+      const wait=base+(tQty>3?2:tQty>1?1:0)+loadExtraMin(activeLoad+1);
       // fortlaufende Tages-Bonnummer
       const sk="seq_"+ymd();let no=null;
       try{if(Db.enabled){const cur=(await Db.get(sk,true))||0;no=cur+1;await Db.set(sk,no,true);}else{const cur=LS.get(sk,0)||0;no=cur+1;LS.set(sk,no);}}catch(e){no=null;}
@@ -2535,7 +2551,7 @@ function App(){
     }finally{
       setSubmitting(false);
     }
-  },[cart,selTable,submitting,push,go,products,user,saveUser]);
+  },[cart,selTable,submitting,push,go,products,user,saveUser,activeLoad]);
 
   const syncOrders=useCallback(async()=>{
     if(Db.enabled)Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
@@ -2641,7 +2657,7 @@ function App(){
   const revokeAdmin=useCallback(()=>{setAdminAccess(false);LS.del("zr_admin_access");setScreen("home");},[]);
 
   const ctx={
-    adminAccess,revokeAdmin,
+    adminAccess,revokeAdmin,activeLoad,
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,setItemNote,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
