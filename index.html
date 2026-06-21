@@ -1247,22 +1247,51 @@ function CartItem({item,onChQty,onRemove,onSetNote}){
 /* ══════════════════════════════════════════════
    PAYMENT SHEET — in-app Apple Pay / Google Pay / card
 ══════════════════════════════════════════════ */
+// Card helpers — Luhn check, brand detection, formatting
+const luhnOk=(d)=>{let s=0,alt=false;for(let i=d.length-1;i>=0;i--){let x=+d[i];if(alt){x*=2;if(x>9)x-=9;}s+=x;alt=!alt;}return d.length>0&&s%10===0;};
+const cardBrand=(d)=>{if(/^4/.test(d))return"Visa";if(/^3[47]/.test(d))return"Amex";if(/^5[1-5]/.test(d)||/^2[2-7]/.test(d))return"Mastercard";if(/^6/.test(d))return"Discover";return null;};
+// Simulated issuer responses for known test cards
+const DECLINES={"4000000000000002":"Karte abgelehnt – bitte andere Karte verwenden","4000000000009995":"Nicht genügend Guthaben","4000000000000069":"Karte ist abgelaufen","4000000000000127":"Falscher Sicherheitscode (CVC)"};
+function BrandBadge({brand}){
+  const m={Visa:["#1A1F71","VISA"],Mastercard:["#EB001B","MC"],Amex:["#2E77BC","AMEX"],Discover:["#E8731C","DISC"]}[brand];
+  if(!m)return <span style={{fontSize:18,opacity:.5}}>💳</span>;
+  return <span style={{background:m[0],color:"#fff",fontSize:10,fontWeight:900,letterSpacing:".05em",padding:"3px 6px",borderRadius:5}}>{m[1]}</span>;
+}
 function PaymentSheet({total,items,del,onConfirm,onClose}){
   const C=useC(),{darkMode:dk}=useApp();
-  const[stage,setStage]=useState("select");
+  const[stage,setStage]=useState("select"); // select | card | processing | done | error
   const[method,setMethod]=useState("");
+  const[num,setNum]=useState(""),[exp,setExp]=useState(""),[cvc,setCvc]=useState(""),[holder,setHolder]=useState("");
+  const[err,setErr]=useState("");
+  const[auth,setAuth]=useState("");
   const ua=typeof navigator!=="undefined"?navigator.userAgent:"";
   const isApple=/iPhone|iPad|iPod|Macintosh/.test(ua)&&/Safari/.test(ua)&&!/CriOS|Chrome|Android/.test(ua);
   const isAndroid=/Android/.test(ua);
-  const pay=(label)=>{
-    setMethod(label);setStage("processing");
-    if(navigator.vibrate)navigator.vibrate(12);
-    setTimeout(()=>{setStage("done");if(navigator.vibrate)navigator.vibrate([20,30,50]);setTimeout(()=>onConfirm(label),850);},1400);
+  const vib=p=>{try{if(navigator.vibrate)navigator.vibrate(p);}catch(e){}};
+  const brand=cardBrand(num);const isAmex=brand==="Amex";
+  const numLen=isAmex?15:16, cvcLen=isAmex?4:3;
+  const groups=isAmex?[4,6,5]:[4,4,4,4];
+  const fmtNum=(()=>{let o="",i=0;for(const g of groups){if(i>=num.length)break;o+=(o?" ":"")+num.slice(i,i+g);i+=g;}return o;})();
+  const fmtExp=exp.length>2?exp.slice(0,2)+"/"+exp.slice(2):exp;
+  const expOk=(()=>{if(exp.length!==4)return false;const mm=+exp.slice(0,2),yy=+exp.slice(2);if(mm<1||mm>12)return false;const n=new Date();return yy>n.getFullYear()%100||(yy===n.getFullYear()%100&&mm>=n.getMonth()+1);})();
+  const numOk=num.length===numLen&&luhnOk(num);
+  const cardValid=numOk&&expOk&&cvc.length===cvcLen;
+  const last4=num.slice(-4);
+  const payWallet=(label)=>{setMethod(label);setStage("processing");vib(12);setTimeout(()=>{setAuth("A"+Math.random().toString().slice(2,8));setStage("done");vib([20,30,50]);setTimeout(()=>onConfirm({method:label}),1100);},1500);};
+  const payCard=()=>{
+    if(!cardValid)return;
+    setMethod(`${brand||"Karte"} ••${last4}`);setStage("processing");vib(12);
+    setTimeout(()=>{
+      const dec=DECLINES[num];
+      if(dec){setErr(dec);setStage("error");vib([60,40,60]);}
+      else{setAuth("A"+Math.random().toString().slice(2,8));setStage("done");vib([20,30,50]);setTimeout(()=>onConfirm({method:"Kreditkarte",brand,last4}),1300);}
+    },1900);
   };
   const appleLogo=<svg viewBox="0 0 384 512" width="20" height="20" fill="currentColor" style={{marginRight:6}}><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>;
+  const fld={width:"100%",padding:"12px 13px",border:`1.5px solid ${C.border}`,borderRadius:DS.radius.sm,fontSize:16,background:C.surface2,color:C.text,fontFamily:"inherit",outline:"none"};
   return(
     <div onClick={stage==="select"?onClose:undefined} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"flex-end",justifyContent:"center",animation:"fadeIn .2s ease both"}}>
-      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:430,background:C.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:"10px 20px max(24px,env(safe-area-inset-bottom))",animation:"sheetUp .34s cubic-bezier(.34,1.4,.64,1) both",boxShadow:"0 -8px 40px rgba(0,0,0,.35)"}}>
+      <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:430,background:C.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:"10px 20px max(24px,env(safe-area-inset-bottom))",animation:"sheetUp .34s cubic-bezier(.34,1.4,.64,1) both",boxShadow:"0 -8px 40px rgba(0,0,0,.35)",maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{width:38,height:4,borderRadius:2,background:C.border,margin:"0 auto 16px"}}/>
         {stage==="select"&&(<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:3}}>
@@ -1270,27 +1299,66 @@ function PaymentSheet({total,items,del,onConfirm,onClose}){
             <p style={{fontWeight:900,fontSize:22,color:C.primary}}>{fmt(total)}</p>
           </div>
           <p style={{fontSize:12,color:C.textLight,marginBottom:18}}>{items.reduce((s,i)=>s+i.qty,0)} Artikel{del>0?` · inkl. ${fmt(del)} Servicegebühr`:""}</p>
-          <button onClick={()=>pay("Apple Pay")} style={{width:"100%",height:54,borderRadius:14,border:"none",cursor:"pointer",background:"#000",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,fontWeight:600,marginBottom:10}}>{appleLogo}Pay</button>
-          <button onClick={()=>pay("Google Pay")} style={{width:"100%",height:54,borderRadius:14,border:`1.5px solid ${C.border}`,cursor:"pointer",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,marginBottom:10}}>
+          <button onClick={()=>payWallet("Apple Pay")} style={{width:"100%",height:54,borderRadius:14,border:"none",cursor:"pointer",background:"#000",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,fontWeight:600,marginBottom:10}}>{appleLogo}Pay</button>
+          <button onClick={()=>payWallet("Google Pay")} style={{width:"100%",height:54,borderRadius:14,border:`1.5px solid ${C.border}`,cursor:"pointer",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,marginBottom:10}}>
             <span style={{fontWeight:500,letterSpacing:"-.01em",fontSize:19}}><span style={{color:"#4285F4"}}>G</span><span style={{color:"#EA4335"}}>o</span><span style={{color:"#FBBC05"}}>o</span><span style={{color:"#4285F4"}}>g</span><span style={{color:"#34A853"}}>l</span><span style={{color:"#EA4335"}}>e</span></span><span style={{marginLeft:5,color:"#5F6368",fontWeight:600}}>Pay</span>
           </button>
-          <button onClick={()=>pay("Kreditkarte")} style={{width:"100%",height:54,borderRadius:14,border:`1.5px solid ${C.border}`,cursor:"pointer",background:C.surface2,color:C.text,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:15,fontWeight:700}}>💳 Kredit- / Debitkarte</button>
+          <button onClick={()=>setStage("card")} style={{width:"100%",height:54,borderRadius:14,border:`1.5px solid ${C.border}`,cursor:"pointer",background:C.surface2,color:C.text,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:15,fontWeight:700}}>💳 Kredit- / Debitkarte</button>
           <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginTop:15}}>🔒 {isApple?"Apple Pay empfohlen auf diesem Gerät":isAndroid?"Google Pay empfohlen auf diesem Gerät":"Sichere, SSL-verschlüsselte Zahlung"}</p>
+        </>)}
+        {stage==="card"&&(<>
+          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:14}}>
+            <button onClick={()=>{setStage("select");setErr("");}} aria-label="Zurück" style={{width:34,height:34,borderRadius:DS.radius.sm,border:`1px solid ${C.border}`,background:C.surface,cursor:"pointer",fontSize:16,color:C.text,flexShrink:0}}>‹</button>
+            <p style={{fontWeight:800,fontSize:16,color:C.text}}>Karte</p>
+            <p style={{marginLeft:"auto",fontWeight:900,fontSize:18,color:C.primary}}>{fmt(total)}</p>
+          </div>
+          <label style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".04em"}}>Kartennummer</label>
+          <div style={{position:"relative",marginTop:5,marginBottom:11}}>
+            <input value={fmtNum} onChange={e=>setNum(e.target.value.replace(/\D/g,"").slice(0,numLen))} inputMode="numeric" autoComplete="cc-number" placeholder="1234 5678 9012 3456" style={{...fld,paddingRight:64,letterSpacing:"1px",borderColor:num&&!numOk&&num.length>=numLen?C.red:C.border}}/>
+            <div style={{position:"absolute",right:11,top:"50%",transform:"translateY(-50%)"}}><BrandBadge brand={brand}/></div>
+          </div>
+          <div style={{display:"flex",gap:10,marginBottom:11}}>
+            <div style={{flex:1}}>
+              <label style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".04em"}}>Gültig bis</label>
+              <input value={fmtExp} onChange={e=>setExp(e.target.value.replace(/\D/g,"").slice(0,4))} inputMode="numeric" autoComplete="cc-exp" placeholder="MM/JJ" style={{...fld,marginTop:5,borderColor:exp.length===4&&!expOk?C.red:C.border}}/>
+            </div>
+            <div style={{flex:1}}>
+              <label style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".04em"}}>CVC</label>
+              <input value={cvc} onChange={e=>setCvc(e.target.value.replace(/\D/g,"").slice(0,cvcLen))} inputMode="numeric" autoComplete="cc-csc" placeholder={isAmex?"4-stellig":"3-stellig"} style={{...fld,marginTop:5}}/>
+            </div>
+          </div>
+          <label style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".04em"}}>Karteninhaber:in</label>
+          <input value={holder} onChange={e=>setHolder(e.target.value)} autoComplete="cc-name" placeholder="Name auf der Karte" style={{...fld,marginTop:5,marginBottom:14}}/>
+          <button onClick={payCard} disabled={!cardValid} style={{width:"100%",height:52,borderRadius:14,border:"none",cursor:cardValid?"pointer":"default",background:cardValid?`linear-gradient(135deg,${C.dark},${C.primary})`:C.border,color:cardValid?"#fff":C.textLight,fontSize:16,fontWeight:800}}>🔒 {fmt(total)} bezahlen</button>
+          <p style={{fontSize:10.5,color:C.textLight,marginTop:10,lineHeight:1.5}}>🔒 Sicher · SSL-verschlüsselt. <strong>Demo</strong> – kein echtes Geld. Testkarten: <code>4242 4242 4242 4242</code> (ok), <code>4000 0000 0000 0002</code> (abgelehnt).</p>
         </>)}
         {stage==="processing"&&(
           <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"30px 0 26px"}}>
             <div style={{width:46,height:46,borderRadius:"50%",border:`3px solid ${C.border}`,borderTopColor:C.primary,animation:"spin .8s linear infinite",marginBottom:18}}/>
             <p style={{fontWeight:800,fontSize:16,color:C.text}}>Zahlung wird verarbeitet…</p>
             <p style={{fontSize:13,color:C.textLight,marginTop:4}}>{method} · {fmt(total)}</p>
+            <p style={{fontSize:11,color:C.textLight,marginTop:8}}>Bank wird kontaktiert…</p>
+          </div>
+        )}
+        {stage==="error"&&(
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"26px 0 22px"}}>
+            <div style={{width:60,height:60,borderRadius:"50%",background:dk?"rgba(239,68,68,.18)":"#FEF2F2",display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,fontSize:30}}>⚠️</div>
+            <p style={{fontWeight:800,fontSize:16,color:C.red}}>Zahlung fehlgeschlagen</p>
+            <p style={{fontSize:13,color:C.textMid,marginTop:5,textAlign:"center",maxWidth:280}}>{err}</p>
+            <button onClick={()=>{setStage("card");setErr("");}} style={{marginTop:18,width:"100%",height:50,borderRadius:14,border:"none",cursor:"pointer",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",fontSize:15,fontWeight:800}}>Erneut versuchen</button>
           </div>
         )}
         {stage==="done"&&(
-          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"30px 0 26px"}}>
+          <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"26px 0 22px"}}>
             <div style={{width:62,height:62,borderRadius:"50%",background:`${C.primary}1A`,display:"flex",alignItems:"center",justifyContent:"center",marginBottom:14,animation:"cartIn .35s cubic-bezier(.34,1.56,.64,1) both"}}>
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke={C.primary} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
             <p style={{fontWeight:800,fontSize:17,color:C.text}}>Bezahlt ✓</p>
-            <p style={{fontSize:13,color:C.textLight,marginTop:4}}>{fmt(total)} · {method}</p>
+            <div style={{marginTop:12,width:"100%",maxWidth:300,background:C.surface2,borderRadius:DS.radius.md,padding:"12px 14px",fontSize:12.5,color:C.textMid}}>
+              {[["Betrag",fmt(total)],["Zahlart",method],["Beleg-Nr.",auth],["Status","Genehmigt ✓"]].map(([l,v])=>(
+                <div key={l} style={{display:"flex",justifyContent:"space-between",marginBottom:l==="Status"?0:6}}><span>{l}</span><span style={{fontWeight:700,color:C.text}}>{v}</span></div>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -1527,7 +1595,7 @@ function CartScreen(){
           <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
         </div>
       )}
-      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async()=>{await submitOrder(note,{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim(),cupType});setPayOpen(false);}}/>}
+      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async(pay)=>{await submitOrder(note,{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim(),cupType,payment:pay});setPayOpen(false);}}/>}
       <BottomNav/>
     </Screen>
   );
@@ -2040,6 +2108,7 @@ function AdminScreen(){
                 <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingTop:9,borderTop:`1px solid ${C.border}`,alignItems:"center"}}>
                   {o.items.map((it,idx)=><span key={idx} style={{fontSize:12,background:C.surface2,borderRadius:7,padding:"3px 8px",color:C.textMid}}>{it.emoji?it.emoji+" ":""}{it.qty}× {it.name}{it.note?` (${it.note})`:""}</span>)}
                   {o.deposit>0&&<span style={{fontSize:11,fontWeight:800,background:dk?"rgba(16,185,129,.16)":"#D1FAE5",color:dk?"#6EE7B7":"#065F46",borderRadius:7,padding:"3px 8px"}}>{o.cupType==="tasse"?"☕":"🥤"} {o.cups}× {o.cupType==="tasse"?"Tasse":"Becher"} · Pfand {fmt(o.deposit)}</span>}
+                  {o.payment&&<span style={{fontSize:11,fontWeight:700,background:C.surface2,color:C.textMid,borderRadius:7,padding:"3px 8px"}}>✓ {o.payment}</span>}
                   <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:13}}>{fmt(o.total)}</span>
                 </div>
               </div>
@@ -2443,6 +2512,7 @@ function App(){
         cups:cup.units,
         cupType:cup.type,
         voucher:discount>0?Math.round(discount*100)/100:0,
+        payment:opts?.payment?(opts.payment.brand?`${opts.payment.brand} ••${opts.payment.last4}`:opts.payment.method):null,
         note:note.trim(),
       };
       const myIds=LS.get("zr_my_orders",[]);
