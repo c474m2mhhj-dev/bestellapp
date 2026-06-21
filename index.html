@@ -592,7 +592,7 @@ function AdBanner({ad}){
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
-  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,addToCart,announcement,ordersPaused,specialId,nextSlot,user,ad,activeLoad}=useApp();
+  const{go,cart,selTable,setSelTable,products,darkMode,setDarkMode,myOrders,addToCart,announcement,ordersPaused,specialId,nextSlot,user,ad,activeLoad,setMenuQuery}=useApp();
   const C=useC(),dk=darkMode;
   const[loading,setLoading]=useState(true);
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
@@ -600,6 +600,10 @@ function HomeScreen(){
   const[annDismissed,setAnnDismissed]=useState(()=>sessionStorage.getItem("zr_ann_dismissed")||"");
   const[seenIntro,setSeenIntro]=useState(()=>LS.get("zr_seen_intro",false));
   const dismissIntro=()=>{setSeenIntro(true);LS.set("zr_seen_intro",true);};
+  const[howOpen,setHowOpen]=useState(()=>!LS.get("zr_seen_intro",false));
+  const[hallOpen,setHallOpen]=useState(false);
+  const[homeSearch,setHomeSearch]=useState("");
+  const submitSearch=()=>{const q=homeSearch.trim();if(!q)return;setMenuQuery(q);go("menu");};
   const[slotLabel,setSlotLabel]=useState("");
   const[,setNowTick]=useState(0);
   useEffect(()=>{const t=setInterval(()=>setNowTick(x=>x+1),60000);return()=>clearInterval(t);},[]);
@@ -641,7 +645,7 @@ function HomeScreen(){
   return(
     <Screen>
       {/* HERO */}
-      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"48px 18px 26px",borderBottomLeftRadius:32,borderBottomRightRadius:32,position:"relative",overflow:"hidden"}}>
+      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"36px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.05)",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:-50,left:-40,width:150,height:150,borderRadius:"50%",background:"rgba(255,255,255,.03)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -694,44 +698,57 @@ function HomeScreen(){
       )}
 
       <div style={{padding:"16px 16px 0"}}>
-        {/* First-time onboarding — So funktioniert's */}
-        {!seenIntro&&(
-          <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:"15px 16px 16px",marginBottom:14,border:`1.5px solid ${dk?"rgba(77,182,169,.25)":C.light}`,position:"relative",overflow:"hidden"}}>
-            <div style={{position:"absolute",top:-30,right:-20,opacity:.12,pointerEvents:"none"}}><Robert size={96} bob={false}/></div>
-            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:13}}>
-              <span style={{fontSize:13,fontWeight:800,color:C.primary,textTransform:"uppercase",letterSpacing:".04em"}}>👋 So funktioniert's</span>
-              <button onClick={dismissIntro} aria-label="Hinweis schließen" style={{marginLeft:"auto",width:26,height:26,borderRadius:"50%",background:C.surface2,border:"none",cursor:"pointer",color:C.textLight,fontSize:16,lineHeight:1,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>×</button>
-            </div>
-            {[["🙂","Name eingeben & bestellen","Du bestellst mit deinem Namen"],["📍","Hörsaal wählen","Wo Robert hinliefern soll – oder QR vor dem Hörsaal scannen"],["🤖","Robert bringt's vor den Hörsaal","Push, sobald er da ist – nach Name"]].map(([ic,t,d],i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:11,marginBottom:i<2?11:14,position:"relative"}}>
-                <div style={{width:34,height:34,borderRadius:"50%",background:dk?"rgba(77,182,169,.16)":C.light,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,flexShrink:0}}>{ic}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <p style={{fontWeight:700,fontSize:13.5,color:C.text,lineHeight:1.25}}>{t}</p>
-                  <p style={{fontSize:11.5,color:C.textLight,marginTop:1}}>{d}</p>
-                </div>
-                <span style={{fontWeight:900,fontSize:13,color:dk?"rgba(255,255,255,.18)":"rgba(0,0,0,.12)",flexShrink:0}}>{i+1}</span>
+        {/* Search — direct path to products */}
+        <div style={{display:"flex",gap:8,marginBottom:13}}>
+          <div onClick={()=>{const el=document.getElementById("homeSearch");if(el)el.focus();}} style={{flex:1,background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:"0 14px",display:"flex",alignItems:"center",gap:9,border:`1px solid ${C.border}`}}>
+            <span style={{fontSize:16,opacity:.6}}>🔍</span>
+            <input id="homeSearch" value={homeSearch} onChange={e=>setHomeSearch(e.target.value)} onKeyDown={e=>{if(e.key==="Enter")submitSearch();}} placeholder="Kaffee, Latte, Brownie …" style={{flex:1,border:"none",outline:"none",background:"none",color:C.text,fontSize:16,padding:"13px 0",fontFamily:"inherit"}}/>
+          </div>
+          <button onClick={submitSearch} aria-label="Suchen" style={{flexShrink:0,width:48,borderRadius:DS.radius.md,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",border:"none",cursor:"pointer",fontSize:18,boxShadow:DS.shadow.green(dk)}}>→</button>
+        </div>
+
+        {/* Compact hall picker */}
+        <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),marginBottom:13,overflow:"hidden",border:!selTable?`1.5px solid ${dk?"rgba(77,182,169,.3)":C.light}`:"none"}}>
+          <button onClick={()=>setHallOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"13px 14px",background:"none",border:"none",cursor:"pointer"}}>
+            <span style={{fontSize:16,flexShrink:0}}>📍</span>
+            <span style={{fontWeight:700,fontSize:13.5,color:selTable?C.text:C.primary}}>{selTable?`Liefern an: ${selTable}`:"Hörsaal wählen →"}</span>
+            <span style={{marginLeft:"auto",color:C.textLight,fontSize:12,transform:hallOpen?"rotate(180deg)":"none",transition:"transform .2s",display:"inline-block"}}>▾</span>
+          </button>
+          {hallOpen&&(
+            <div style={{padding:"0 14px 14px"}}>
+              <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+                {TABLES.map(t=>(
+                  <button key={t} onClick={()=>{const sel=selTable!==t;setSelTable(sel?t:null);if(sel)setHallOpen(false);}} style={{padding:"10px 14px",borderRadius:DS.radius.sm,background:selTable===t?C.primary:C.surface2,color:selTable===t?"#fff":C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",boxShadow:selTable===t?DS.shadow.green(dk):"none"}}>{t}</button>
+                ))}
               </div>
-            ))}
-            <button onClick={dismissIntro} style={{width:"100%",padding:"11px",background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",borderRadius:DS.radius.md,fontWeight:800,fontSize:14,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk)}}>Verstanden, los geht's →</button>
-          </div>
-        )}
-        {/* Table picker */}
-        <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.md(dk),padding:16,marginBottom:14}}>
-          <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".06em",marginBottom:11}}>Hörsaal wählen</p>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {TABLES.map(t=>(
-              <button key={t} onClick={()=>setSelTable(selTable===t?null:t)} style={{padding:"11px 15px",borderRadius:DS.radius.sm,background:selTable===t?C.primary:C.surface2,color:selTable===t?"#fff":C.text,fontWeight:700,fontSize:13,border:"none",cursor:"pointer",boxShadow:selTable===t?DS.shadow.green(dk):"none",transition:"all .15s"}}>
-                {t}
-              </button>
-            ))}
-          </div>
-          {selTable&&(
-            <div style={{marginTop:11,background:C.light,borderRadius:DS.radius.sm,padding:"9px 13px",display:"flex",alignItems:"center"}}>
-              <span style={{color:C.primary,fontWeight:800,fontSize:13}}>✓ {selTable} ausgewählt</span>
-              <button onClick={()=>setSelTable(null)} aria-label="Hörsaal abwählen" style={{marginLeft:"auto",color:C.textLight,fontSize:20,padding:"7px 11px",margin:"-5px -3px -5px 0",background:"none",border:"none",cursor:"pointer"}}>×</button>
             </div>
           )}
         </div>
+
+        {/* Compact "Wie funktioniert's?" — first visit only */}
+        {!seenIntro&&(
+          <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),marginBottom:14,border:`1px solid ${dk?"rgba(77,182,169,.25)":C.light}`,overflow:"hidden"}}>
+            <button onClick={()=>setHowOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"11px 14px",background:"none",border:"none",cursor:"pointer"}}>
+              <Robert size={26} bob={false}/>
+              <span style={{fontWeight:800,fontSize:13,color:C.text}}>Wie funktioniert's?</span>
+              <span style={{marginLeft:"auto",display:"flex",gap:10,alignItems:"center"}}>
+                <span onClick={e=>{e.stopPropagation();dismissIntro();}} style={{fontSize:11,fontWeight:700,color:C.textLight}}>Schließen</span>
+                <span style={{color:C.textLight,fontSize:12,transform:howOpen?"rotate(180deg)":"none",transition:"transform .2s",display:"inline-block"}}>▾</span>
+              </span>
+            </button>
+            {howOpen&&(
+              <div style={{padding:"0 14px 14px"}}>
+                {[["📍","Hörsaal wählen oder QR davor scannen"],["💳","Mit deinem Namen bestellen & bezahlen"],["🤖","Robert bringt's vor den Hörsaal – Push, wenn er da ist"]].map(([ic,t],i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:10,marginBottom:i<2?9:11}}>
+                    <span style={{fontSize:15,width:24,textAlign:"center",flexShrink:0}}>{ic}</span>
+                    <p style={{fontSize:12.5,color:C.textMid,lineHeight:1.3}}>{t}</p>
+                  </div>
+                ))}
+                <button onClick={dismissIntro} style={{width:"100%",padding:"9px",background:C.light,color:C.primary,borderRadius:DS.radius.sm,fontWeight:800,fontSize:13,border:"none",cursor:"pointer"}}>Verstanden ✓</button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* QR shortcut is intentionally NOT shown here — QR codes live physically in
             front of each Hörsaal (scanning auto-selects it). Staff print them from Admin. */}
@@ -951,7 +968,7 @@ function QRScreen(){
    MENU
 ══════════════════════════════════════════════ */
 function MenuScreen(){
-  const{go,cart,addToCart,products,activeCat,setActiveCat,selTable,darkMode:dk}=useApp();const C=useC();
+  const{go,cart,addToCart,products,activeCat,setActiveCat,selTable,menuQuery,setMenuQuery,darkMode:dk}=useApp();const C=useC();
   const[search,setSearch]=useState("");
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const[loading,setLoading]=useState(true);
@@ -963,6 +980,7 @@ function MenuScreen(){
 
   useEffect(()=>{clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),600);return()=>clearTimeout(loadRef.current);},[activeCat]);
   useEffect(()=>{window.scrollTo(0,0);},[activeCat]);
+  useEffect(()=>{if(menuQuery){setSearch(menuQuery);setActiveCat("Alle");setMenuQuery("");}},[]);
 
   const toggleFav=id=>{setFavs(prev=>{const n=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];LS.set("zr_favs",n);return n;});};
   const filtered=useMemo(()=>{
@@ -2413,6 +2431,7 @@ function App(){
   const[splash,setSplash]=useState(true);
   const[adminAccess,setAdminAccess]=useState(()=>LS.get("zr_admin_access",false));
   const[activeLoad,setActiveLoad]=useState(0);
+  const[menuQuery,setMenuQuery]=useState("");
   const{toasts,push}=useToast();
 
   useEffect(()=>{const ready=myOrders.filter(o=>o.status==="ready").length;const newOrd=allOrders.filter(o=>o.status==="new").length;if(ready>0)document.title=`🔔 Bereit! – zeitraum`;else if(newOrd>0)document.title=`(${newOrd} neu) Admin – zeitraum`;else document.title="zeitraum – Café & Bar";},[myOrders,allOrders]);
@@ -2643,7 +2662,7 @@ function App(){
 
   const ctx={
     adminAccess,revokeAdmin,activeLoad,
-    screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,
+    screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,menuQuery,setMenuQuery,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
     setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,reopenAllProducts,setProductPop,editProduct,
