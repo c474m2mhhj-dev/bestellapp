@@ -33,7 +33,7 @@
     /* Snappy taps on mobile: no 300ms delay, no accidental double-tap zoom */
     button,a,select,input,textarea,[role=button],[onclick]{touch-action:manipulation}
     button:not(:disabled),a,[role=button]{cursor:pointer}
-    @keyframes screenIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+    @keyframes screenIn{from{opacity:0}to{opacity:1}}
     @keyframes cartIn{from{opacity:0;transform:translateY(14px) scale(.96)}to{opacity:1;transform:none}}
     @keyframes ldbar{from{width:0}to{width:100%}}
     @keyframes tIn{from{opacity:0;transform:translateY(-18px) scale(.92)}to{opacity:1;transform:none}}
@@ -230,6 +230,10 @@ const PRODUCTS_INITIAL = [
   {id:85,name:"Soli klein",        cat:"Sonstiges",      img:"",               emoji:"🤝", desc:"Kleiner Solidaritätsbeitrag — unterstützt unser Gemeinschaftskonzept und hält die Preise für alle erschwinglich",                pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Beitrag",p:0.20}]},
   {id:86,name:"Soli groß",         cat:"Sonstiges",      img:"",               emoji:"🤝", desc:"Großer Solidaritätsbeitrag — unterstützt unser Gemeinschaftskonzept und hält die Preise für alle erschwinglich",                 pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Beitrag",p:0.40}]},
 ];
+// Pfand & Solidaritätsbeiträge sind keine normalen Produkte → nicht im Menü/in der Suche zeigen
+// (Pfand wird automatisch berechnet; bleiben für Preis-Lookup & Admin in products erhalten)
+const HIDDEN_PRODUCTS = ["Tassenpfand","Becherpfand","Deckelpfand","Besteckpfand","Soli klein","Soli groß"];
+const isBrowsable = p => p.available && !HIDDEN_PRODUCTS.includes(p.name);
 const CATS  = ["Alle","Heiße Getränke","Iced Drinks","Gebäck","Snacks","Kaltgetränke","Sonstiges"];
 const CICO  = {"Alle":"🍽️","Heiße Getränke":"☕","Iced Drinks":"🧊","Gebäck":"🥐","Snacks":"🍫","Kaltgetränke":"🥤","Sonstiges":"📦"};
 // Abhol-/Lieferorte = Hörsäle am h_da Campus Dieburg (Wert ist selbstbeschreibend, z.B. "Hörsaal 1")
@@ -632,7 +636,7 @@ function HomeScreen(){
   const neu=useMemo(()=>products.filter(p=>p.tag==="Neu"&&p.available).slice(0,6),[products]);
   const special=useMemo(()=>specialId?products.find(p=>p.id===specialId&&p.available)||null:null,[specialId,products]);
   const favProds=useMemo(()=>favs.map(id=>products.find(p=>p.id===id&&p.available)).filter(Boolean),[favs,products]);
-  const recentProds=useMemo(()=>{const seen=new Set(),res=[];[...myOrders].sort((a,b)=>b.createdAt-a.createdAt).forEach(o=>o.items.forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);const p=products.find(pr=>pr.id===it.id&&pr.available);if(p)res.push(p);}}));return res.slice(0,5);},[myOrders,products]);
+  const recentProds=useMemo(()=>{const seen=new Set(),res=[];[...myOrders].sort((a,b)=>b.createdAt-a.createdAt).forEach(o=>o.items.forEach(it=>{if(!seen.has(it.id)){seen.add(it.id);const p=products.find(pr=>pr.id===it.id&&isBrowsable(pr));if(p)res.push(p);}}));return res.slice(0,5);},[myOrders,products]);
   useEffect(()=>{const t=setTimeout(()=>setLoading(false),700);return()=>clearTimeout(t);},[]);
   const hour=new Date().getHours();
   const gT=hour<5?"Gute Nacht":hour<12?"Guten Morgen":hour<17?"Guten Tag":hour<21?"Guten Abend":"Gute Nacht";
@@ -985,9 +989,9 @@ function MenuScreen(){
   const toggleFav=id=>{setFavs(prev=>{const n=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];LS.set("zr_favs",n);return n;});};
   const filtered=useMemo(()=>{
     const q=search.toLowerCase().trim();
-    return products.filter(p=>p.available&&(activeCat==="Alle"||p.cat===activeCat)&&(tagFilter==="Alle"||p.tag===tagFilter)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
+    return products.filter(p=>isBrowsable(p)&&(activeCat==="Alle"||p.cat===activeCat)&&(tagFilter==="Alle"||p.tag===tagFilter)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
   },[products,activeCat,tagFilter,search]);
-  const catCounts=useMemo(()=>{const m={};products.filter(p=>p.available).forEach(p=>{m[p.cat]=(m[p.cat]||0)+1;});return m;},[products]);
+  const catCounts=useMemo(()=>{const m={};products.filter(isBrowsable).forEach(p=>{m[p.cat]=(m[p.cat]||0)+1;});return m;},[products]);
   const availableCats=useMemo(()=>CATS.filter(c=>c==="Alle"||catCounts[c]>0),[catCounts]);
 
   return(
