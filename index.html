@@ -761,14 +761,17 @@ function HomeScreen(){
         {ad&&ad.title&&<AdBanner ad={ad}/>}
 
         {/* Active orders card */}
-        {activeOrds.length>0&&urgentOrd&&(()=>{const{icon,label,bg,cl}=ordInfo[urgentOrd.status]||ordInfo.new;return(
-          <button onClick={()=>go("orders")} style={{width:"100%",marginBottom:14,background:bg,borderRadius:DS.radius.md,padding:"13px 15px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",border:"none",textAlign:"left",boxShadow:DS.shadow.xs(dk)}}>
+        {activeOrds.length>0&&urgentOrd&&(()=>{const{icon,label,bg,cl}=ordInfo[urgentOrd.status]||ordInfo.new;
+          const mins=urgentOrd.readyAt?Math.ceil((urgentOrd.readyAt-Date.now())/60000):null;
+          const eta=urgentOrd.status==="ready"?(urgentOrd.mode==="pickup"?"🛍️ Abholbereit an der Theke":"🤖 Robert ist da – jetzt abholen"):(mins!=null&&mins>0?`Fertig in ~${mins} Min`:"Wird gleich fertig…");
+          return(
+          <button onClick={()=>go("orders")} style={{width:"100%",marginBottom:14,background:bg,borderRadius:DS.radius.md,padding:"13px 15px",display:"flex",alignItems:"center",gap:12,cursor:"pointer",border:"none",textAlign:"left",boxShadow:DS.shadow.xs(dk),animation:urgentOrd.status==="ready"?"pulse 1.8s ease-in-out infinite":undefined}}>
             <span style={{fontSize:24,flexShrink:0}}>{icon}</span>
             <div style={{flex:1,minWidth:0}}>
-              <p style={{fontWeight:800,fontSize:13,color:cl}}>{label}</p>
-              <p style={{fontSize:11,color:cl,opacity:.75,marginTop:1}}>{activeOrds.length} Bestellung{activeOrds.length!==1?"en":""} · {urgentOrd.mode==="pickup"?"Abholung":urgentOrd.table}</p>
+              <p style={{fontWeight:800,fontSize:13.5,color:cl,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{eta}</p>
+              <p style={{fontSize:11,color:cl,opacity:.8,marginTop:1}}>{label} · {activeOrds.length} Bestellung{activeOrds.length!==1?"en":""}{urgentOrd.mode==="pickup"?"":" · "+urgentOrd.table}</p>
             </div>
-            <span style={{fontSize:18,color:cl,opacity:.6}}>›</span>
+            <span style={{flexShrink:0,fontWeight:800,fontSize:11,color:cl,background:dk?"rgba(255,255,255,.12)":"rgba(255,255,255,.55)",borderRadius:999,padding:"6px 11px",whiteSpace:"nowrap"}}>Live verfolgen →</span>
           </button>
         );})()}
 
