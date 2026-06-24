@@ -1895,7 +1895,7 @@ function AdminScreen(){
   },[allOrders,revenue,revenueDone]);
   const downloadCSV=useCallback(()=>{
     const esc=v=>'"'+String(v==null?"":v).replace(/"/g,'""')+'"';
-    const rows=[["Nr","Uhrzeit","Hörsaal","Name","Status","Artikel","Gesamt"],...[...allOrders].sort((a,b)=>a.createdAt-b.createdAt).map(o=>[o.no!=null?String(o.no):String(o.createdAt).slice(-4),o.time,o.mode==="pickup"?"Abholung":o.table,o.customer||"",o.status,o.items.map(it=>`${it.qty}x ${it.name}`).join("; "),o.total.toFixed(2)])];
+    const rows=[["Nr","Uhrzeit","Hörsaal","Name","Status","Artikel","Pfand","Soli","Gesamt","Zahlart"],...[...allOrders].sort((a,b)=>a.createdAt-b.createdAt).map(o=>[o.no!=null?String(o.no):String(o.createdAt).slice(-4),o.time,o.mode==="pickup"?"Abholung":o.table,o.customer||"",o.status,o.items.map(it=>`${it.qty}x ${it.name}`).join("; "),(o.deposit||0).toFixed(2),(o.tip||0).toFixed(2),o.total.toFixed(2),o.payment||""])];
     const csv=rows.map(r=>r.map(esc).join(",")).join("\r\n");
     const a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["﻿"+csv],{type:"text/csv;charset=utf-8"}));
     a.download=`zeitraum_${new Date().toISOString().slice(0,10)}.csv`;a.click();
