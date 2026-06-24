@@ -1880,6 +1880,8 @@ function AdminScreen(){
   const[np,setNp]=useState({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,pop:false,available:true});
   const revenue=useMemo(()=>allOrders.reduce((s,o)=>s+o.total,0),[allOrders]);
   const revenueDone=useMemo(()=>allOrders.filter(o=>o.status==="done").reduce((s,o)=>s+o.total,0),[allOrders]);
+  const soliTotal=useMemo(()=>allOrders.reduce((s,o)=>s+(o.tip||0),0),[allOrders]);
+  const pfandTotal=useMemo(()=>allOrders.reduce((s,o)=>s+(o.deposit||0),0),[allOrders]);
   const soldCounts=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{m[it.id]=(m[it.id]||0)+it.qty;}));return m;},[allOrders]);
   const topProds=useMemo(()=>products.map(p=>({...p,sold:soldCounts[p.id]||0})).filter(p=>p.sold>0).sort((a,b)=>b.sold-a.sold).slice(0,5),[products,soldCounts]);
   const catRevenue=useMemo(()=>{const m={};allOrders.forEach(o=>o.items.forEach(it=>{const pr=products.find(x=>x.id===it.id);const c=pr?.cat||"Sonstiges";m[c]=(m[c]||0)+it.price*it.qty;}));return Object.entries(m).sort((a,b)=>b[1]-a[1]);},[allOrders,products]);
@@ -2155,9 +2157,9 @@ function AdminScreen(){
             {tagesConf
               ?<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${C.red}`,borderRadius:DS.radius.md,padding:14}}>
                   <p style={{fontWeight:800,fontSize:13,color:C.red,marginBottom:10}}>🌙 Tagesabschluss bestätigen</p>
-                  <div style={{display:"flex",gap:8,marginBottom:10}}>
-                    {[["Kassiert",fmt(revenueDone)],["Gesamt",fmt(revenue)],["Bestellungen",String(allOrders.length)]].map(([l,v])=>(
-                      <div key={l} style={{flex:1,background:dk?"rgba(0,0,0,.15)":"rgba(239,68,68,.08)",borderRadius:DS.radius.sm,padding:"8px 10px",textAlign:"center"}}>
+                  <div style={{display:"flex",gap:8,marginBottom:10,flexWrap:"wrap"}}>
+                    {[["Kassiert",fmt(revenueDone)],["Gesamt",fmt(revenue)],["Bestellungen",String(allOrders.length)],["🤝 Soli",fmt(soliTotal)],["♻️ Pfand",fmt(pfandTotal)]].map(([l,v])=>(
+                      <div key={l} style={{flex:"1 1 28%",background:dk?"rgba(0,0,0,.15)":"rgba(239,68,68,.08)",borderRadius:DS.radius.sm,padding:"8px 10px",textAlign:"center"}}>
                         <p style={{fontSize:9,color:C.red,fontWeight:700,textTransform:"uppercase",letterSpacing:".05em",marginBottom:3}}>{l}</p>
                         <p style={{fontSize:14,fontWeight:800,color:C.text}}>{v}</p>
                       </div>
