@@ -1417,7 +1417,8 @@ function CartScreen(){
   const freeAmount=voucherActive?freeBase:0;
   const cupInfo=cupDeposit(cart,products,mode,cupType);
   const deposit=cupInfo.deposit;
-  const tot=Math.max(0,Math.round((sub+del+deposit-freeAmount)*100)/100);
+  const[tip,setTip]=useState(0);
+  const tot=Math.max(0,Math.round((sub+del+deposit+tip-freeAmount)*100)/100);
   const upsell=useMemo(()=>{
     const inCart=new Set(cart.map(i=>i.id));
     const cats=cart.map(i=>products.find(p=>p.id===i.id)?.cat).filter(Boolean);
@@ -1576,8 +1577,18 @@ function CartScreen(){
                 </div>
               </button>
             )}
+            {/* Optionaler Soli-Beitrag */}
+            <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:"12px 14px",marginBottom:9}}>
+              <p style={{fontWeight:700,fontSize:13,color:C.text}}>🤝 Café unterstützen? <span style={{fontWeight:400,fontSize:11,color:C.textLight}}>· optional</span></p>
+              <p style={{fontSize:11,color:C.textLight,marginTop:1,marginBottom:9}}>Soli-Beitrag fürs studentische zeitraum-Team</p>
+              <div style={{display:"flex",gap:7}}>
+                {[["Nein",0],["+0,20",0.2],["+0,50",0.5],["+1,00",1]].map(([l,v])=>(
+                  <button key={l} onClick={()=>setTip(v)} style={{flex:1,padding:"9px 4px",borderRadius:DS.radius.sm,fontSize:12,fontWeight:700,border:`1.5px solid ${tip===v?C.primary:C.border}`,background:tip===v?C.light:C.surface2,color:tip===v?C.primary:C.textMid,cursor:"pointer"}}>{l}</button>
+                ))}
+              </div>
+            </div>
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
-              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(deposit>0?[[`♻️ Pfand (${cupInfo.type==="tasse"?"Tasse":"Becher"})`,fmt(deposit),C.text]]:[]),...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
+              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(deposit>0?[[`♻️ Pfand (${cupInfo.type==="tasse"?"Tasse":"Becher"})`,fmt(deposit),C.text]]:[]),...(tip>0?[["🤝 Soli-Beitrag",fmt(tip),C.text]]:[]),...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.textMid,marginBottom:7}}>
                   <span>{l}</span>
                   <span style={{fontWeight:600,color:cl}}>{v}</span>
@@ -1619,7 +1630,7 @@ function CartScreen(){
           <button onClick={()=>{clearTimeout(undoRef.current);addToCart(undoItem,undoItem.qty);setUndoItem(null);}} style={{background:"#fff",color:"#1A1A1A",border:"none",borderRadius:8,padding:"6px 13px",fontWeight:800,fontSize:12,cursor:"pointer",flexShrink:0}}>Rückgängig</button>
         </div>
       )}
-      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async(pay)=>{await submitOrder("",{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim(),cupType,payment:pay});setPayOpen(false);}}/>}
+      {payOpen&&<PaymentSheet total={tot} items={cart} del={del} onClose={()=>setPayOpen(false)} onConfirm={async(pay)=>{await submitOrder("",{discount:freeAmount>0?freeAmount:0,mode,name:nameDraft.trim(),cupType,payment:pay,tip});setPayOpen(false);}}/>}
       <BottomNav/>
     </Screen>
   );
@@ -2536,7 +2547,8 @@ function App(){
         status:"new",
         readyAt:created+wait*60000,
         items:cart.map(i=>({qty:i.qty,name:i.name,note:i.note,id:i.id,emoji:i.emoji,img:i.img,price:i.price,size:i.size})),
-        total:Math.round((sub+del+cup.deposit-discount)*100)/100,
+        tip:Math.max(0,Math.round((opts?.tip||0)*100)/100),
+        total:Math.round((sub+del+cup.deposit-discount+Math.max(0,opts?.tip||0))*100)/100,
         deposit:cup.deposit,
         cups:cup.units,
         cupType:cup.type,
