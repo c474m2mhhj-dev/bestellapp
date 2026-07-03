@@ -14,5 +14,21 @@
     { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
     { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Speisekarte",
+      "short_name": "Menü",
+      "description": "Direkt zur Speisekarte und bestellen",
+      "url": "./?go=menu",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Meine Bestellungen",
+      "short_name": "Bestellungen",
+      "description": "Bestellstatus verfolgen – wann kommt Robert?",
+      "url": "./?go=orders",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
   ]
 }
