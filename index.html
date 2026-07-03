@@ -1719,7 +1719,11 @@ function OrderCard({o}){
   const reorder=useCallback(()=>{
     o.items.forEach(it=>{
       const prod=products.find(p=>p.id===it.id)||products.find(p=>p.name===it.name);
-      if(prod&&prod.available){const sz=prod.sizes.find(s=>s.l===it.size)||prod.sizes[0];for(let i=0;i<it.qty;i++)addToCart(prod,sz);}
+      if(!prod||!prod.available)return; // skip products that no longer exist / are sold out
+      const note=it.note||"";
+      const price=typeof it.price==="number"?it.price:prod.sizes[0].p;
+      const ck=`${prod.id}|${note}|${price.toFixed(2)}`; // same key format as detail/menu so identical lines merge
+      addToCart({id:prod.id,name:prod.name,price,img:it.img||prod.img,emoji:it.emoji||prod.emoji,note,ck},it.qty||1);
     });
     go("cart");
   },[o,products,addToCart,go]);
