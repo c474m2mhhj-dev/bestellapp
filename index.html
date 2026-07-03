@@ -67,6 +67,10 @@
         scroll-behavior:auto!important;
       }
     }
+    /* Keyboard-only focus ring (WCAG 2.4.7): restores a visible focus indicator
+       for keyboard users even though inputs set inline outline:none. :focus-visible
+       does not trigger on mouse clicks of buttons, so mouse users are unaffected. */
+    :focus-visible{outline:3px solid #4DB6A9!important;outline-offset:2px!important;border-radius:3px;}
 </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
