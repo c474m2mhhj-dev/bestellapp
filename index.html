@@ -594,6 +594,39 @@ function AdBanner({ad}){
 }
 
 /* ══════════════════════════════════════════════
+   INSTALL BANNER — „als App" installieren
+══════════════════════════════════════════════ */
+function InstallBanner(){
+  const C=useC(),{darkMode:dk}=useApp();
+  const[evt,setEvt]=useState(null);
+  const[hidden,setHidden]=useState(()=>!!LS.get("zr_install_hide",false));
+  useEffect(()=>{
+    const onBIP=e=>{e.preventDefault();setEvt(e);};
+    const onDone=()=>{setHidden(true);LS.set("zr_install_hide",true);};
+    window.addEventListener("beforeinstallprompt",onBIP);
+    window.addEventListener("appinstalled",onDone);
+    return()=>{window.removeEventListener("beforeinstallprompt",onBIP);window.removeEventListener("appinstalled",onDone);};
+  },[]);
+  const ua=typeof navigator!=="undefined"?navigator.userAgent:"";
+  const standalone=(typeof matchMedia!=="undefined"&&matchMedia("(display-mode: standalone)").matches)||(typeof navigator!=="undefined"&&navigator.standalone===true);
+  const isIOS=/iP(hone|ad|od)/.test(ua)&&/Safari/.test(ua)&&!/CriOS|FxiOS|EdgiOS/.test(ua);
+  if(hidden||standalone||(!evt&&!isIOS))return null;
+  const close=()=>{setHidden(true);LS.set("zr_install_hide",true);};
+  const install=async()=>{if(!evt)return;evt.prompt();try{await evt.userChoice;}catch(e){}setEvt(null);setHidden(true);LS.set("zr_install_hide",true);};
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:11,background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),border:`1.5px solid ${dk?"rgba(77,182,169,.3)":C.light}`,padding:"11px 12px",marginBottom:13}}>
+      <div style={{flexShrink:0,filter:"drop-shadow(0 3px 7px rgba(0,0,0,.18))"}}><Robert size={38}/></div>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{fontWeight:800,fontSize:14,color:C.text,lineHeight:1.2}}>zeitraum als App 📲</p>
+        <p style={{fontSize:12,color:C.textMid,marginTop:2,lineHeight:1.35}}>{evt?"Ein Tipp – dann liegt Robert auf deinem Home-Bildschirm.":"Teilen ⬆️ tippen → „Zum Home-Bildschirm“."}</p>
+      </div>
+      {evt&&<button onClick={install} style={{flexShrink:0,padding:"9px 15px",borderRadius:DS.radius.sm,background:`linear-gradient(135deg,${C.dark},${C.primary})`,color:"#fff",fontWeight:800,fontSize:13,border:"none",cursor:"pointer",boxShadow:DS.shadow.green(dk),whiteSpace:"nowrap"}}>Installieren</button>}
+      <button onClick={close} aria-label="Schließen" style={{flexShrink:0,background:"none",border:"none",cursor:"pointer",color:C.textLight,fontSize:20,lineHeight:1,padding:"2px 4px"}}>×</button>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════
    HOME
 ══════════════════════════════════════════════ */
 function HomeScreen(){
@@ -703,6 +736,7 @@ function HomeScreen(){
       )}
 
       <div style={{padding:"16px 16px 0"}}>
+        <InstallBanner/>
         {/* Search — direct path to products */}
         <div style={{display:"flex",gap:8,marginBottom:13}}>
           <div onClick={()=>{const el=document.getElementById("homeSearch");if(el)el.focus();}} style={{flex:1,background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:"0 14px",display:"flex",alignItems:"center",gap:9,border:`1px solid ${C.border}`}}>
