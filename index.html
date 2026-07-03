@@ -46,6 +46,16 @@
     @keyframes confettiFall{0%{opacity:0;transform:translateY(-12px) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translateY(460px) rotate(400deg)}}
     @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
     @keyframes antglow{0%,100%{opacity:.45}50%{opacity:1}}
+    /* Respect the OS "Reduce Motion" setting: collapse animations/transitions to
+       their end state instead of animating (safe for reveal anims using fill:both). */
+    @media (prefers-reduced-motion: reduce){
+      *,*::before,*::after{
+        animation-duration:.001ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.001ms!important;
+        scroll-behavior:auto!important;
+      }
+    }
 </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
