@@ -269,7 +269,7 @@ const ADMIN_PIN  = "1234";
 // Team-Link: …/?admin=zr-team-2026  (auf dem Gerät gespeichert). Entfernen: …/?admin=off
 const ADMIN_ACCESS_TOKEN = "zr-team-2026";
 const MILK_OPT   = ["Vollmilch","Hafermilch","Mandelmilch","Sojamilch"];
-const SIRUP_OPT  = [null,"Karamel","Vanille","Haselnuss"];
+const SIRUP_OPT  = ["Karamel","Vanille","Haselnuss"];
 const EXTRA_PRICE= 0.20;
 const FREE_ABOVE = 15;
 const DEL_FEE    = 0.75;
@@ -1168,25 +1168,25 @@ function DetailScreen(){
   const[qty,setQty]=useState(1);
   const[sIdx,setSIdx]=useState(0);
   const[milk,setMilk]=useState(()=>LS.get("zr_pref_milk","Vollmilch"));
-  const[sirup,setSirup]=useState(()=>{const s=LS.get("zr_pref_sirup",null);return s==="__none__"?null:s;});
+  const[sirup,setSirup]=useState(()=>{const s=LS.get("zr_pref_sirup",[]);return Array.isArray(s)?s.filter(x=>SIRUP_OPT.includes(x)):[];});
   const[note,setNote]=useState("");
   const[favs,setFavs]=useState(()=>LS.get("zr_favs",[]));
   const isFav=p&&favs.includes(p.id);
   const toggleFav=()=>{if(!p)return;setFavs(prev=>{const n=prev.includes(p.id)?prev.filter(x=>x!==p.id):[...prev,p.id];LS.set("zr_favs",n);return n;});};
   const chooseMilk=m=>{setMilk(m);LS.set("zr_pref_milk",m);};
-  const chooseSirup=sv=>{setSirup(sv);LS.set("zr_pref_sirup",sv===null?"__none__":sv);};
-  useEffect(()=>{setQty(1);setSIdx(0);setMilk(LS.get("zr_pref_milk","Vollmilch"));const s=LS.get("zr_pref_sirup",null);setSirup(s==="__none__"?null:s);setNote("");},[p?.id]);
+  const toggleSirup=sv=>setSirup(prev=>{const next=prev.includes(sv)?prev.filter(x=>x!==sv):[...prev,sv];LS.set("zr_pref_sirup",next);return next;});
+  useEffect(()=>{setQty(1);setSIdx(0);setMilk(LS.get("zr_pref_milk","Vollmilch"));const s=LS.get("zr_pref_sirup",[]);setSirup(Array.isArray(s)?s.filter(x=>SIRUP_OPT.includes(x)):[]);setNote("");},[p?.id]);
   const{products}=useApp();
   const related=useMemo(()=>p?products.filter(r=>r.available&&r.cat===p.cat&&r.id!==p.id).slice(0,6):[],[p?.id,products]);
   if(!p){go("menu");return null;}
   const baseP=(p.sizes[sIdx]||p.sizes[0]).p;
-  const unitP=baseP+(sirup?EXTRA_PRICE:0);
+  const unitP=baseP+sirup.length*EXTRA_PRICE;
   const totP=unitP*qty;
   const iq=cart.filter(i=>i.id===p.id).reduce((s,i)=>s+i.qty,0);
   const handleAdd=()=>{
     const sz=p.sizes.length>1?(p.sizes[sIdx]||p.sizes[0]).l:"";
     const mk=p.milch?milk:"";
-    const sp=sirup?"Sirup "+sirup:"";
+    const sp=sirup.length?"Sirup "+[...sirup].sort().join(" + "):"";
     const parts=[sz,mk,sp,note.trim()].filter(Boolean).join(", ");
     const ck=`${p.id}|${parts}|${unitP.toFixed(2)}`;
     addToCart({id:p.id,name:p.name,price:unitP,img:p.img,emoji:p.emoji,note:parts,ck},qty);
@@ -1251,10 +1251,11 @@ function DetailScreen(){
         )}
         {p.sirup&&(
           <div style={{marginTop:18}}>
-            <p style={{fontWeight:700,fontSize:14,marginBottom:3,color:C.text}}>Sirup <span style={{fontWeight:400,fontSize:12,color:C.textLight}}>(+{fmt(EXTRA_PRICE)})</span></p>
+            <p style={{fontWeight:700,fontSize:14,marginBottom:3,color:C.text}}>Sirup <span style={{fontWeight:400,fontSize:12,color:C.textLight}}>(mehrere möglich · +{fmt(EXTRA_PRICE)} je Sirup)</span></p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginTop:9}}>
-              {SIRUP_OPT.map(sv=><OptionBtn key={String(sv)} active={sirup===sv} onClick={()=>chooseSirup(sv)}>{sv===null?"Keiner":sv}</OptionBtn>)}
+              {SIRUP_OPT.map(sv=><OptionBtn key={sv} active={sirup.includes(sv)} onClick={()=>toggleSirup(sv)}>{sv}</OptionBtn>)}
             </div>
+            {sirup.length>0&&<p style={{fontSize:12,color:C.textLight,marginTop:8}}>{sirup.length} Sirup{sirup.length>1?"s":""} gewählt · +{fmt(sirup.length*EXTRA_PRICE)}</p>}
           </div>
         )}
         <div style={{marginTop:18}}>
