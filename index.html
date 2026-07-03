@@ -2370,6 +2370,8 @@ function ProfileScreen(){
   const tierPct=next?Math.min(100,Math.round(((pts-tier.min)/(next.min-tier.min))*100)):100;
   const avail=Math.floor(pts/VOUCHER_AT)-(user.vouchersUsed||0);
   const toVoucher=VOUCHER_AT-(pts%VOUCHER_AT);
+  const cyclePos=pts%VOUCHER_AT;
+  const stampFilled=(cyclePos===0&&avail>0)?VOUCHER_AT:cyclePos; // full card the moment a free drink is earned
   const dirty=name.trim()!==(user.name||"")||avatar!==(user.avatar||"🙂");
   const save=()=>{saveUser({name:name.trim(),avatar});push("Profil gespeichert ✓","success");};
   const redeem=()=>{if(avail<=0)return;const c="ZR-"+Math.random().toString(36).slice(2,7).toUpperCase();setCode(c);saveUser({vouchersUsed:(user.vouchersUsed||0)+1});push("Gutschein eingelöst 🎉","success",4000);};
@@ -2407,6 +2409,14 @@ function ProfileScreen(){
               <div style={{height:"100%",width:`${tierPct}%`,background:`linear-gradient(90deg,${C.primary},${C.accent})`,borderRadius:4,transition:"width .5s ease"}}/>
             </div>
           )}
+          {/* Kaffee-Stempelkarte — jedes 10. Getränk gratis */}
+          <p style={{fontSize:11,fontWeight:700,color:C.textLight,textTransform:"uppercase",letterSpacing:".05em",marginBottom:8}}>Stempelkarte · {VOUCHER_AT}. gratis</p>
+          <div style={{display:"flex",gap:5,marginBottom:16}}>
+            {Array.from({length:VOUCHER_AT}).map((_,i)=>{
+              const filled=i<stampFilled, reward=i===VOUCHER_AT-1;
+              return(<div key={i} style={{flex:1,aspectRatio:"1",borderRadius:"50%",display:"flex",alignItems:"center",justifyContent:"center",fontSize:12,background:filled?(reward?C.accent:C.primary):(reward?(dk?"rgba(212,168,67,.12)":"#FFFBEB"):C.surface2),border:`1.5px ${filled?"solid "+(reward?C.accent:C.primary):reward?"dashed "+(dk?"#D4A843":"#F59E0B"):"solid "+C.border}`,color:filled?"#fff":C.textLight,transition:"background .3s"}}>{reward?"🎁":filled?"☕":""}</div>);
+            })}
+          </div>
           <div style={{background:dk?"rgba(212,168,67,.12)":"#FFFBEB",border:`1.5px solid ${dk?"rgba(212,168,67,.3)":"#FDE68A"}`,borderRadius:DS.radius.md,padding:"12px 14px",display:"flex",alignItems:"center",gap:11}}>
             <span style={{fontSize:24,flexShrink:0}}>🎁</span>
             <div style={{flex:1,minWidth:0}}>
