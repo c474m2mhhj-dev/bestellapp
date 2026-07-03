@@ -1486,7 +1486,8 @@ function CartScreen(){
   const freeAmount=voucherActive?freeBase:0;
   const cupInfo=cupDeposit(cart,products,mode,cupType);
   const deposit=cupInfo.deposit;
-  const[tip,setTip]=useState(0);
+  const[tipPct,setTipPct]=useState(0);
+  const tip=Math.round(sub*tipPct)/100; // Soli-Beitrag: tipPct % vom Kaufpreis (Zwischensumme), in € auf Cent gerundet
   const tot=Math.max(0,Math.round((sub+del+deposit+tip-freeAmount)*100)/100);
   const upsell=useMemo(()=>{
     const inCart=new Set(cart.map(i=>i.id));
@@ -1651,13 +1652,14 @@ function CartScreen(){
               <p style={{fontWeight:700,fontSize:13,color:C.text}}>🤝 Café unterstützen? <span style={{fontWeight:400,fontSize:11,color:C.textLight}}>· optional</span></p>
               <p style={{fontSize:11,color:C.textLight,marginTop:1,marginBottom:9}}>Soli-Beitrag fürs studentische zeitraum-Team</p>
               <div style={{display:"flex",gap:7}}>
-                {[["Nein",0],["+0,20",0.2],["+0,50",0.5],["+1,00",1]].map(([l,v])=>(
-                  <button key={l} onClick={()=>setTip(v)} style={{flex:1,padding:"9px 4px",borderRadius:DS.radius.sm,fontSize:12,fontWeight:700,border:`1.5px solid ${tip===v?C.primary:C.border}`,background:tip===v?C.light:C.surface2,color:tip===v?C.primary:C.textMid,cursor:"pointer"}}>{l}</button>
+                {[["Nein",0],["5 %",5],["10 %",10],["15 %",15]].map(([l,v])=>(
+                  <button key={l} onClick={()=>setTipPct(v)} style={{flex:1,padding:"9px 4px",borderRadius:DS.radius.sm,fontSize:12,fontWeight:700,border:`1.5px solid ${tipPct===v?C.primary:C.border}`,background:tipPct===v?C.light:C.surface2,color:tipPct===v?C.primary:C.textMid,cursor:"pointer"}}>{l}</button>
                 ))}
               </div>
+              {tipPct>0&&<p style={{fontSize:11,color:C.textLight,marginTop:7}}>{tipPct} % von {fmt(sub)} · +{fmt(tip)}</p>}
             </div>
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
-              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(deposit>0?[[`♻️ Pfand (${cupInfo.type==="tasse"?"Tasse":"Becher"})`,fmt(deposit),C.text]]:[]),...(tip>0?[["🤝 Soli-Beitrag",fmt(tip),C.text]]:[]),...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
+              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(deposit>0?[[`♻️ Pfand (${cupInfo.type==="tasse"?"Tasse":"Becher"})`,fmt(deposit),C.text]]:[]),...(tip>0?[[`🤝 Soli-Beitrag (${tipPct} %)`,fmt(tip),C.text]]:[]),...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.textMid,marginBottom:7}}>
                   <span>{l}</span>
                   <span style={{fontWeight:600,color:cl}}>{v}</span>
