@@ -2375,6 +2375,13 @@ function ProfileScreen(){
   const dirty=name.trim()!==(user.name||"")||avatar!==(user.avatar||"🙂");
   const save=()=>{saveUser({name:name.trim(),avatar});push("Profil gespeichert ✓","success");};
   const redeem=()=>{if(avail<=0)return;const c="ZR-"+Math.random().toString(36).slice(2,7).toUpperCase();setCode(c);saveUser({vouchersUsed:(user.vouchersUsed||0)+1});push("Gutschein eingelöst 🎉","success",4000);};
+  const shareApp=async()=>{
+    const url=location.origin+location.pathname;
+    const data={title:"zeitraum – Café & Bar",text:"Bestell dein Getränk – Robert bringt's direkt vor den Hörsaal! 🤖☕",url};
+    if(navigator.share){try{await navigator.share(data);return;}catch(e){if(e&&e.name==="AbortError")return;}}
+    try{if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(url);push("Link kopiert – teil ihn mit Kommiliton:innen ✓","success",4000);return;}}catch(e){}
+    window.prompt("Link kopieren und teilen:",url); // last-resort fallback so there is always an outcome
+  };
   const memberSince=new Date(user.createdAt||Date.now()).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
   return(
     <Screen>
@@ -2445,6 +2452,16 @@ function ProfileScreen(){
             </div>
           ))}
         </div>
+
+        {/* Weitersagen / Share */}
+        <button onClick={shareApp} style={{width:"100%",display:"flex",alignItems:"center",gap:12,background:`linear-gradient(135deg,${C.dark},${C.primary})`,borderRadius:DS.radius.lg,boxShadow:DS.shadow.green(dk),padding:"14px 16px",marginBottom:14,border:"none",cursor:"pointer",textAlign:"left"}}>
+          <span style={{fontSize:26,flexShrink:0}}>📣</span>
+          <div style={{flex:1,minWidth:0}}>
+            <p style={{fontWeight:800,fontSize:14,color:"#fff"}}>zeitraum weiterempfehlen</p>
+            <p style={{fontSize:12,color:"rgba(255,255,255,.85)",marginTop:2}}>Teil den Link mit deinen Kommiliton:innen 🤖</p>
+          </div>
+          <span style={{color:"#fff",fontSize:18,flexShrink:0}}>→</span>
+        </button>
 
         {/* Edit profile */}
         <div style={{background:C.surface,borderRadius:DS.radius.lg,boxShadow:DS.shadow.sm(dk),padding:16,marginBottom:14}}>
