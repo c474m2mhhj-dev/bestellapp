@@ -2518,12 +2518,15 @@ function App(){
     const p=new URLSearchParams(window.location.search);
     const t=p.get("table");
     if(t&&TABLES.includes(t)){setSelTable(t);setTimeout(()=>push(`${t} erkannt ✓`,"success"),1600);}
+    // Deep-link / PWA home-screen shortcuts (…?go=menu | …?go=orders)
+    const g=p.get("go");
+    if(g==="menu"||g==="orders")setScreen(g);
     // Staff-only admin access via special link (…?admin=<token>); …?admin=off revokes it
     const a=p.get("admin");
     if(a===ADMIN_ACCESS_TOKEN){setAdminAccess(true);LS.set("zr_admin_access",true);setScreen("admin");setTimeout(()=>push("Admin-Zugang aktiviert 🔑","success",4000),1600);}
     else if(a==="off"){setAdminAccess(false);LS.del("zr_admin_access");setScreen("home");setTimeout(()=>push("Admin-Zugang entfernt","info",3000),1600);}
     // strip sensitive/handled params from the visible URL
-    if(p.has("admin")||p.has("table")){try{history.replaceState(null,"",window.location.pathname);}catch(e){}}
+    if(p.has("admin")||p.has("table")||p.has("go")){try{history.replaceState(null,"",window.location.pathname);}catch(e){}}
   },[]);
 
   const go=useCallback((sc,param=null)=>{
