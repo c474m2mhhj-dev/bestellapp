@@ -343,7 +343,7 @@ function useToast(){
 }
 function ToastStack({toasts}){
   return(
-    <div style={{position:"fixed",top:"max(16px,env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none",width:"min(92vw,360px)"}}>
+    <div role="status" aria-live="polite" aria-atomic="false" style={{position:"fixed",top:"max(16px,env(safe-area-inset-top))",left:"50%",transform:"translateX(-50%)",zIndex:9999,display:"flex",flexDirection:"column",gap:8,pointerEvents:"none",width:"min(92vw,360px)"}}>
       {toasts.map(t=>(
         <div key={t.id} style={{background:t.type==="error"?"#E53935":t.type==="success"?"#00695C":"#1A1A1A",color:"#fff",padding:"11px 18px",borderRadius:14,fontWeight:700,fontSize:14,textAlign:"center",animation:"tIn .3s cubic-bezier(.34,1.56,.64,1) both",boxShadow:"0 8px 32px rgba(0,0,0,.3)"}}>
           {t.msg}
