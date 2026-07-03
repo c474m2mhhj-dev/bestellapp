@@ -1096,7 +1096,12 @@ function MenuScreen(){
               ?<div key={i} style={{background:C.surface,borderRadius:DS.radius.md,overflow:"hidden",display:"inline-block",width:"100%"}}><Skeleton w="100%" h={110} r={0}/><div style={{padding:"8px 9px 10px"}}><Skeleton w="70%" h={11} r={4} mb={5}/><Skeleton w="40%" h={11} r={4}/></div></div>
               :<ProductRowSkeleton key={i}/>)
           :filtered.length===0
-            ?<div style={{textAlign:"center",padding:"60px 16px",color:C.textLight}}><div style={{fontSize:48,marginBottom:12}}>🔍</div><h3 style={{fontSize:16,fontWeight:700,color:C.text}}>Nichts gefunden</h3></div>
+            ?<div style={{textAlign:"center",padding:"52px 16px",color:C.textLight}}>
+                <div style={{fontSize:48,marginBottom:12}}>🔍</div>
+                <h3 style={{fontSize:16,fontWeight:700,color:C.text}}>Nichts gefunden</h3>
+                <p style={{fontSize:13,maxWidth:260,margin:"6px auto 0",lineHeight:1.5}}>{search?<>Für „<strong style={{color:C.textMid}}>{search}</strong>“ gibt es keinen Treffer.</>:(activeCat!=="Alle"||tagFilter!=="Alle")?"Keine Produkte mit diesen Filtern.":"Zurzeit keine Produkte verfügbar."}</p>
+                {(search||activeCat!=="Alle"||tagFilter!=="Alle")&&<button onClick={()=>{setSearch("");setActiveCat("Alle");setTagFilter("Alle");}} style={{marginTop:16,padding:"10px 18px",borderRadius:DS.radius.md,background:C.primary,color:"#fff",fontWeight:700,fontSize:13,border:"none",cursor:"pointer"}}>Suche und Filter zurücksetzen</button>}
+              </div>
             :gridView
               ?<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:8}}>
                 {filtered.map(p=>{
