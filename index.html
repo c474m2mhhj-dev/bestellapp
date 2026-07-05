@@ -1129,7 +1129,7 @@ function MenuScreen(){
                         <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:5}}>
                           <span style={{fontWeight:800,color:C.primary,fontSize:12}}>{p.sizes.length>1?"ab ":""}{fmt(p.sizes[0].p)}</span>
                           <div onClick={e=>e.stopPropagation()}>
-                            <button onClick={()=>{if(p.sizes.length>1){setSizePickId(p.id);}else{const mk=p.milch?"Vollmilch":"";const parts=mk?mk:"";const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}}} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
+                            <button onClick={()=>{if(p.sizes.length>1){go("detail",p);}else{const mk=p.milch?"Vollmilch":"";const parts=mk?mk:"";const pr=p.sizes[0].p;addToCart({id:p.id,name:p.name,price:pr,img:p.img,emoji:p.emoji,note:parts,ck:`${p.id}|${parts}|${pr.toFixed(2)}`},1);}}} style={{width:34,height:34,borderRadius:"50%",background:C.primary,color:"#fff",border:"none",cursor:"pointer",fontSize:18,fontWeight:700,display:"inline-flex",alignItems:"center",justifyContent:"center"}}>+</button>
                           </div>
                         </div>
                       </div>
