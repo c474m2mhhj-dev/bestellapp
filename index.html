@@ -80,7 +80,14 @@
   </script>
 </head>
 <body>
-  <div id="root"></div>
+  <div id="root">
+    <div id="boot" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:linear-gradient(160deg,#00695C,#004D40)">
+      <div style="font-size:54px;filter:drop-shadow(0 6px 14px rgba(0,0,0,.28));animation:bootbob 2s ease-in-out infinite">🤖</div>
+      <div style="color:#fff;font-size:25px;font-weight:900;letter-spacing:-.03em;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif">zeitraum</div>
+      <div style="width:32px;height:32px;border-radius:50%;border:3px solid rgba(255,255,255,.22);border-top-color:#fff;animation:bootspin .8s linear infinite"></div>
+      <style>@keyframes bootspin{to{transform:rotate(360deg)}}@keyframes bootbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}</style>
+    </div>
+  </div>
   <script type="text/babel" data-presets="react-umd">
 
 /* ══════════════════════════════════════════════
