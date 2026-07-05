@@ -718,7 +718,7 @@ function HomeScreen(){
   return(
     <Screen>
       {/* HERO */}
-      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"36px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28,position:"relative",overflow:"hidden"}}>
+      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"max(36px, calc(env(safe-area-inset-top) + 12px)) 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-60,right:-60,width:200,height:200,borderRadius:"50%",background:"rgba(255,255,255,.05)",pointerEvents:"none"}}/>
         <div style={{position:"absolute",bottom:-50,left:-40,width:150,height:150,borderRadius:"50%",background:"rgba(255,255,255,.03)",pointerEvents:"none"}}/>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -1069,7 +1069,7 @@ function MenuScreen(){
 
   return(
     <Screen>
-      <div style={{position:"sticky",top:0,zIndex:50,background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"12px 16px 0",borderBottomLeftRadius:22,borderBottomRightRadius:22}}>
+      <div style={{position:"sticky",top:0,zIndex:50,background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"calc(env(safe-area-inset-top) + 12px) 16px 0",borderBottomLeftRadius:22,borderBottomRightRadius:22}}>
         <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
           <div style={{flex:1}}>
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Speisekarte</p>
@@ -1540,7 +1540,7 @@ function CartScreen(){
   };
   return(
     <Screen>
-      <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
+      <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"max(50px, calc(env(safe-area-inset-top) + 16px)) 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
         <div style={{display:"flex",alignItems:"center",gap:11}}>
           <BackBtn onPress={()=>go(prevScreen||"menu")}/>
           <div style={{flex:1}}>
@@ -1861,7 +1861,7 @@ function OrdersScreen(){
   const activeCount=myOrders.filter(o=>o.status!=="done").length;
   return(
     <Screen>
-      <div style={{padding:"50px 16px 0"}}>
+      <div style={{padding:"max(50px, calc(env(safe-area-inset-top) + 16px)) 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen{activeCount>0?<span style={{background:C.primary,color:"#fff",fontSize:11,fontWeight:800,borderRadius:DS.radius.full,padding:"2px 8px",marginLeft:8}}>{activeCount} aktiv</span>:null}</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>{lastSync?"✓ "+lastSync:"Aktualisiert…"}</p></div>
           <div style={{display:"flex",gap:7}}>
@@ -2020,7 +2020,7 @@ function AdminScreen(){
 
   if(!ok)return(
     <Screen>
-      <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"50px 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
+      <div style={{background:`linear-gradient(135deg,${C.heroFrom},${C.heroTo})`,padding:"max(50px, calc(env(safe-area-inset-top) + 16px)) 18px 20px",borderBottomLeftRadius:28,borderBottomRightRadius:28}}>
         <p style={{color:"#fff",fontWeight:900,fontSize:20}}>Admin Panel</p>
       </div>
       <div style={{padding:"26px 18px"}}>
@@ -2442,7 +2442,7 @@ function ProfileScreen(){
   const memberSince=new Date(user.createdAt||Date.now()).toLocaleDateString("de-DE",{month:"long",year:"numeric"});
   return(
     <Screen>
-      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"46px 18px 30px",borderBottomLeftRadius:32,borderBottomRightRadius:32,position:"relative",overflow:"hidden"}}>
+      <div style={{background:`linear-gradient(160deg,${C.heroFrom},${C.heroTo})`,padding:"max(46px, calc(env(safe-area-inset-top) + 14px)) 18px 30px",borderBottomLeftRadius:32,borderBottomRightRadius:32,position:"relative",overflow:"hidden"}}>
         <div style={{position:"absolute",top:-50,right:-50,width:170,height:170,borderRadius:"50%",background:"rgba(255,255,255,.05)",pointerEvents:"none"}}/>
         <div style={{display:"flex",alignItems:"center",gap:11,marginBottom:18}}>
           <BackBtn onPress={()=>go("home")}/>
