@@ -38,7 +38,10 @@
   </script>
   <style>
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
-    html,body,#root{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;overscroll-behavior:contain}
+    /* Kill the elastic overscroll ("Rubber-Band") white edge: no bounce on modern
+       browsers, and set the document background to the brand teal so any residual
+       bounce on older iOS shows teal (matches hero + splash), never white. */
+    html,body,#root{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;overscroll-behavior:none;background:#004D40}
     *::-webkit-scrollbar{display:none}
     input,textarea,button{-webkit-appearance:none}
     /* Snappy taps on mobile: no 300ms delay, no accidental double-tap zoom */
