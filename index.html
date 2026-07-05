@@ -266,9 +266,9 @@ const PRODUCTS_INITIAL = [
   {id:85,name:"Soli klein",        cat:"Sonstiges",      img:"",               emoji:"🤝", desc:"Kleiner Solidaritätsbeitrag — unterstützt unser Gemeinschaftskonzept und hält die Preise für alle erschwinglich",                pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Beitrag",p:0.20}]},
   {id:86,name:"Soli groß",         cat:"Sonstiges",      img:"",               emoji:"🤝", desc:"Großer Solidaritätsbeitrag — unterstützt unser Gemeinschaftskonzept und hält die Preise für alle erschwinglich",                 pop:false, tag:"",        available:true, milch:false, sirup:false, sizes:[{l:"Beitrag",p:0.40}]},
 ];
-// Pfand & Solidaritätsbeiträge sind keine normalen Produkte → nicht im Menü/in der Suche zeigen
-// (Pfand wird automatisch berechnet; bleiben für Preis-Lookup & Admin in products erhalten)
-const HIDDEN_PRODUCTS = ["Tassenpfand","Becherpfand","Deckelpfand","Besteckpfand","Soli klein","Soli groß"];
+// Pfand, Soli & der Sirup-Zusatz sind keine eigenständigen Menü-Produkte → nicht im Menü/in der Suche zeigen
+// (Pfand automatisch berechnet, Sirup wird im Getränke-Detail gewählt; bleiben für Preis-Lookup & Admin erhalten)
+const HIDDEN_PRODUCTS = ["Sirup","Tassenpfand","Becherpfand","Deckelpfand","Besteckpfand","Soli klein","Soli groß"];
 const isBrowsable = p => p.available && !HIDDEN_PRODUCTS.includes(p.name);
 const CATS  = ["Alle","Heiße Getränke","Iced Drinks","Gebäck","Snacks","Kaltgetränke","Sonstiges"];
 const CICO  = {"Alle":"🍽️","Heiße Getränke":"☕","Iced Drinks":"🧊","Gebäck":"🥐","Snacks":"🍫","Kaltgetränke":"🥤","Sonstiges":"📦"};
