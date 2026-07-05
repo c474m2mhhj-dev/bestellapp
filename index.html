@@ -70,10 +70,9 @@
         scroll-behavior:auto!important;
       }
     }
-    /* Keyboard-only focus ring (WCAG 2.4.7): restores a visible focus indicator
-       for keyboard users even though inputs set inline outline:none. :focus-visible
-       does not trigger on mouse clicks of buttons, so mouse users are unaffected. */
-    :focus-visible{outline:3px solid #4DB6A9!important;outline-offset:2px!important;border-radius:3px;}
+    /* No focus outline on form fields (fields are styled with their own border) —
+       avoids any stray focus ring showing up while placing an order. */
+    input:focus,textarea:focus,select:focus{outline:none!important}
 </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
@@ -283,6 +282,9 @@ const SIRUP_OPT  = ["Karamel","Vanille","Haselnuss"];
 const EXTRA_PRICE= 0.20;
 const FREE_ABOVE = 15;
 const DEL_FEE    = 0.75;
+// Max. eigene Bestellungen, die lokal gehalten/gerendert/synchronisiert werden
+// (verhindert, dass die App bei sehr vielen Bestellungen langsam wird / abstürzt)
+const MAX_MY_ORDERS = 30;
 
 /* Loyalty — Kaffee-Stempel: 1 Stempel je Getränk, jedes 10. ist gratis */
 const DRINK_CATS = ["Heiße Getränke","Iced Drinks","Kaltgetränke"];
@@ -2556,7 +2558,7 @@ function App(){
   const[activeCat,setActiveCat]=useState("Alle");
   const[darkMode,setDarkMode]=useState(()=>{const v=LS.get("zr_dark",null);if(v!==null)return v;try{return!!(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);}catch(e){return false;}});
   const[detailProduct,setDetailProduct]=useState(null);
-  const[myOrders,setMyOrders]=useState(()=>{const ids=LS.get("zr_my_orders",[]);return ids.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);});
+  const[myOrders,setMyOrders]=useState(()=>{const ids=LS.get("zr_my_orders",[]).slice(-MAX_MY_ORDERS);return ids.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);});
   const[allOrders,setAllOrders]=useState([]);
   const[announcement,setAnnouncement]=useState(()=>LS.get("zr_announce",""));
   const[ad,setAdState]=useState(()=>LS.get("zr_ad",null));
@@ -2684,9 +2686,13 @@ function App(){
         note:note.trim(),
       };
       const myIds=LS.get("zr_my_orders",[]);
-      LS.set("zr_my_orders",[...myIds,id]);
+      const prunedMy=[...myIds,id].slice(-MAX_MY_ORDERS);
+      const allNext=[...LS.get("zr_all_orders",[]),id].slice(-500);
+      const keep=new Set([...prunedMy,...allNext]);
+      myIds.forEach(old=>{if(!keep.has(old))LS.del(`zr_order_${old}`);}); // drop snapshots beyond both caps
+      LS.set("zr_my_orders",prunedMy);
       LS.set(`zr_order_${id}`,order);
-      LS.set("zr_all_orders",[...LS.get("zr_all_orders",[]),id]);
+      LS.set("zr_all_orders",allNext);
       await Db.set(`order_${id}`,order,true);
       setMyOrders(prev=>[...prev,order]);
       setCart([]);
@@ -2706,7 +2712,9 @@ function App(){
 
   const syncOrders=useCallback(async()=>{
     if(Db.enabled)Db.get("zr_paused",true).then(v=>{const p=!!v;setOrdersPaused(p);p?LS.set("zr_paused",true):LS.del("zr_paused");});
-    const myIds=LS.get("zr_my_orders",[]);
+    const allMyIds=LS.get("zr_my_orders",[]);
+    const myIds=allMyIds.slice(-MAX_MY_ORDERS);
+    if(myIds.length<allMyIds.length)LS.set("zr_my_orders",myIds); // shrink oversized lists so we only ever sync the newest ones
     if(!myIds.length)return;
     let next;
     if(Db.enabled){
