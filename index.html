@@ -1867,7 +1867,14 @@ function OrdersScreen(){
           </div>
         </div>
         {sorted.length===0&&<div style={{textAlign:"center",padding:"56px 16px",color:C.textLight}}><div style={{fontSize:50,marginBottom:12}}>📋</div><h3 style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:4}}>Noch keine Bestellungen</h3><p>Bestellungen erscheinen hier live</p></div>}
-        {sorted.map(o=><OrderCard key={o.id} o={o}/>)}
+        {(()=>{
+          const active=sorted.filter(o=>o.status!=="done"), done=sorted.filter(o=>o.status==="done");
+          return(<>
+            {active.map(o=><OrderCard key={o.id} o={o}/>)}
+            {done.length>0&&<p style={{fontSize:11,fontWeight:800,color:C.textLight,textTransform:"uppercase",letterSpacing:".05em",margin:"8px 2px 10px"}}>Erledigt</p>}
+            {done.map(o=><OrderCard key={o.id} o={o}/>)}
+          </>);
+        })()}
         <div style={{height:20}}/>
       </div>
       <BottomNav/>
