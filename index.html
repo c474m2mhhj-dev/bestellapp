@@ -156,6 +156,8 @@ const Remote = {
   set: async(k,v,sh)=>{ await fetch(sbUrl(),{method:"POST",headers:{...sbHead(),Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({key:k,shared:!!sh,value:v,updated_at:new Date().toISOString()})}); },
   get: async(k,sh)=>{ const r=await fetch(sbUrl()+"?select=value&key=eq."+encodeURIComponent(k)+"&shared="+sbBool(sh),{headers:sbHead()}); if(!r.ok)return null; const a=await r.json(); return a.length?a[0].value:null; },
   list:async(p,sh)=>{ const r=await fetch(sbUrl()+"?select=key&shared="+sbBool(sh)+"&key=like."+encodeURIComponent(p)+"*",{headers:sbHead()}); if(!r.ok)return[]; const a=await r.json(); return a.map(x=>x.key); },
+  // wie list, liefert aber die Werte gleich mit → EIN Request statt 1+N Einzelabrufe
+  listFull:async(p,sh)=>{ const r=await fetch(sbUrl()+"?select=key,value&shared="+sbBool(sh)+"&key=like."+encodeURIComponent(p)+"*",{headers:sbHead()}); if(!r.ok)return[]; return await r.json(); },
   del: async(k,sh)=>{ await fetch(sbUrl()+"?key=eq."+encodeURIComponent(k)+"&shared="+sbBool(sh),{method:"DELETE",headers:sbHead()}); },
   // Anzahl offener Bestellungen (new|making) – günstig per count-Header
   activeCount: async()=>{ try{ const r=await fetch(sbUrl()+"?select=key&shared=is.true&key=like.order_*&value->>status=in.(new,making)",{headers:{...sbHead(),Prefer:"count=exact",Range:"0-0"}}); const cr=r.headers.get("content-range")||""; const n=parseInt((cr.split("/")[1]||"").trim()); return isNaN(n)?0:n; }catch(e){ return 0; } },
@@ -165,6 +167,7 @@ const Db = {
   set:  async(k,v,sh=false)=>{ try{ if(hasRemote)return await Remote.set(k,v,sh); if(hasSt)await window.storage.set(k,JSON.stringify(v),sh); }catch(e){} },
   get:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.get(k,sh); if(hasSt){const r=await window.storage.get(k,sh);return r?JSON.parse(r.value):null;} }catch(e){} return null; },
   list: async(p,sh=false)  =>{ try{ if(hasRemote)return await Remote.list(p,sh); if(hasSt){const r=await window.storage.list(p,sh);return r?r.keys:[];} }catch(e){} return []; },
+  listFull: async(p,sh=false)=>{ try{ if(hasRemote)return await Remote.listFull(p,sh); if(hasSt){const ks=await Db.list(p,sh);const vs=await Promise.all(ks.map(k=>Db.get(k,sh)));return ks.map((k,i)=>({key:k,value:vs[i]}));} }catch(e){} return []; },
   del:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.del(k,sh); if(hasSt)await window.storage.delete(k,sh); }catch(e){} },
   activeLoad: async()=>{ try{ if(hasRemote)return await Remote.activeCount(); const keys=hasSt?await Db.list("order_",true):LS.get("zr_all_orders",[]).map(id=>"zr_order_"+id); const os=await Promise.all(keys.map(k=>hasSt?Db.get(k,true):Promise.resolve(LS.get(k,null)))); return os.filter(o=>o&&(o.status==="new"||o.status==="making")).length; }catch(e){ return 0; } },
 };
@@ -2737,8 +2740,8 @@ function App(){
   const loadAdminOrders=useCallback(async()=>{
     let orders;
     if(Db.enabled){
-      const orderKeys=await Db.list("order_",true);
-      orders=await Promise.all(orderKeys.map(k=>Db.get(k,true)));
+      const rows=await Db.listFull("order_",true);
+      orders=rows.map(r=>r.value);
     } else {
       const allIds=LS.get("zr_all_orders",[]);
       orders=allIds.map(id=>LS.get(`zr_order_${id}`,null));
