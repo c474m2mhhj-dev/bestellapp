@@ -1281,7 +1281,7 @@ function DetailScreen(){
             return(<div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:7}}>{shown.map(({label})=>{const active=parts.includes(label);return <button key={label} onClick={()=>toggle(label)} style={{padding:"4px 11px",borderRadius:DS.radius.full,border:`1px solid ${active?C.primary:C.border}`,background:active?C.light:"none",color:active?C.primary:C.textMid,fontWeight:active?700:400,fontSize:11,cursor:"pointer",fontFamily:"inherit",transition:"all .12s",flexShrink:0}}>{label}</button>;})}</div>);
           })([
             {label:"Wenig Eis",show:p.cat==="Iced Drinks"},
-            {label:"Extra Zucker",show:!["Kaltgetränke","Snacks"].includes(p.cat)},
+            {label:"Extra Zucker",show:["Heiße Getränke","Iced Drinks"].includes(p.cat)},
             {label:"Vegan",show:!p.milch},
           ]))}
         </div>
