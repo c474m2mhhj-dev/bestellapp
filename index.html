@@ -285,6 +285,8 @@ const DEL_FEE    = 0.75;
 // Max. eigene Bestellungen, die lokal gehalten/gerendert/synchronisiert werden
 // (verhindert, dass die App bei sehr vielen Bestellungen langsam wird / abstürzt)
 const MAX_MY_ORDERS = 30;
+// Max. Bestellkarten, die im Admin gleichzeitig gerendert werden (Statistiken nutzen weiter die volle Liste)
+const MAX_ADMIN_ROWS = 150;
 
 /* Loyalty — Kaffee-Stempel: 1 Stempel je Getränk, jedes 10. ist gratis */
 const DRINK_CATS = ["Heiße Getränke","Iced Drinks","Kaltgetränke"];
@@ -2222,9 +2224,9 @@ function AdminScreen(){
           </div>
         )}
         {tab==="orders"?(
-          ((filtered)=>filtered.length===0
+          ((filtered)=>{const shown=filtered.length>MAX_ADMIN_ROWS?[...filtered].sort((a,b)=>b.createdAt-a.createdAt).slice(0,MAX_ADMIN_ROWS).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt):filtered;return filtered.length===0
             ?<div style={{textAlign:"center",padding:"44px 16px",color:C.textLight}}><div style={{fontSize:46,marginBottom:12}}>📋</div><p style={{fontSize:15,fontWeight:700,color:C.text}}>{allOrders.length===0?"Noch keine Bestellungen":"Keine Bestellungen mit diesem Status"}</p></div>
-            :<>{filtered.map(o=>(
+            :<>{filtered.length>MAX_ADMIN_ROWS&&<div style={{textAlign:"center",fontSize:11,color:C.textLight,padding:"4px 8px 10px"}}>Zeige die neuesten {MAX_ADMIN_ROWS} von {filtered.length} · zum Eingrenzen Filter/Suche nutzen</div>}{shown.map(o=>(
               <div key={o.id} style={{background:C.surface,borderRadius:DS.radius.lg,padding:14,marginBottom:9,boxShadow:DS.shadow.sm(dk)}}>
                 <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:8,marginBottom:10}}>
                   <div>
@@ -2246,8 +2248,8 @@ function AdminScreen(){
                   <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:13}}>{fmt(o.total)}</span>
                 </div>
               </div>
-            ))}<div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:11,color:C.textMid}}>{filtered.length} Bestellung{filtered.length!==1?"en":""}</span><span style={{fontWeight:800,fontSize:13,color:C.primary}}>{fmt(filtered.reduce((s,o)=>s+o.total,0))}</span></div></>
-          )([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim().replace(/^#/,"");return(o.customer||"").toLowerCase().includes(q)||String(o.no||"").includes(q)||String(o.table||"").toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
+            ))}<div style={{borderTop:`1px solid ${C.border}`,paddingTop:9,marginTop:6,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:11,color:C.textMid}}>{filtered.length} Bestellung{filtered.length!==1?"en":""}</span><span style={{fontWeight:800,fontSize:13,color:C.primary}}>{fmt(filtered.reduce((s,o)=>s+o.total,0))}</span></div></>;
+          })([...allOrders].filter(o=>{if(stFilter!=="all"&&o.status!==stFilter)return false;if(tableFilter!=="all"&&o.table!==tableFilter)return false;if(orderSearch){const q=orderSearch.toLowerCase().trim().replace(/^#/,"");return(o.customer||"").toLowerCase().includes(q)||String(o.no||"").includes(q)||String(o.table||"").toLowerCase().includes(q)||String(o.createdAt).slice(-4).includes(q)||o.items.some(it=>it.name.toLowerCase().includes(q))||(o.note||"").toLowerCase().includes(q);}return true;}).sort((a,b)=>sortOldest?a.createdAt-b.createdAt:b.createdAt-a.createdAt))
         ):null}
         {tab==="orders"&&(
           <div style={{marginTop:16,borderTop:`1px solid ${C.border}`,paddingTop:14}}>
