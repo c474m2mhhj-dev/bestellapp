@@ -1075,7 +1075,7 @@ function MenuScreen(){
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Speisekarte</p>
             {selTable&&<p style={{color:"rgba(255,255,255,.6)",fontSize:11,marginTop:2}}>📍 {selTable}</p>}
           </div>
-          <button onClick={()=>{const v=!gridView;setGridView(v);LS.set("zr_menu_grid",v);}} aria-label={gridView?"Listenansicht":"Gitteransicht"} style={{width:34,height:34,borderRadius:10,background:"rgba(255,255,255,.18)",border:"none",cursor:"pointer",color:"#fff",fontSize:15,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gridView?"☰":"⊞"}</button>
+          <button onClick={()=>{const v=!gridView;setGridView(v);LS.set("zr_menu_grid",v);if(navigator.vibrate)navigator.vibrate(10);}} aria-label={gridView?"Zur Listenansicht wechseln":"Zur Gitteransicht wechseln"} style={{width:44,height:44,borderRadius:12,background:"rgba(255,255,255,.18)",border:"1px solid rgba(255,255,255,.28)",cursor:"pointer",color:"#fff",fontSize:20,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{gridView?"☰":"⊞"}</button>
           {qty>0&&<button onClick={()=>go("cart")} style={{background:"rgba(255,255,255,.18)",borderRadius:13,padding:"8px 14px",color:"#fff",fontWeight:800,fontSize:13,border:"none",cursor:"pointer",display:"flex",alignItems:"center",gap:5}}>🛒 {qty}</button>}
         </div>
         <div style={{background:"rgba(255,255,255,.13)",borderRadius:13,padding:"9px 13px",display:"flex",alignItems:"center",gap:7,marginBottom:10,border:"1px solid rgba(255,255,255,.16)"}}>
