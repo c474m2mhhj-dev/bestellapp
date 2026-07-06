@@ -1488,6 +1488,7 @@ function CartScreen(){
   const{go,prevScreen,cart,chQty,removeItem,clearCart,selTable,setSelTable,submitOrder,submitting,products,addToCart,ordersPaused,user,activeLoad,darkMode:dk}=useApp();const C=useC();
   const[undoItem,setUndoItem]=useState(null);
   const[payOpen,setPayOpen]=useState(false);
+  const[confirmClear,setConfirmClear]=useState(false);
   const[useVoucher,setUseVoucher]=useState(false);
   const[mode,setMode]=useState(()=>LS.get("zr_mode","delivery"));
   const[cupType,setCupType]=useState(()=>LS.get("zr_cuptype","becher"));
@@ -1557,7 +1558,7 @@ function CartScreen(){
             <p style={{color:"#fff",fontWeight:800,fontSize:17}}>Warenkorb</p>
             <p style={{color:"rgba(255,255,255,.65)",fontSize:12,marginTop:1}}>{isPickup?"🛍️ Selbstabholung":selTable?`📍 ${selTable}`:"⚠️ Kein Hörsaal"}</p>
           </div>
-          {cart.length>0&&<button onClick={clearCart} aria-label="Warenkorb leeren" style={{background:"rgba(255,255,255,.15)",border:"1px solid rgba(255,255,255,.25)",borderRadius:DS.radius.sm,color:"#fff",padding:"9px 13px",fontSize:11,fontWeight:700,cursor:"pointer"}}>Leeren</button>}
+          {cart.length>0&&<button onClick={()=>{if(confirmClear){clearCart();setConfirmClear(false);}else{setConfirmClear(true);setTimeout(()=>setConfirmClear(false),3000);}}} aria-label={confirmClear?"Leeren bestätigen":"Warenkorb leeren"} style={{background:confirmClear?"rgba(239,68,68,.35)":"rgba(255,255,255,.15)",border:`1px solid ${confirmClear?"rgba(255,255,255,.6)":"rgba(255,255,255,.25)"}`,borderRadius:DS.radius.sm,color:"#fff",padding:"9px 13px",fontSize:11,fontWeight:700,cursor:"pointer",whiteSpace:"nowrap"}}>{confirmClear?"Wirklich?":"Leeren"}</button>}
         </div>
       </div>
       <div style={{padding:"14px 16px 0"}}>
