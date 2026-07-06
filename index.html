@@ -456,7 +456,7 @@ function BackBtn({onPress}){
     </button>
   );
 }
-function QtyBtn({op,onPress,sz=38}){
+function QtyBtn({op,onPress,sz=42}){
   const C=useC();
   return(
     <button onClick={onPress} aria-label={op==="+"?"Mehr":"Weniger"} style={{width:sz,height:sz,borderRadius:"50%",border:op==="+"?"none":`2px solid ${C.primary}`,background:op==="+"?C.primary:"transparent",color:op==="+"?"#fff":C.primary,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,fontWeight:700,lineHeight:1,transition:"opacity .12s"}}>
@@ -1348,9 +1348,9 @@ function CartItem({item,onChQty,onRemove}){
             <p style={{color:C.primary,fontWeight:800,fontSize:13,marginTop:3}}>{fmt(item.price*item.qty)}</p>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-            <QtyBtn op="−" onPress={()=>onChQty(-1)} sz={36}/>
+            <QtyBtn op="−" onPress={()=>onChQty(-1)} sz={40}/>
             <span style={{fontWeight:800,minWidth:16,textAlign:"center",fontSize:15,color:C.text}}>{item.qty}</span>
-            <QtyBtn op="+" onPress={()=>onChQty(1)} sz={36}/>
+            <QtyBtn op="+" onPress={()=>onChQty(1)} sz={40}/>
           </div>
         </div>
         {item.note&&<p style={{marginTop:8,fontSize:11.5,color:C.textMid,background:C.surface2,borderRadius:7,padding:"4px 9px",display:"inline-block"}}>📝 {item.note}</p>}
