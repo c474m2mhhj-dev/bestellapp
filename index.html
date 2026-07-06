@@ -1413,7 +1413,7 @@ function PaymentSheet({total,items,del,onConfirm,onClose}){
             <p style={{fontWeight:800,fontSize:18,color:C.text}}>Bezahlen</p>
             <p style={{fontWeight:900,fontSize:22,color:C.primary}}>{fmt(total)}</p>
           </div>
-          <p style={{fontSize:12,color:C.textLight,marginBottom:18}}>{items.reduce((s,i)=>s+i.qty,0)} Artikel{del>0?` · inkl. ${fmt(del)} Servicegebühr`:""}</p>
+          <p style={{fontSize:12,color:C.textLight,marginBottom:18}}>{items.reduce((s,i)=>s+i.qty,0)} Artikel{del>0?` · inkl. ${fmt(del)} Liefergebühr`:""}</p>
           <button onClick={()=>payWallet("Apple Pay")} style={{width:"100%",height:54,borderRadius:14,border:"none",cursor:"pointer",background:"#000",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:19,fontWeight:600,marginBottom:10}}>{appleLogo}Pay</button>
           <button onClick={()=>payWallet("Google Pay")} style={{width:"100%",height:54,borderRadius:14,border:`1.5px solid ${C.border}`,cursor:"pointer",background:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,marginBottom:10}}>
             <span style={{fontWeight:500,letterSpacing:"-.01em",fontSize:19}}><span style={{color:"#4285F4"}}>G</span><span style={{color:"#EA4335"}}>o</span><span style={{color:"#FBBC05"}}>o</span><span style={{color:"#4285F4"}}>g</span><span style={{color:"#34A853"}}>l</span><span style={{color:"#EA4335"}}>e</span></span><span style={{marginLeft:5,color:"#5F6368",fontWeight:600}}>Pay</span>
@@ -1618,7 +1618,7 @@ function CartScreen(){
             {isPickup&&(
               <div style={{background:dk?"rgba(77,182,169,.1)":"#ECFDF5",border:`1.5px solid ${dk?"rgba(77,182,169,.3)":"#A7F3D0"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:9,display:"flex",alignItems:"center",gap:9}}>
                 <span style={{fontSize:18,flexShrink:0}}>🛍️</span>
-                <p style={{fontSize:12.5,fontWeight:600,color:dk?"#6EE7B7":"#065F46"}}>Selbstabholung an der Theke – keine Servicegebühr. Wir benachrichtigen dich, sobald es fertig ist.</p>
+                <p style={{fontSize:12.5,fontWeight:600,color:dk?"#6EE7B7":"#065F46"}}>Selbstabholung an der Theke – keine Liefergebühr. Wir benachrichtigen dich, sobald es fertig ist.</p>
               </div>
             )}
             {/* Mehrweg-Pfand für Becher-Getränke */}
@@ -1647,7 +1647,7 @@ function CartScreen(){
             {!isPickup&&sub<FREE_ABOVE&&(
               <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.xs(dk),padding:13,marginBottom:9}}>
                 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:7}}>
-                  <p style={{fontSize:12,fontWeight:700,color:C.textMid}}>🎁 Noch {fmt(FREE_ABOVE-sub)} bis Servicegebühr entfällt</p>
+                  <p style={{fontSize:12,fontWeight:700,color:C.textMid}}>🎁 Noch {fmt(FREE_ABOVE-sub)} bis Liefergebühr entfällt</p>
                 </div>
                 <div style={{height:5,background:C.surface2,borderRadius:3,overflow:"hidden"}}>
                   <div style={{height:"100%",width:`${(sub/FREE_ABOVE)*100}%`,background:`linear-gradient(90deg,${C.primary},${C.accent})`,borderRadius:3,transition:"width .4s ease"}}/>
@@ -1679,7 +1679,7 @@ function CartScreen(){
               {tipPct>0&&<p style={{fontSize:11,color:C.textLight,marginTop:7}}>{tipPct} % von {fmt(sub)} · +{fmt(tip)}</p>}
             </div>
             <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),padding:15,marginBottom:9}}>
-              {[["Zwischensumme",fmt(sub),C.text],["Servicegebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(deposit>0?[[`♻️ Pfand (${cupInfo.type==="tasse"?"Tasse":"Becher"})`,fmt(deposit),C.text]]:[]),...(tip>0?[[`🤝 Soli-Beitrag (${tipPct} %)`,fmt(tip),C.text]]:[]),...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
+              {[["Zwischensumme",fmt(sub),C.text],["Liefergebühr",del===0?"Entfällt 🎉":fmt(del),del===0?C.primary:C.text],...(deposit>0?[[`♻️ Pfand (${cupInfo.type==="tasse"?"Tasse":"Becher"})`,fmt(deposit),C.text]]:[]),...(tip>0?[[`🤝 Soli-Beitrag (${tipPct} %)`,fmt(tip),C.text]]:[]),...(freeAmount>0?[["🎁 Freigetränk","− "+fmt(freeAmount),C.primary]]:[])].map(([l,v,cl])=>(
                 <div key={l} style={{display:"flex",justifyContent:"space-between",fontSize:13,color:C.textMid,marginBottom:7}}>
                   <span>{l}</span>
                   <span style={{fontWeight:600,color:cl}}>{v}</span>
