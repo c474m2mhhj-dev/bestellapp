@@ -564,7 +564,7 @@ function FloatCart(){
   const tot=cart.reduce((s,i)=>s+i.price*i.qty,0);
   if(qty===0)return null;
   return(
-    <div style={{position:"fixed",bottom:68,left:"50%",transform:"translateX(-50%)",width:"calc(100% - 24px)",maxWidth:402,zIndex:300}}>
+    <div style={{position:"fixed",bottom:"calc(68px + env(safe-area-inset-bottom))",left:"50%",transform:"translateX(-50%)",width:"calc(100% - 24px)",maxWidth:402,zIndex:300}}>
       <button onClick={()=>go("cart")} style={{width:"100%",background:`linear-gradient(135deg,${C.dark},${C.primary})`,borderRadius:18,padding:"13px 20px",color:"#fff",display:"flex",alignItems:"center",justifyContent:"space-between",boxShadow:DS.shadow.green(dk),border:"none",cursor:"pointer",animation:"cartIn .28s cubic-bezier(.34,1.56,.64,1) both"}}>
         <span style={{background:"rgba(255,255,255,.2)",borderRadius:9,padding:"3px 10px",fontWeight:800,fontSize:14}}>{qty}</span>
         <span style={{fontWeight:800,fontSize:15}}>Warenkorb ansehen</span>
