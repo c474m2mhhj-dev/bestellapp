@@ -1831,7 +1831,7 @@ function OrderConfScreen(){
   const{go,confData,darkMode:dk}=useApp();const C=useC();
   useEffect(()=>{
     if(!confData){go("orders");return;}
-    const t=setTimeout(()=>go("orders"),3000);
+    const t=setTimeout(()=>go("orders"),6000); // genug Zeit, Bestellnr., Wartezeit & Stempel zu lesen (Button leitet sofort weiter)
     return()=>clearTimeout(t);
   },[confData]);
   if(!confData)return null;
