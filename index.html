@@ -1072,7 +1072,7 @@ function MenuScreen(){
   const toggleFav=id=>{setFavs(prev=>{const n=prev.includes(id)?prev.filter(x=>x!==id):[...prev,id];LS.set("zr_favs",n);return n;});};
   const filtered=useMemo(()=>{
     const q=search.toLowerCase().trim();
-    return products.filter(p=>isBrowsable(p)&&(activeCat==="Alle"||p.cat===activeCat)&&(tagFilter==="Alle"||p.tag===tagFilter)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)));
+    return products.filter(p=>isBrowsable(p)&&(activeCat==="Alle"||p.cat===activeCat)&&(tagFilter==="Alle"||p.tag===tagFilter)&&(!q||p.name.toLowerCase().includes(q)||p.desc.toLowerCase().includes(q)||p.cat.toLowerCase().includes(q)||(p.tag||"").toLowerCase().includes(q)));
   },[products,activeCat,tagFilter,search]);
   const catCounts=useMemo(()=>{const m={};products.filter(isBrowsable).forEach(p=>{m[p.cat]=(m[p.cat]||0)+1;});return m;},[products]);
   const availableCats=useMemo(()=>CATS.filter(c=>c==="Alle"||catCounts[c]>0),[catCounts]);
