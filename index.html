@@ -155,6 +155,8 @@ const sbBool = b=>b?"is.true":"is.false";
 const Remote = {
   set: async(k,v,sh)=>{ await fetch(sbUrl(),{method:"POST",headers:{...sbHead(),Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify({key:k,shared:!!sh,value:v,updated_at:new Date().toISOString()})}); },
   get: async(k,sh)=>{ const r=await fetch(sbUrl()+"?select=value&key=eq."+encodeURIComponent(k)+"&shared="+sbBool(sh),{headers:sbHead()}); if(!r.ok)return null; const a=await r.json(); return a.length?a[0].value:null; },
+  // mehrere Keys in EINEM Request (Order-Sync: 1 Request statt 1 pro Bestellung)
+  getMany: async(keys,sh)=>{ if(!keys.length)return[]; const inList=keys.map(k=>encodeURIComponent(k)).join(","); const r=await fetch(sbUrl()+"?select=key,value&shared="+sbBool(sh)+"&key=in.("+inList+")",{headers:sbHead()}); if(!r.ok)return[]; return await r.json(); },
   list:async(p,sh)=>{ const r=await fetch(sbUrl()+"?select=key&shared="+sbBool(sh)+"&key=like."+encodeURIComponent(p)+"*",{headers:sbHead()}); if(!r.ok)return[]; const a=await r.json(); return a.map(x=>x.key); },
   // wie list, liefert aber die Werte gleich mit → EIN Request statt 1+N Einzelabrufe
   listFull:async(p,sh)=>{ const r=await fetch(sbUrl()+"?select=key,value&shared="+sbBool(sh)+"&key=like."+encodeURIComponent(p)+"*",{headers:sbHead()}); if(!r.ok)return[]; return await r.json(); },
@@ -166,6 +168,7 @@ const Db = {
   enabled: hasRemote || hasSt,
   set:  async(k,v,sh=false)=>{ try{ if(hasRemote)return await Remote.set(k,v,sh); if(hasSt)await window.storage.set(k,JSON.stringify(v),sh); }catch(e){} },
   get:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.get(k,sh); if(hasSt){const r=await window.storage.get(k,sh);return r?JSON.parse(r.value):null;} }catch(e){} return null; },
+  getMany: async(keys,sh=false)=>{ try{ if(hasRemote){const rows=await Remote.getMany(keys,sh);const m=Object.fromEntries(rows.map(x=>[x.key,x.value]));return keys.map(k=>m[k]??null);} if(hasSt)return await Promise.all(keys.map(k=>Db.get(k,sh))); }catch(e){} return keys.map(()=>null); },
   list: async(p,sh=false)  =>{ try{ if(hasRemote)return await Remote.list(p,sh); if(hasSt){const r=await window.storage.list(p,sh);return r?r.keys:[];} }catch(e){} return []; },
   listFull: async(p,sh=false)=>{ try{ if(hasRemote)return await Remote.listFull(p,sh); if(hasSt){const ks=await Db.list(p,sh);const vs=await Promise.all(ks.map(k=>Db.get(k,sh)));return ks.map((k,i)=>({key:k,value:vs[i]}));} }catch(e){} return []; },
   del:  async(k,sh=false)  =>{ try{ if(hasRemote)return await Remote.del(k,sh); if(hasSt)await window.storage.delete(k,sh); }catch(e){} },
@@ -2723,7 +2726,7 @@ function App(){
     if(!myIds.length)return;
     let next;
     if(Db.enabled){
-      const updated=await Promise.all(myIds.map(id=>Db.get(`order_${id}`,true)));
+      const updated=await Db.getMany(myIds.map(id=>`order_${id}`),true);
       next=updated.filter(Boolean);
     } else {
       next=myIds.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);
