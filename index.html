@@ -425,12 +425,15 @@ function PImg({src,alt,emoji,w,h,r=0,style={}}){
   const C=useC();
   const[err,setErr]=useState(false);
   const[loaded,setLoaded]=useState(false);
+  const imgRef=useRef(null);
+  // Cached images can finish loading before onLoad is attached → check complete on mount
+  useEffect(()=>{const im=imgRef.current;if(im&&im.complete){if(im.naturalWidth>0)setLoaded(true);else setErr(true);}},[src]);
   const base={width:w,height:h,flexShrink:0,borderRadius:r,...style};
   if(err||!src)return<div style={{...base,background:`linear-gradient(135deg,${C.dark},${C.primary})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:Math.min(w||60,h||60)*0.42}}>{emoji||"☕"}</div>;
   return(
     <div style={{...base,position:"relative",overflow:"hidden"}}>
       {!loaded&&<div style={{position:"absolute",inset:0,background:C.surface2,overflow:"hidden"}}><div style={{position:"absolute",inset:0,background:"linear-gradient(90deg,transparent 0%,rgba(255,255,255,.08) 50%,transparent 100%)",animation:"shimmer 1.4s infinite"}}/></div>}
-      <img src={src} alt={alt||""} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",opacity:loaded?1:0,transition:"opacity .35s"}} onLoad={()=>setLoaded(true)} onError={()=>setErr(true)}/>
+      <img ref={imgRef} src={src} alt={alt||""} loading="lazy" style={{width:"100%",height:"100%",objectFit:"cover",display:"block",opacity:loaded?1:0,transition:"opacity .35s"}} onLoad={()=>setLoaded(true)} onError={()=>setErr(true)}/>
     </div>
   );
 }
