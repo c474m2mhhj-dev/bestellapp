@@ -1738,7 +1738,8 @@ const STEPS=[
   {key:"done",   label:"Abgeholt ✓",  icon:"🎉",color:"#16A34A"},
 ];
 function OrderCard({o}){
-  const C=useC(),{darkMode:dk,addToCart,go,products}=useApp();
+  const C=useC(),{darkMode:dk,addToCart,go,products,cancelOrder,push}=useApp();
+  const[confirmCancel,setConfirmCancel]=useState(false);
   const reorder=useCallback(()=>{
     o.items.forEach(it=>{
       const prod=products.find(p=>p.id===it.id)||products.find(p=>p.name===it.name);
@@ -1823,6 +1824,7 @@ function OrderCard({o}){
           {o.deposit>0&&<span style={{fontSize:11,fontWeight:700,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>♻️ {o.cupType==="tasse"?"Tasse":"Becher"}-Pfand {fmt(o.deposit)}</span>}
           <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:14}}>{fmt(o.total)}</span>
         </div>
+        {o.status==="new"&&<button onClick={async()=>{if(confirmCancel){setConfirmCancel(false);try{await cancelOrder(o.id);push("Bestellung storniert","info",4000);}catch(e){push("Stornieren fehlgeschlagen","error",4000);}}else{setConfirmCancel(true);setTimeout(()=>setConfirmCancel(false),3500);}}} style={{width:"100%",padding:"9px",marginBottom:7,background:confirmCancel?(dk?"rgba(239,68,68,.18)":"#FEF2F2"):C.surface2,color:confirmCancel?C.red:C.textLight,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${confirmCancel?C.red:C.border}`,cursor:"pointer"}}>{confirmCancel?"Wirklich stornieren?":"Bestellung stornieren"}</button>}
         <button onClick={reorder} style={{width:"100%",padding:"9px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${C.border}`,cursor:"pointer"}}>🔁 Nochmal bestellen</button>
       </div>
     </div>
@@ -2774,6 +2776,13 @@ function App(){
     setAllOrders(prev=>prev.filter(o=>o.id!==id));
   },[]);
 
+  // Kunde storniert eine eigene, noch nicht zubereitete Bestellung → überall entfernen
+  const cancelOrder=useCallback(async(id)=>{
+    await deleteOrder(id);
+    setMyOrders(prev=>prev.filter(o=>o.id!==id));
+    LS.set("zr_my_orders",(LS.get("zr_my_orders",[])||[]).filter(x=>x!==id));
+  },[deleteOrder]);
+
   const clearAllOrders=useCallback(async()=>{
     const ids=LS.get("zr_all_orders",[]);
     ids.forEach(id=>LS.del(`zr_order_${id}`));
@@ -2829,7 +2838,7 @@ function App(){
     screen,go,prevScreen,cart,selTable,setSelTable,products,activeCat,setActiveCat,menuQuery,setMenuQuery,
     darkMode,setDarkMode,detailProduct,addToCart,chQty,removeItem,clearCart,
     submitOrder,submitting,myOrders,syncOrders,clearDoneOrders,allOrders,loadAdminOrders,
-    setOrderStatus,deleteOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,reopenAllProducts,setProductPop,editProduct,
+    setOrderStatus,deleteOrder,cancelOrder,clearAllOrders,addProduct,deleteProduct,setProductAvailable,reopenAllProducts,setProductPop,editProduct,
     announcement,saveAnnouncement,
     ad,saveAd,
     nextSlot,setSlot,
