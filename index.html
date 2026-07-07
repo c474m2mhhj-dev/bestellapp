@@ -2247,7 +2247,7 @@ function AdminScreen(){
                   <div style={{display:"flex",gap:6,alignItems:"center",flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
                     <span style={{background:stCl[o.status].bg,color:stCl[o.status].cl,borderRadius:DS.radius.full,fontSize:10,fontWeight:800,padding:"3px 9px"}}>{stL[o.status]}</span>
                     {o.status!=="done"&&<button onClick={()=>{setOrderStatus(o.id,stN[o.status]);if(navigator.vibrate)navigator.vibrate([15,8,15]);}} style={{background:C.primary,color:"#fff",borderRadius:DS.radius.sm,padding:"5px 10px",fontSize:11,fontWeight:800,border:"none",cursor:"pointer",whiteSpace:"nowrap"}}>{stNL[o.status]}</button>}
-                    <button onClick={()=>deleteOrder(o.id)} aria-label="Bestellung löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:14,border:"none",cursor:"pointer",color:C.red}}>🗑</button>
+                    <button onClick={()=>{if(window.confirm(`Bestellung ${orderNo(o)}${o.customer?" · "+o.customer:""} wirklich löschen?`))deleteOrder(o.id);}} aria-label="Bestellung löschen" style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"5px 8px",fontSize:14,border:"none",cursor:"pointer",color:C.red}}>🗑</button>
                   </div>
                 </div>
                 <div style={{display:"flex",flexWrap:"wrap",gap:4,paddingTop:9,borderTop:`1px solid ${C.border}`,alignItems:"center"}}>
