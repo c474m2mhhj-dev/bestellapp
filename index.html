@@ -1345,7 +1345,7 @@ function CartItem({item,onChQty,onRemove}){
           <PImg src={item.img} alt={item.name} emoji={item.emoji} w={58} h={58} r={11}/>
           <div style={{flex:1,minWidth:0}}>
             <p style={{fontWeight:700,fontSize:13,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",color:C.text}}>{item.name}</p>
-            <p style={{color:C.primary,fontWeight:800,fontSize:13,marginTop:3}}>{fmt(item.price*item.qty)}</p>
+            <p style={{color:C.primary,fontWeight:800,fontSize:13,marginTop:3}}>{fmt(item.price*item.qty)}{item.qty>1&&<span style={{fontWeight:500,color:C.textLight,fontSize:11}}> · {fmt(item.price)}/Stk</span>}</p>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
             <QtyBtn op="−" onPress={()=>onChQty(-1)} sz={40}/>
