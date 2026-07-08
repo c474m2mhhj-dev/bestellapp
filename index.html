@@ -1108,7 +1108,7 @@ function MenuScreen(){
         </div>
         <div style={{display:"flex",gap:8,overflowX:"auto",paddingBottom:13,scrollbarWidth:"none"}}>
           {availableCats.map(c=>(
-            <button key={c} onClick={()=>{setActiveCat(c);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),500);}} style={{padding:"8px 14px",borderRadius:DS.radius.full,fontWeight:700,fontSize:12,whiteSpace:"nowrap",background:activeCat===c?"#fff":"rgba(255,255,255,.17)",color:activeCat===c?C.primary:"#fff",border:"none",cursor:"pointer",flexShrink:0,transition:"all .16s"}}>
+            <button key={c} onClick={()=>{setActiveCat(c);setLoading(true);clearTimeout(loadRef.current);loadRef.current=setTimeout(()=>setLoading(false),500);}} style={{padding:"8px 14px",borderRadius:DS.radius.full,fontWeight:700,fontSize:12,whiteSpace:"nowrap",background:activeCat===c?"#fff":"rgba(255,255,255,.17)",color:activeCat===c?C.dark:"#fff",border:`2px solid ${activeCat===c?(CATC[c]||C.primary):"transparent"}`,cursor:"pointer",flexShrink:0,transition:"all .16s"}}>
               {CICO[c]} {c}<span style={{opacity:.55,fontSize:10,fontWeight:600,marginLeft:2}}>({c==="Alle"?Object.values(catCounts).reduce((s,n)=>s+n,0):catCounts[c]})</span>
             </button>
           ))}
