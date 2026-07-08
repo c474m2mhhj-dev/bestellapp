@@ -1242,6 +1242,7 @@ function DetailScreen(){
       <div style={{padding:"17px 18px 40px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
           <div style={{flex:1}}>
+            {(()=>{const col=CATC[p.cat]||C.primary;return<span style={{display:"inline-flex",alignItems:"center",gap:5,background:col+"22",border:`1px solid ${col}55`,borderRadius:DS.radius.full,padding:"3px 10px",fontSize:11,fontWeight:800,color:dk?"#fff":col,marginBottom:8}}>{CICO[p.cat]} {p.cat}</span>;})()}
             <h2 style={{fontSize:22,fontWeight:900,lineHeight:1.25,color:C.text}}>{p.name}</h2>
             <p style={{marginTop:6,color:C.textMid,fontSize:14,lineHeight:1.55}}>{p.desc}</p>
           </div>
