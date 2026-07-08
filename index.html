@@ -323,7 +323,7 @@ const loadInfo = (n)=> n>=7?{icon:"🔥",label:"Stoßzeit – längere Wartezeit
 /* ══════════════════════════════════════════════
    UTILS
 ══════════════════════════════════════════════ */
-const fmt    = n=>typeof n==="number"?n.toFixed(2).replace(".",",")+"\u00a0€":"0,00\u00a0€";
+const fmt    = n=>Number.isFinite(n)?n.toFixed(2).replace(".",",")+"\u00a0€":"0,00\u00a0€";
 const tagSty = t=>({Beliebt:{bg:"#FEF3C7",cl:"#92400E"},Neu:{bg:"#DBEAFE",cl:"#1E40AF"},Vegan:{bg:"#D1FAE5",cl:"#065F46"}}[t]);
 const genId  = ()=>`${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
 const playBell=()=>{try{const ctx=new(window.AudioContext||window.webkitAudioContext)();[0,.18].forEach(t=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.frequency.value=880;o.type="sine";g.gain.setValueAtTime(.35,ctx.currentTime+t);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.45);o.start(ctx.currentTime+t);o.stop(ctx.currentTime+t+.45);});}catch(e){}};
