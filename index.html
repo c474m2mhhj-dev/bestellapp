@@ -2040,7 +2040,8 @@ function AdminScreen(){
     if(!np.name||!np.price)return;
     const sizes=[{l:np.sizeLabel||"normal",p:parseFloat(np.price)}];
     if(np.price2&&parseFloat(np.price2)>0)sizes.push({l:np.sizeLabel2||"groß",p:parseFloat(np.price2)});
-    addProduct({...np,id:Date.now(),sizes});
+    // only the real product schema fields (not the form-only price/size inputs)
+    addProduct({id:Date.now(),name:np.name,cat:np.cat,desc:np.desc,emoji:np.emoji,img:np.img,tag:np.tag,milch:!!np.milch,sirup:!!np.sirup,pop:!!np.pop,available:true,sizes});
     setNp({name:"",cat:"Heiße Getränke",desc:"",emoji:"☕",img:"",price:"",sizeLabel:"normal",price2:"",sizeLabel2:"groß",tag:"",milch:false,sirup:false,pop:false,available:true});
   };
 
