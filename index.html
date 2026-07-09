@@ -2240,7 +2240,7 @@ function AdminScreen(){
                   <div style={{height:"100%",width:`${(rev/catRevenue[0][1])*100}%`,background:C.primary,borderRadius:2}}/>
                 </div>
                 <span style={{fontSize:12,fontWeight:800,color:C.primary,flexShrink:0,minWidth:48,textAlign:"right"}}>{fmt(rev)}</span>
-                <span style={{fontSize:10,color:C.textLight,flexShrink:0,minWidth:30,textAlign:"right"}}>{Math.round(rev/revenue*100)}%</span>
+                <span style={{fontSize:10,color:C.textLight,flexShrink:0,minWidth:30,textAlign:"right"}}>{Math.round(rev/(catRevenue.reduce((s,e)=>s+e[1],0)||1)*100)}%</span>
               </div>
             ))}
           </div>
