@@ -62,6 +62,7 @@
     @keyframes confettiFall{0%{opacity:0;transform:translateY(-12px) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translateY(460px) rotate(400deg)}}
     @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
     @keyframes antglow{0%,100%{opacity:.45}50%{opacity:1}}
+    @keyframes dashMove{to{stroke-dashoffset:-11}}
     /* Respect the OS "Reduce Motion" setting: collapse animations/transitions to
        their end state instead of animating (safe for reveal anims using fill:both). */
     @media (prefers-reduced-motion: reduce){
@@ -1808,10 +1809,19 @@ function OrderCard({o}){
       {(o.status==="new"||o.status==="making")&&o.readyAt&&!isPickup&&(()=>{
         const mins=Math.max(1,Math.ceil((o.readyAt-Date.now())/60000));
         const late=o.readyAt-Date.now()<=0;
+        const amber=dk?"#FCD34D":"#B45309";
         return(
-          <div style={{background:dk?"rgba(245,158,11,.12)":"#FFF7ED",border:`1.5px solid ${dk?"rgba(245,158,11,.3)":"#FED7AA"}`,borderRadius:DS.radius.md,padding:"10px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:10}}>
-            <span style={{fontSize:20,flexShrink:0}}>🤖</span>
-            <p style={{flex:1,fontWeight:700,fontSize:12.5,color:dk?"#FCD34D":"#B45309"}}>{late?"Robert ist gleich da …":`Robert liefert in ~${mins} Min`}<span style={{fontWeight:400,opacity:.8}}> · {o.table}</span></p>
+          <div style={{background:dk?"rgba(245,158,11,.12)":"#FFF7ED",border:`1.5px solid ${dk?"rgba(245,158,11,.3)":"#FED7AA"}`,borderRadius:DS.radius.md,padding:"11px 13px",marginBottom:11}}>
+            {/* Mini-Tracking: Robert → gestrichelte Route → Ziel-Pin (wie im Design-Mockup) */}
+            <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:7}}>
+              <div style={{flexShrink:0}}><Robert size={30} bob={o.status==="making"}/></div>
+              <svg style={{flex:1,display:"block"}} height="10" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><line x1="2" y1="5" x2="98" y2="5" stroke={amber} strokeWidth="2.5" strokeLinecap="round" strokeDasharray="5 6" style={{animation:o.status==="making"?"dashMove 1.1s linear infinite":undefined,opacity:.75}}/></svg>
+              <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:3}}>
+                <span style={{fontSize:15}}>📍</span>
+                <span style={{fontSize:11,fontWeight:800,color:amber,whiteSpace:"nowrap"}}>{o.table}</span>
+              </div>
+            </div>
+            <p style={{fontWeight:700,fontSize:12.5,color:amber}}>{late?"Robert ist gleich da …":o.status==="making"?`Robert ist bald unterwegs · ~${mins} Min`:`Bestellt · Lieferung in ~${mins} Min`}</p>
           </div>
         );
       })()}
