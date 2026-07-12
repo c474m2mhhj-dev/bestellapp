@@ -361,6 +361,12 @@ const cafeStatus=(d=new Date())=>{
 // Tages-Bonnummer
 const ymd=(d=new Date())=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
 const orderNo=o=>o&&o.no?`#${o.no}`:`#${String(o.createdAt).slice(-4)}`;
+// Eine offene Bestellung gilt kundenseitig als abgeschlossen, wenn ihre geschätzte
+// Fertig-/Lieferzeit über 30 Min zurückliegt – so hängt die Lieferverfolgung nicht
+// endlos fest, falls das Personal den Status nicht manuell auf "Abgeholt" setzt.
+// Der echte Status in der DB (Küche/Admin) bleibt davon unberührt.
+const ORDER_STALE_MS=30*60000;
+const effStatus=o=>(o&&o.status!=="done"&&o.readyAt&&Date.now()-o.readyAt>ORDER_STALE_MS)?"done":(o&&o.status)||"new";
 
 /* ══════════════════════════════════════════════
    CONTEXT
@@ -565,7 +571,7 @@ const NAV=[
 function BottomNav(){
   const{screen,go,cart,myOrders,allOrders,adminAccess,darkMode:dk}=useApp();const C=useC();
   const qty=cart.reduce((s,i)=>s+i.qty,0);
-  const activeOrds=myOrders.filter(o=>o.status!=="done").length;
+  const activeOrds=myOrders.filter(o=>effStatus(o)!=="done").length;
   const newAdminOrds=allOrders.filter(o=>o.status==="new").length;
   const active=s=>["cart","detail","qr"].includes(screen)?s==="menu":screen===s;
   const badge=(n,right="calc(50% - 22px)")=>n>0?<span style={{position:"absolute",top:2,right,background:C.red,color:"#fff",fontSize:9,fontWeight:800,borderRadius:DS.radius.full,minWidth:16,height:16,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 3px"}}>{n}</span>:null;
@@ -751,7 +757,7 @@ function HomeScreen(){
   const gT=hour<5?"Gute Nacht":hour<12?"Guten Morgen":hour<17?"Guten Tag":hour<21?"Guten Abend":"Gute Nacht";
   const gE=hour<5?"🌙":hour<12?"☀️":hour<17?"👋":hour<21?"🌆":"🌙";
   const greet=user.name?`${gT}, ${user.name} ${gE}`:`${gT} ${gE}`;
-  const activeOrds=myOrders.filter(o=>o.status!=="done");
+  const activeOrds=myOrders.filter(o=>effStatus(o)!=="done");
   const urgentOrd=activeOrds.find(o=>o.status==="ready")||activeOrds.find(o=>o.status==="making")||activeOrds[0];
   const ordInfo={ready:{icon:"🤖",label:"Robert ist da – jetzt abholen!",bg:dk?"rgba(59,130,246,.18)":"#DBEAFE",cl:dk?"#93C5FD":"#1E40AF"},making:{icon:"👨‍🍳",label:"In Zubereitung…",bg:dk?"rgba(245,158,11,.15)":"#FEF3C7",cl:dk?"#FCD34D":"#92400E"},new:{icon:"✅",label:"Bestätigt",bg:dk?"rgba(16,185,129,.15)":"#D1FAE5",cl:dk?"#6EE7B7":"#065F46"}};
 
@@ -1797,12 +1803,13 @@ function OrderCard({o}){
     go("cart");
   },[o,products,addToCart,go]);
   const isPickup=o.mode==="pickup";
+  const st=effStatus(o); // effektiver Status: überfällige offene Bestellungen gelten als abgeschlossen
   const steps=isPickup?STEPS.map(s=>s.key==="ready"?{...s,label:"Abholbereit",icon:"🛍️"}:s):STEPS;
-  const si=Math.max(0,steps.findIndex(s=>s.key===o.status));
+  const si=Math.max(0,steps.findIndex(s=>s.key===st));
   const step=steps[si];
   const pct=(si/(steps.length-1))*100;
   return(
-    <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk),animation:o.status==="ready"?"pulse 1.8s ease-in-out infinite":undefined}}>
+    <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk),animation:st==="ready"?"pulse 1.8s ease-in-out infinite":undefined}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
         <div style={{flex:1}}>
           <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung {orderNo(o)}{o.customer?` · ${o.customer}`:""}{o.demo&&<span style={{fontSize:9,fontWeight:900,color:"#7C3AED",background:"#7C3AED18",borderRadius:5,padding:"1px 6px",marginLeft:6,letterSpacing:".04em",verticalAlign:"middle"}}>PROBE</span>}</p>
@@ -1834,7 +1841,7 @@ function OrderCard({o}){
           </div>
         ))}
       </div>
-      {(o.status==="new"||o.status==="making")&&o.readyAt&&!isPickup&&(()=>{
+      {(st==="new"||st==="making")&&o.readyAt&&!isPickup&&(()=>{
         const mins=Math.max(1,Math.ceil((o.readyAt-Date.now())/60000));
         const late=o.readyAt-Date.now()<=0;
         const amber=dk?"#FCD34D":"#B45309";
@@ -1842,18 +1849,18 @@ function OrderCard({o}){
           <div style={{background:dk?"rgba(245,158,11,.12)":"#FFF7ED",border:`1.5px solid ${dk?"rgba(245,158,11,.3)":"#FED7AA"}`,borderRadius:DS.radius.md,padding:"11px 13px",marginBottom:11}}>
             {/* Mini-Tracking: Robert → gestrichelte Route → Ziel-Pin (wie im Design-Mockup) */}
             <div style={{display:"flex",alignItems:"center",gap:9,marginBottom:7}}>
-              <div style={{flexShrink:0}}><Robert size={30} bob={o.status==="making"}/></div>
-              <svg style={{flex:1,display:"block"}} height="10" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><line x1="2" y1="5" x2="98" y2="5" stroke={amber} strokeWidth="2.5" strokeLinecap="round" strokeDasharray="5 6" style={{animation:o.status==="making"?"dashMove 1.1s linear infinite":undefined,opacity:.75}}/></svg>
+              <div style={{flexShrink:0}}><Robert size={30} bob={st==="making"}/></div>
+              <svg style={{flex:1,display:"block"}} height="10" viewBox="0 0 100 10" preserveAspectRatio="none" aria-hidden="true"><line x1="2" y1="5" x2="98" y2="5" stroke={amber} strokeWidth="2.5" strokeLinecap="round" strokeDasharray="5 6" style={{animation:st==="making"?"dashMove 1.1s linear infinite":undefined,opacity:.75}}/></svg>
               <div style={{flexShrink:0,display:"flex",alignItems:"center",gap:3}}>
                 <span style={{fontSize:15}}>📍</span>
                 <span style={{fontSize:11,fontWeight:800,color:amber,whiteSpace:"nowrap"}}>{o.table}</span>
               </div>
             </div>
-            <p style={{fontWeight:700,fontSize:12.5,color:amber}}>{late?"Robert ist gleich da …":o.status==="making"?`Robert ist bald unterwegs · ~${mins} Min`:`Bestellt · Lieferung in ~${mins} Min`}</p>
+            <p style={{fontWeight:700,fontSize:12.5,color:amber}}>{late?"Robert ist gleich da …":st==="making"?`Robert ist bald unterwegs · ~${mins} Min`:`Bestellt · Lieferung in ~${mins} Min`}</p>
           </div>
         );
       })()}
-      {(o.status==="new"||o.status==="making")&&o.readyAt&&isPickup&&(()=>{
+      {(st==="new"||st==="making")&&o.readyAt&&isPickup&&(()=>{
         const mins=Math.max(1,Math.ceil((o.readyAt-Date.now())/60000));
         const late=o.readyAt-Date.now()<=0;
         return(
@@ -1863,7 +1870,7 @@ function OrderCard({o}){
           </div>
         );
       })()}
-      {o.status==="ready"&&(
+      {st==="ready"&&(
         <div style={{background:dk?"rgba(37,99,235,.14)":"#EFF6FF",border:`1.5px solid ${dk?"rgba(37,99,235,.45)":"#BFDBFE"}`,borderRadius:DS.radius.md,padding:"11px 13px",marginBottom:11,display:"flex",alignItems:"center",gap:11}}>
           <div style={{flexShrink:0,fontSize:isPickup?28:undefined}}>{isPickup?"🛍️":<Robert size={44}/>}</div>
           <div style={{flex:1,minWidth:0}}>
@@ -1878,7 +1885,7 @@ function OrderCard({o}){
           {o.deposit>0&&<span style={{fontSize:11,fontWeight:700,background:C.surface2,borderRadius:7,padding:"4px 9px",color:C.textMid}}>♻️ {o.cupType==="tasse"?"Tasse":"Becher"}-Pfand {fmt(o.deposit)}</span>}
           <span style={{marginLeft:"auto",fontWeight:800,color:C.primary,fontSize:14}}>{fmt(o.total)}</span>
         </div>
-        {o.status==="new"&&<button onClick={async()=>{if(confirmCancel){setConfirmCancel(false);try{await cancelOrder(o.id);push("Bestellung storniert","info",4000);}catch(e){push("Stornieren fehlgeschlagen","error",4000);}}else{setConfirmCancel(true);setTimeout(()=>setConfirmCancel(false),3500);}}} style={{width:"100%",padding:"9px",marginBottom:7,background:confirmCancel?(dk?"rgba(239,68,68,.18)":"#FEF2F2"):C.surface2,color:confirmCancel?C.red:C.textLight,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${confirmCancel?C.red:C.border}`,cursor:"pointer"}}>{confirmCancel?"Wirklich stornieren?":"Bestellung stornieren"}</button>}
+        {st==="new"&&<button onClick={async()=>{if(confirmCancel){setConfirmCancel(false);try{await cancelOrder(o.id);push("Bestellung storniert","info",4000);}catch(e){push("Stornieren fehlgeschlagen","error",4000);}}else{setConfirmCancel(true);setTimeout(()=>setConfirmCancel(false),3500);}}} style={{width:"100%",padding:"9px",marginBottom:7,background:confirmCancel?(dk?"rgba(239,68,68,.18)":"#FEF2F2"):C.surface2,color:confirmCancel?C.red:C.textLight,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${confirmCancel?C.red:C.border}`,cursor:"pointer"}}>{confirmCancel?"Wirklich stornieren?":"Bestellung stornieren"}</button>}
         <button onClick={reorder} style={{width:"100%",padding:"9px",background:C.surface2,color:C.textMid,borderRadius:DS.radius.sm,fontWeight:700,fontSize:12,border:`1px solid ${C.border}`,cursor:"pointer"}}>🔁 Nochmal bestellen</button>
       </div>
     </div>
@@ -1925,20 +1932,20 @@ function OrdersScreen(){
   const doSync=useCallback(async(m=false)=>{await syncOrders(m);setLastSync(new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"}));},[syncOrders]);
   useEffect(()=>{doSync();const t=setInterval(doSync,5000);return()=>clearInterval(t);},[]);
   const sorted=useMemo(()=>[...myOrders].sort((a,b)=>b.createdAt-a.createdAt),[myOrders]);
-  const activeCount=myOrders.filter(o=>o.status!=="done").length;
+  const activeCount=myOrders.filter(o=>effStatus(o)!=="done").length;
   return(
     <Screen>
       <div style={{padding:"max(50px, calc(env(safe-area-inset-top) + 16px)) 16px 0"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
           <div><h2 style={{fontSize:21,fontWeight:900,color:C.text}}>Meine Bestellungen{activeCount>0?<span style={{background:C.primary,color:"#fff",fontSize:11,fontWeight:800,borderRadius:DS.radius.full,padding:"2px 8px",marginLeft:8}}>{activeCount} aktiv</span>:null}</h2><p style={{color:C.textLight,fontSize:12,marginTop:2}}>{lastSync?"✓ "+lastSync:"Aktualisiert…"}</p></div>
           <div style={{display:"flex",gap:7}}>
-            {myOrders.some(o=>o.status==="done")&&<button onClick={clearDoneOrders} style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"8px 12px",color:C.textMid,fontWeight:700,fontSize:11,minHeight:38,border:"none",cursor:"pointer"}}>🗑 Erledigte</button>}
+            {myOrders.some(o=>effStatus(o)==="done")&&<button onClick={clearDoneOrders} style={{background:C.surface2,borderRadius:DS.radius.sm,padding:"8px 12px",color:C.textMid,fontWeight:700,fontSize:11,minHeight:38,border:"none",cursor:"pointer"}}>🗑 Erledigte</button>}
             <button onClick={()=>doSync(true)} aria-label="Aktualisieren" style={{background:C.light,borderRadius:DS.radius.sm,padding:"8px 13px",color:C.primary,fontWeight:700,fontSize:12,minHeight:38,border:"none",cursor:"pointer"}}>↻</button>
           </div>
         </div>
         {sorted.length===0&&<div style={{textAlign:"center",padding:"56px 16px",color:C.textLight}}><div style={{fontSize:50,marginBottom:12}}>📋</div><h3 style={{fontSize:16,fontWeight:700,color:C.text,marginBottom:4}}>Noch keine Bestellungen</h3><p>Bestellungen erscheinen hier live</p></div>}
         {(()=>{
-          const active=sorted.filter(o=>o.status!=="done"), done=sorted.filter(o=>o.status==="done");
+          const active=sorted.filter(o=>effStatus(o)!=="done"), done=sorted.filter(o=>effStatus(o)==="done");
           return(<>
             {active.map(o=><OrderCard key={o.id} o={o}/>)}
             {done.length>0&&<p style={{fontSize:11,fontWeight:800,color:C.textLight,textTransform:"uppercase",letterSpacing:".05em",margin:"8px 2px 10px"}}>Erledigt</p>}
@@ -2895,9 +2902,9 @@ function App(){
 
   const clearDoneOrders=useCallback(()=>{
     setMyOrders(prev=>{
-      const done=prev.filter(o=>o.status==="done");
+      const done=prev.filter(o=>effStatus(o)==="done"); // auch überfällige (als erledigt angezeigte) mitnehmen
       done.forEach(o=>LS.del(`zr_order_${o.id}`));
-      const next=prev.filter(o=>o.status!=="done");
+      const next=prev.filter(o=>effStatus(o)!=="done");
       LS.set("zr_my_orders",next.map(o=>o.id));
       return next;
     });
