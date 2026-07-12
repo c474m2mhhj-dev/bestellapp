@@ -1275,12 +1275,18 @@ function DetailScreen(){
           </div>
         )}
         <div style={{display:"flex",gap:10,marginTop:14}}>
-          {[["⭐","4.9"],["⏱",{Kaltgetränke:"~1 Min",Snacks:"~2 Min",Gebäck:"~3 Min",Sonstiges:"~2 Min"}[p.cat]||"~5 Min"],["🌿",p.tag||"Frisch"]].map(([ic,v])=>(
-            <div key={v} style={{flex:1,background:C.surface2,borderRadius:DS.radius.sm,padding:"10px 8px",textAlign:"center"}}>
-              <div style={{fontSize:16}}>{ic}</div>
-              <div style={{fontSize:11,fontWeight:700,color:C.textMid,marginTop:3}}>{v}</div>
-            </div>
-          ))}
+          {(()=>{
+            // Nur belegbare Angaben – kein erfundenes Sterne-Rating
+            const prep={Kaltgetränke:"~1 Min",Snacks:"~2 Min",Gebäck:"~3 Min",Sonstiges:"~2 Min"}[p.cat]||"~5 Min";
+            const tagIco={Beliebt:"⭐",Vegan:"🌿",Neu:"🆕"};
+            const third=p.tag?[tagIco[p.tag]||"🏷️",p.tag]:[CICO[p.cat]||"📦",p.cat];
+            return[["⏱",prep],["🤖","Lieferung"],third].map(([ic,v])=>(
+              <div key={ic+v} style={{flex:1,background:C.surface2,borderRadius:DS.radius.sm,padding:"10px 8px",textAlign:"center"}}>
+                <div style={{fontSize:16}}>{ic}</div>
+                <div style={{fontSize:11,fontWeight:700,color:C.textMid,marginTop:3}}>{v}</div>
+              </div>
+            ));
+          })()}
         </div>
         {p.sizes.length>1&&(
           <div style={{marginTop:18}}>
