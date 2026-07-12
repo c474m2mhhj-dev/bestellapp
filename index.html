@@ -73,9 +73,13 @@
         scroll-behavior:auto!important;
       }
     }
-    /* No focus outline on form fields (fields are styled with their own border) —
-       avoids any stray focus ring showing up while placing an order. */
-    input:focus,textarea:focus,select:focus{outline:none!important}
+    /* Fokusring: bei Maus/Touch aus (Felder haben eigene Rahmen), aber für
+       Tastatur-/Switch-Nutzer sichtbar – Barrierefreiheit (WCAG 2.4.7). */
+    input:focus,textarea:focus,select:focus{outline:none}
+    input:focus-visible,textarea:focus-visible,select:focus-visible,
+    button:focus-visible,a:focus-visible,[role=button]:focus-visible{
+      outline:2px solid #4DB6A9;outline-offset:2px;
+    }
 </style>
   <script>
     window.useState=React.useState;window.useEffect=React.useEffect;
