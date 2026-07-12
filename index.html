@@ -724,11 +724,14 @@ function HomeScreen(){
     calc();const t=setInterval(calc,30000);return()=>clearInterval(t);
   },[nextSlot]);
   useEffect(()=>{setFavs(LS.get("zr_favs",[]));},[]); // refresh on mount
-  const[temp,setTemp]=useState(null);
+  const WX_TTL=20*60000; // Wetter max. 20 Min cachen
+  const[temp,setTemp]=useState(()=>{const c=LS.get("zr_wx",null);return c&&Date.now()-c.t<WX_TTL?c.v:null;});
   useEffect(()=>{
+    const c=LS.get("zr_wx",null);
+    if(c&&Date.now()-c.t<WX_TTL){setTemp(c.v);return;} // frischer Cache – kein erneuter API-Call bei jeder Rückkehr zur Startseite
     let on=true;
     fetch("https://api.open-meteo.com/v1/forecast?latitude=49.8989&longitude=8.8489&current=temperature_2m")
-      .then(r=>r.json()).then(d=>{if(on&&d?.current?.temperature_2m!=null)setTemp(d.current.temperature_2m);}).catch(()=>{});
+      .then(r=>r.json()).then(d=>{const v=d?.current?.temperature_2m;if(on&&v!=null){setTemp(v);LS.set("zr_wx",{v,t:Date.now()});}}).catch(()=>{});
     return()=>{on=false;};
   },[]);
   const pop=useMemo(()=>{
