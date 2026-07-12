@@ -1035,7 +1035,7 @@ function HomeScreen(){
 ══════════════════════════════════════════════ */
 function QRScreen(){
   const{go,selTable,darkMode:dk}=useApp();const C=useC();
-  const[t,setT]=useState(selTable||"T1");
+  const[t,setT]=useState(selTable||TABLES[0]);
   const printAll=()=>{
     const base=typeof window!=="undefined"?window.location.href.split("?")[0]:"https://c474m2mhhj-dev.github.io/bestellapp";
     const qSrc=tb=>`https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(base+"?table="+encodeURIComponent(tb))}&margin=4&color=004D40`;
@@ -2626,7 +2626,9 @@ function ProfileScreen(){
 function App(){
   const[screen,setScreen]=useState("home");
   const[cart,setCart]=useState(()=>LS.get("zr_cart",[]));
-  const[selTable,setSelTable]=useState(()=>LS.get("zr_table",null));
+  // Gecachten Hörsaal gegen die aktuelle Liste prüfen: nach einer Umbenennung
+  // (z.B. "Hörsaal 3" → "F15/007") keinen veralteten, nicht mehr lieferbaren Wert übernehmen.
+  const[selTable,setSelTable]=useState(()=>{const t=LS.get("zr_table",null);return t&&TABLES.includes(t)?t:null;});
   const[products,setProducts]=useState(PRODUCTS_INITIAL);
   const[activeCat,setActiveCat]=useState("Alle");
   const[darkMode,setDarkMode]=useState(()=>{const v=LS.get("zr_dark",null);if(v!==null)return v;try{return!!(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);}catch(e){return false;}});
