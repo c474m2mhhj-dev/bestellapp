@@ -184,6 +184,16 @@ const LS = {
 };
 
 /* ══════════════════════════════════════════════
+   PROBE-/DEMO-MODUS
+   Aktivieren mit ?demo=1 (beenden mit ?demo=0). Im Probe-Modus lässt sich der
+   komplette Bestellablauf durchspielen, ABER: die Bestellung bleibt rein lokal –
+   sie wird nie nach Supabase geschrieben, taucht nicht in Küche/Admin auf,
+   erhöht keine echten Statistiken/Bonnummern. Der Probe-Auftrag durchläuft
+   automatisch alle Status, damit alle Schritte sichtbar werden.
+══════════════════════════════════════════════ */
+const DEMO = (()=>{ try{ const p=new URLSearchParams(location.search); if(p.has("demo")){ const on=!["0","false","off","no"].includes((p.get("demo")||"").toLowerCase()); on?LS.set("zr_demo",true):LS.del("zr_demo"); return on; } return !!LS.get("zr_demo",false); }catch(e){ return false; } })();
+
+/* ══════════════════════════════════════════════
    IMAGES
 ══════════════════════════════════════════════ */
 const IMG = {
@@ -589,6 +599,7 @@ function Screen({children,noNav=false}){
   const C=useC();
   return(
     <div style={{maxWidth:430,margin:"0 auto",background:C.bg,minHeight:"100svh",paddingBottom:noNav?0:82,position:"relative",overflowX:"hidden",animation:"screenIn .22s ease both"}}>
+      {DEMO&&<div style={{background:"linear-gradient(90deg,#7C3AED,#A855F7)",color:"#fff",fontSize:11,fontWeight:800,textAlign:"center",padding:"5px 12px",letterSpacing:".02em",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}><span>🧪 PROBE-MODUS · nichts wird echt gesendet</span><a href="?demo=0" style={{color:"#fff",textDecoration:"underline",fontWeight:700,opacity:.9}}>beenden</a></div>}
       {children}
     </div>
   );
@@ -1425,6 +1436,7 @@ function PaymentSheet({total,items,del,onConfirm,onClose}){
     <div onClick={stage==="select"?onClose:undefined} style={{position:"fixed",inset:0,zIndex:1000,background:"rgba(0,0,0,.55)",display:"flex",alignItems:"flex-end",justifyContent:"center",animation:"fadeIn .2s ease both"}}>
       <div onClick={e=>e.stopPropagation()} style={{width:"100%",maxWidth:430,background:C.surface,borderTopLeftRadius:24,borderTopRightRadius:24,padding:"10px 20px max(24px,env(safe-area-inset-bottom))",animation:"sheetUp .34s cubic-bezier(.34,1.4,.64,1) both",boxShadow:"0 -8px 40px rgba(0,0,0,.35)",maxHeight:"92vh",overflowY:"auto"}}>
         <div style={{width:38,height:4,borderRadius:2,background:C.border,margin:"0 auto 16px"}}/>
+        {DEMO&&<div style={{background:"#7C3AED14",border:"1px solid #7C3AED33",borderRadius:10,padding:"9px 12px",marginBottom:14,fontSize:11.5,color:C.textMid,lineHeight:1.55}}><b style={{color:"#7C3AED"}}>🧪 Probe:</b> Test-Karte <b>4242&nbsp;4242&nbsp;4242&nbsp;4242</b> · Datum in der Zukunft (z.&nbsp;B. 12/30) · CVC <b>123</b>. Oder Apple/Google&nbsp;Pay antippen – es wird nichts abgebucht.</div>}
         {stage==="select"&&(<>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:3}}>
             <p style={{fontWeight:800,fontSize:18,color:C.text}}>Bezahlen</p>
@@ -1560,9 +1572,11 @@ function CartScreen(){
   const needsName=!nameDraft.trim();
   const needsTable=!isPickup&&!selTable;
   const cantPay=needsName||needsTable;
-  const closed=!cafeStatus().open;
+  // Im Probe-Modus zählen Öffnungszeiten & Pause nicht – der ganze Ablauf soll jederzeit durchspielbar sein
+  const closed=!DEMO&&!cafeStatus().open;
+  const paused=!DEMO&&ordersPaused;
   const handlePay=async()=>{
-    if(cantPay||submitting||ordersPaused||closed)return;
+    if(cantPay||submitting||paused||closed)return;
     if("Notification" in window&&Notification.permission==="default"){try{await Notification.requestPermission();}catch(e){}}
     setPayOpen(true);
   };
@@ -1724,10 +1738,10 @@ function CartScreen(){
                 <p style={{fontSize:11,color:C.textMid}}>{load?`${load.label} · ${activeLoad} offene Bestellungen`:"Geschätzt · nach Bestätigung"}</p>
               </div>
             </div>
-            {closed&&!ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>🔴</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>{cafeStatus().label} – Robert liefert nur während der Öffnungszeiten.</p></div>}
-            {ordersPaused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>⏸</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>Bestellungen momentan pausiert – bitte kurz warten!</p></div>}
-            <button onClick={handlePay} disabled={cantPay||submitting||ordersPaused||closed} style={{width:"100%",padding:"18px",background:cantPay||submitting||ordersPaused||closed?C.border:"linear-gradient(135deg,#C79A32,#E3BE5C)",color:cantPay||submitting||ordersPaused||closed?C.textLight:"#2B2000",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:cantPay||submitting||ordersPaused||closed?"default":"pointer",boxShadow:!cantPay&&!submitting&&!ordersPaused&&!closed?"0 6px 20px rgba(212,168,67,.38)":"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
-              {submitting?"Wird gesendet…":closed?"Außerhalb der Öffnungszeiten":ordersPaused?"Bestellungen pausiert":needsName?"Bitte Namen eingeben":needsTable?"Bitte zuerst Hörsaal wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
+            {closed&&!paused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>🔴</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>{cafeStatus().label} – Robert liefert nur während der Öffnungszeiten.</p></div>}
+            {paused&&<div style={{background:dk?"rgba(239,68,68,.12)":"#FEF2F2",border:`1.5px solid ${dk?"rgba(239,68,68,.3)":"#FECACA"}`,borderRadius:DS.radius.md,padding:"11px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:9}}><span>⏸</span><p style={{fontSize:13,fontWeight:600,color:dk?"#FCA5A5":"#991B1B"}}>Bestellungen momentan pausiert – bitte kurz warten!</p></div>}
+            <button onClick={handlePay} disabled={cantPay||submitting||paused||closed} style={{width:"100%",padding:"18px",background:cantPay||submitting||paused||closed?C.border:"linear-gradient(135deg,#C79A32,#E3BE5C)",color:cantPay||submitting||paused||closed?C.textLight:"#2B2000",borderRadius:DS.radius.lg,fontWeight:800,fontSize:17,border:"none",cursor:cantPay||submitting||paused||closed?"default":"pointer",boxShadow:!cantPay&&!submitting&&!paused&&!closed?"0 6px 20px rgba(212,168,67,.38)":"none",transition:"all .2s",letterSpacing:"0.01em",marginBottom:10}}>
+              {submitting?"Wird gesendet…":closed?"Außerhalb der Öffnungszeiten":paused?"Bestellungen pausiert":needsName?"Bitte Namen eingeben":needsTable?"Bitte zuerst Hörsaal wählen":`💳 Bezahlen & Bestellen · ${fmt(tot)}`}
             </button>
             <p style={{textAlign:"center",fontSize:11,color:C.textLight,marginBottom:32}}>Apple Pay · Google Pay · Kreditkarte</p>
           </>
@@ -1777,7 +1791,7 @@ function OrderCard({o}){
     <div style={{background:C.surface,borderRadius:DS.radius.xl,padding:16,marginBottom:12,boxShadow:DS.shadow.md(dk),animation:o.status==="ready"?"pulse 1.8s ease-in-out infinite":undefined}}>
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:13}}>
         <div style={{flex:1}}>
-          <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung {orderNo(o)}{o.customer?` · ${o.customer}`:""}</p>
+          <p style={{fontWeight:800,fontSize:15,color:C.text}}>Bestellung {orderNo(o)}{o.customer?` · ${o.customer}`:""}{o.demo&&<span style={{fontSize:9,fontWeight:900,color:"#7C3AED",background:"#7C3AED18",borderRadius:5,padding:"1px 6px",marginLeft:6,letterSpacing:".04em",verticalAlign:"middle"}}>PROBE</span>}</p>
           <p style={{fontSize:12,color:C.textLight,marginTop:2}}>{isPickup?"🛍️ Abholung":o.table} · {o.time}</p>
           {o.note&&<p style={{fontSize:11,background:C.surface2,borderRadius:7,padding:"3px 8px",marginTop:5,display:"inline-block",color:C.textMid}}>📝 {o.note}</p>}
         </div>
@@ -2701,8 +2715,8 @@ function App(){
       // Auslastung beim Bestellzeitpunkt einrechnen (+1 für die eigene Bestellung)
       const wait=base+(tQty>3?2:tQty>1?1:0)+loadExtraMin(activeLoad+1);
       // fortlaufende Tages-Bonnummer
-      const sk="seq_"+ymd();let no=null;
-      try{if(Db.enabled){const cur=(await Db.get(sk,true))||0;no=cur+1;await Db.set(sk,no,true);}else{const cur=LS.get(sk,0)||0;no=cur+1;LS.set(sk,no);}}catch(e){no=null;}
+      const sk=(DEMO?"demoseq_":"seq_")+ymd();let no=null;
+      try{if(Db.enabled&&!DEMO){const cur=(await Db.get(sk,true))||0;no=cur+1;await Db.set(sk,no,true);}else{const cur=LS.get(sk,0)||0;no=cur+1;LS.set(sk,no);}}catch(e){no=null;}
       const created=Date.now();
       const order={
         id,createdAt:created,no,
@@ -2722,6 +2736,7 @@ function App(){
         voucher:discount>0?Math.round(discount*100)/100:0,
         payment:opts?.payment?(opts.payment.brand?`${opts.payment.brand} ••${opts.payment.last4}`:opts.payment.method):null,
         note:note.trim(),
+        demo:DEMO||undefined,
       };
       const myIds=LS.get("zr_my_orders",[]);
       const prunedMy=[...myIds,id].slice(-MAX_MY_ORDERS);
@@ -2731,15 +2746,27 @@ function App(){
       LS.set("zr_my_orders",prunedMy);
       LS.set(`zr_order_${id}`,order);
       LS.set("zr_all_orders",allNext);
-      await Db.set(`order_${id}`,order,true);
+      if(!DEMO)await Db.set(`order_${id}`,order,true); // Probe-Bestellungen bleiben lokal – nie in Küche/Admin/DB
       setMyOrders(prev=>[...prev,order]);
       setCart([]);
       const earned=drinkStamps(cart,products);
       const newPoints=(user.points||0)+earned;
       const voucherUnlocked=Math.floor(newPoints/VOUCHER_AT)>Math.floor((user.points||0)/VOUCHER_AT);
-      saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100,vouchersUsed:(user.vouchersUsed||0)+(discount>0?1:0)});
+      if(!DEMO)saveUser({points:newPoints,totalOrders:(user.totalOrders||0)+1,totalSpent:Math.round(((user.totalSpent||0)+order.total)*100)/100,vouchersUsed:(user.vouchersUsed||0)+(discount>0?1:0)}); // keine echten Statistiken im Probe-Modus
       if("Notification" in window&&Notification.permission==="default")Notification.requestPermission();
       setConfData({id:order.id,createdAt:order.createdAt,no:order.no,table:order.table,mode:order.mode,customer:order.customer,total:order.total,deposit:order.deposit,cups:order.cups,cupType:order.cupType,itemCount:tQty,wait,earned,points:newPoints,voucherUnlocked,voucher:order.voucher});
+      if(DEMO){
+        // Probe-Auftrag durchläuft lokal automatisch alle Status, damit alle Schritte sichtbar werden
+        const step=(st,ms)=>setTimeout(()=>{
+          const snap=LS.get(`zr_order_${id}`,null);
+          if(!snap||!snap.demo||snap.status==="done")return;
+          const upd={...snap,status:st};
+          LS.set(`zr_order_${id}`,upd);
+          setMyOrders(prev=>prev.map(o=>o.id===id?upd:o));
+          if(st==="ready"){try{playBell();}catch(e){}if(navigator.vibrate)navigator.vibrate([80,40,80]);push(upd.mode==="pickup"?"🛍️ Abholbereit! (Probe) – an der Theke":"🤖 Robert ist da! (Probe) – Getränk abholen","success",6000);}
+        },ms);
+        step("making",8000);step("ready",20000);step("done",34000);
+      }
       go("conf");
     }catch(e){
       push("Fehler beim Senden – bitte nochmal versuchen","error",4000);
@@ -2756,8 +2783,12 @@ function App(){
     if(!myIds.length)return;
     let next;
     if(Db.enabled){
-      const updated=await Db.getMany(myIds.map(id=>`order_${id}`),true);
-      next=updated.filter(Boolean);
+      // Probe-Bestellungen liegen nur lokal – aus LS lesen; echte aus der DB
+      const demoIds=myIds.filter(id=>LS.get(`zr_order_${id}`,null)?.demo);
+      const realIds=myIds.filter(id=>!LS.get(`zr_order_${id}`,null)?.demo);
+      const updated=realIds.length?await Db.getMany(realIds.map(id=>`order_${id}`),true):[];
+      const demoSnaps=demoIds.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);
+      next=[...updated.filter(Boolean),...demoSnaps].sort((a,b)=>a.createdAt-b.createdAt);
     } else {
       next=myIds.map(id=>LS.get(`zr_order_${id}`,null)).filter(Boolean);
     }
