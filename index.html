@@ -848,14 +848,14 @@ function HomeScreen(){
         {/* Compact "Wie funktioniert's?" — first visit only */}
         {!seenIntro&&(
           <div style={{background:C.surface,borderRadius:DS.radius.md,boxShadow:DS.shadow.sm(dk),marginBottom:14,border:`1px solid ${dk?"rgba(77,182,169,.25)":C.light}`,overflow:"hidden"}}>
-            <button onClick={()=>setHowOpen(o=>!o)} style={{width:"100%",display:"flex",alignItems:"center",gap:9,padding:"11px 14px",background:"none",border:"none",cursor:"pointer"}}>
-              <Robert size={26} bob={false}/>
-              <span style={{fontWeight:800,fontSize:13,color:C.text}}>Wie funktioniert's?</span>
-              <span style={{marginLeft:"auto",display:"flex",gap:10,alignItems:"center"}}>
-                <span onClick={e=>{e.stopPropagation();dismissIntro();}} style={{fontSize:11,fontWeight:700,color:C.textLight}}>Schließen</span>
-                <span style={{color:C.textLight,fontSize:12,transform:howOpen?"rotate(180deg)":"none",transition:"transform .2s",display:"inline-block"}}>▾</span>
-              </span>
-            </button>
+            <div style={{display:"flex",alignItems:"center",gap:10,padding:"11px 14px"}}>
+              <button onClick={()=>setHowOpen(o=>!o)} aria-expanded={howOpen} style={{flex:1,display:"flex",alignItems:"center",gap:9,background:"none",border:"none",cursor:"pointer",padding:0,textAlign:"left",color:"inherit"}}>
+                <Robert size={26} bob={false}/>
+                <span style={{fontWeight:800,fontSize:13,color:C.text}}>Wie funktioniert's?</span>
+              </button>
+              <button onClick={dismissIntro} style={{fontSize:11,fontWeight:700,color:C.textLight,background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"2px 2px"}}>Schließen</button>
+              <button onClick={()=>setHowOpen(o=>!o)} aria-hidden="true" tabIndex={-1} style={{color:C.textLight,fontSize:12,background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:0,display:"inline-flex",transform:howOpen?"rotate(180deg)":"none",transition:"transform .2s"}}>▾</button>
+            </div>
             {howOpen&&(
               <div style={{padding:"0 14px 14px"}}>
                 {[["📍","Hörsaal wählen oder QR davor scannen"],["💳","Mit deinem Namen bestellen & bezahlen"],["🤖","Robert bringt's vor den Hörsaal – Push, wenn er da ist"]].map(([ic,t],i)=>(
