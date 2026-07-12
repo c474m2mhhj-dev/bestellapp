@@ -572,8 +572,8 @@ function BottomNav(){
   const items=NAV.filter(n=>n.id!=="admin"||adminAccess); // Admin nur mit Team-Link sichtbar
   return(
     <nav style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:C.navBg,backdropFilter:"blur(24px)",WebkitBackdropFilter:"blur(24px)",borderTop:`1px solid ${C.border}`,display:"flex",zIndex:400,paddingTop:5,paddingBottom:"max(8px,env(safe-area-inset-bottom))"}}>
-      {items.map(({id,label,icon})=>{const on=active(id);return(
-        <button key={id} onClick={()=>go(id)} aria-label={label} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px 2px",minHeight:48,justifyContent:"center",position:"relative",border:"none",background:"none",cursor:"pointer",color:on?C.primary:C.textLight,fontSize:10,fontWeight:on?700:500,transition:"color .15s"}}>
+      {items.map(({id,label,icon})=>{const on=active(id);const cnt=id==="menu"?qty:id==="orders"?activeOrds:id==="admin"?newAdminOrds:0;const suffix=cnt>0?`, ${cnt} ${id==="menu"?"im Warenkorb":id==="orders"?"aktive Bestellungen":"neue Bestellungen"}`:"";return(
+        <button key={id} onClick={()=>go(id)} aria-label={label+suffix} aria-current={on?"page":undefined} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",gap:2,padding:"4px 2px",minHeight:48,justifyContent:"center",position:"relative",border:"none",background:"none",cursor:"pointer",color:on?C.primary:C.textLight,fontSize:10,fontWeight:on?700:500,transition:"color .15s"}}>
           <span style={{display:"flex",alignItems:"center",justifyContent:"center",padding:"3px 16px",borderRadius:999,background:on?(dk?"rgba(77,182,169,.18)":C.light):"transparent",transition:"background .18s"}}>{icon(on)}</span>
           <span>{label}</span>
           {id==="menu"&&badge(qty)}
