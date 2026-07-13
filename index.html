@@ -933,7 +933,7 @@ function HomeScreen(){
           <div style={{marginBottom:18}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <p style={{fontWeight:800,fontSize:16,color:C.text}}>♥ Deine Favoriten</p>
-              <button onClick={()=>go("menu")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer",padding:"8px 6px",margin:"-8px -6px"}}>Alle →</button>
+              <button onClick={()=>go("menu","Alle")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer",padding:"8px 6px",margin:"-8px -6px"}}>Alle →</button>
             </div>
             <div style={{display:"flex",gap:11,overflowX:"auto",scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16,paddingBottom:4}}>
               {favProds.map(p=>(
@@ -978,7 +978,7 @@ function HomeScreen(){
           <div style={{marginBottom:18}}>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <p style={{fontWeight:800,fontSize:16,color:C.text}}>🆕 Neuheiten</p>
-              <button onClick={()=>go("menu")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer",padding:"8px 6px",margin:"-8px -6px"}}>Alle →</button>
+              <button onClick={()=>go("menu","Alle")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer",padding:"8px 6px",margin:"-8px -6px"}}>Alle →</button>
             </div>
             <div style={{display:"flex",gap:12,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16}}>
               {neu.map(p=>(
@@ -1002,7 +1002,7 @@ function HomeScreen(){
             <p style={{fontWeight:800,fontSize:16,color:C.text}}>⭐ Beliebt heute</p>
             {temp!=null&&<p style={{fontSize:11,color:C.textLight,marginTop:2}}>{temp>=20?"☀️":temp<=11?"❄️":"⛅"} {Math.round(temp)}°C in Dieburg · {temp>=20?"Erfrischendes zuerst":temp<=11?"Wärmendes zuerst":"für jedes Wetter"}</p>}
           </div>
-          <button onClick={()=>go("menu")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"8px 6px",margin:"-8px -6px"}}>Alle →</button>
+          <button onClick={()=>go("menu","Alle")} style={{color:C.primary,fontWeight:700,fontSize:13,background:"none",border:"none",cursor:"pointer",flexShrink:0,padding:"8px 6px",margin:"-8px -6px"}}>Alle →</button>
         </div>
         <div style={{display:"flex",gap:12,overflowX:"auto",paddingBottom:8,scrollbarWidth:"none",margin:"0 -16px",paddingLeft:16,paddingRight:16}}>
           {loading
