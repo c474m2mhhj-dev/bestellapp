@@ -1993,17 +1993,21 @@ function KitchenScreen(){
             const cfg=stCfg[o.status];
             const age=Math.floor((Date.now()-o.createdAt)/60000);
             const totalItems=o.items.reduce((s,it)=>s+it.qty,0);
-            const urgent=age>=10,warn=age>=5&&age<10;
-            const borderCol=urgent?"#EF4444":warn?"#F59E0B":"transparent";
+            // Kunde sieht die Bestellung bereits als erledigt (>30 Min über Zielzeit) → wohl abgeholt/abgebrochen.
+            // Kein Fehlalarm mehr (kein rotes Pulsieren), sondern klar als "evtl. abbrechen" gekennzeichnet.
+            const stale=effStatus(o)==="done";
+            const urgent=!stale&&age>=10,warn=!stale&&age>=5&&age<10;
+            const borderCol=stale?"#6B7280":urgent?"#EF4444":warn?"#F59E0B":"transparent";
             return(
-              <div key={o.id} style={{background:cfg.bg,borderRadius:14,padding:16,display:"flex",flexDirection:"column",gap:10,border:`2px solid ${borderCol}`,animation:urgent?"kPulse 1.8s ease-in-out infinite":undefined}}>
+              <div key={o.id} style={{background:cfg.bg,borderRadius:14,padding:16,display:"flex",flexDirection:"column",gap:10,border:`2px solid ${borderCol}`,animation:urgent?"kPulse 1.8s ease-in-out infinite":undefined,opacity:stale?.72:1}}>
                 <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
                   <div>
                     <p style={{color:"#fff",fontWeight:900,fontSize:22}}>{o.avatar?o.avatar+" ":""}{o.customer||"Gast"}</p>
                     <p style={{color:"#9ad6cc",fontSize:12,fontWeight:700,marginTop:1}}>{o.mode==="pickup"?"🛍️ Abholung":"📍 "+o.table} · {totalItems} Artikel · {orderNo(o)}</p>
                   </div>
-                  <span style={{fontSize:12,fontWeight:700,color:urgent?"#F87171":warn?"#FCD34D":"#888",background:"rgba(0,0,0,.3)",borderRadius:20,padding:"3px 9px"}}>{age} min{urgent?" ⚠️":warn?" ⚡":""}</span>
+                  <span style={{fontSize:12,fontWeight:700,color:stale?"#C4B5FD":urgent?"#F87171":warn?"#FCD34D":"#888",background:"rgba(0,0,0,.3)",borderRadius:20,padding:"3px 9px",whiteSpace:"nowrap"}}>{age} min{stale?" 🕒":urgent?" ⚠️":warn?" ⚡":""}</span>
                 </div>
+                {stale&&<p style={{fontSize:11,fontWeight:700,color:"#C4B5FD",background:"rgba(124,58,237,.15)",border:"1px solid rgba(124,58,237,.35)",borderRadius:8,padding:"5px 9px",margin:0}}>🕒 Kunde sieht sie bereits als erledigt – evtl. abbrechen</p>}
                 <div style={{flex:1}}>
                   {o.items.map((it,i)=>(
                     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",marginBottom:5}}>
