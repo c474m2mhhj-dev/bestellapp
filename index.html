@@ -2959,14 +2959,25 @@ function OfflineBanner(){
 class ErrorBoundary extends React.Component{
   constructor(p){super(p);this.state={e:null};}
   static getDerivedStateFromError(e){return{e};}
+  reset(){ // lokale App-Daten leeren, um eine Absturzschleife durch einen korrupten Wert zu durchbrechen
+    try{Object.keys(localStorage).filter(k=>k.startsWith("zr_")).forEach(k=>localStorage.removeItem(k));}catch(e){}
+    window.location.reload();
+  }
   render(){
-    if(this.state.e)return(
-      <div style={{minHeight:"100svh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,gap:16,background:"#F0FDF4",fontFamily:"-apple-system,sans-serif"}}>
-        <div style={{fontSize:52}}>⚠️</div>
-        <h2 style={{fontWeight:800,fontSize:18,color:"#1A1A1A",textAlign:"center"}}>Ups, etwas ist schief gelaufen</h2>
-        <button onClick={()=>window.location.reload()} style={{padding:"12px 28px",background:"#00695C",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer"}}>Neu laden</button>
-      </div>
-    );
+    if(this.state.e){
+      let dark=false;
+      try{const v=localStorage.getItem("zr_dark");dark=v!==null?JSON.parse(v):!!(window.matchMedia&&window.matchMedia("(prefers-color-scheme: dark)").matches);}catch(e){}
+      const bg=dark?"#0F1B17":"#F0FDF4",fg=dark?"#F0F4F2":"#1A1A1A",sub=dark?"#9FB0AA":"#5A6B64";
+      return(
+        <div style={{minHeight:"100svh",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,gap:14,background:bg,fontFamily:"-apple-system,sans-serif"}}>
+          <div style={{fontSize:52}}>⚠️</div>
+          <h2 style={{fontWeight:800,fontSize:18,color:fg,textAlign:"center"}}>Ups, etwas ist schief gelaufen</h2>
+          <p style={{fontSize:13.5,color:sub,textAlign:"center",maxWidth:300,lineHeight:1.5,margin:0}}>Bitte lade die App neu. Falls das Problem bleibt, kannst du die lokalen App-Daten zurücksetzen.</p>
+          <button onClick={()=>window.location.reload()} style={{padding:"12px 28px",background:"#00695C",color:"#fff",border:"none",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer"}}>Neu laden</button>
+          <button onClick={()=>this.reset()} style={{padding:"9px 20px",background:"none",color:sub,border:`1px solid ${dark?"#2A3A34":"#CBD5D0"}`,borderRadius:10,fontWeight:600,fontSize:13,cursor:"pointer"}}>App-Daten zurücksetzen</button>
+        </div>
+      );
+    }
     return this.props.children;
   }
 }
