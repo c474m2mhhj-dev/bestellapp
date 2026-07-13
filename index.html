@@ -2,7 +2,10 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <!-- Pinch-Zoom erlauben (WCAG 1.4.4): kein maximum-scale/user-scalable=no.
+       Versehentlicher Doppeltipp-Zoom auf Bedienelementen ist über
+       touch-action:manipulation (siehe <style>) bereits unterbunden. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
   <meta name="theme-color" content="#004D40"/>
   <meta name="mobile-web-app-capable" content="yes"/>
   <meta name="apple-mobile-web-app-capable" content="yes"/>
